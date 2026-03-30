@@ -5,7 +5,7 @@ A Firefox-only MV3 extension that enhances the Path of Exile trade site with boo
 - **Bookmark trade searches** into named folders, mark trades complete, and update saved locations as leagues change
 - **Track search history** automatically as you browse trade pages
 - **Live enhancers** on trade result pages: equivalent chaos/divine pricing, stat filter highlighting, socket warnings, and grouped duplicate listings
-- **Import from the old add-on**: paste a folder export string or a full backup file and your data carries over
+- **Import from the original add-on**: paste a folder export string or a full backup file and your data carries over
 
 The in-page panel handles live trade work. The popup manages bookmarks, history, settings, and imports.
 
@@ -64,7 +64,7 @@ A release workflow triggers on semver tags (`v*.*.*`), runs the same gates, then
 To import data from the original Better Trading add-on:
 
 1. Open the extension popup and go to the **Import** tab
-2. Paste a folder export string (`3:eyJ...`) or the full backup text from the old add-on
+2. Paste a folder export string (`3:eyJ...`) or the full backup text from the original add-on
 3. Or click **Backup file** to load a `.txt` backup file directly
 4. Preview the folder and trade counts, then click **Import legacy data**
 
