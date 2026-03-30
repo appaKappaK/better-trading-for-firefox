@@ -1,0 +1,23 @@
+:root {
+  font-family:
+    "Trebuchet MS",
+    system-ui,
+    sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #18202a;
+  background:
+    radial-gradient(circle at top left, rgba(245, 195, 80, 0.24), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(198, 133, 36, 0.14), transparent 40%),
+    linear-gradient(180deg, #fffdf7, #f2e7d8);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 360px;
+}

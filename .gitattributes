@@ -1,0 +1,16 @@
+# Normalize all text files to LF in the repo and on checkout.
+# Keeps commits consistent between Windows and Linux/Fedora checkouts
+# and matches the Ubuntu CI environment.
+* text=auto eol=lf
+
+# Explicitly mark binaries so git never tries to diff or convert them.
+*.png  binary
+*.ico  binary
+*.zip  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.eot  binary
+
+# Mark generated/vendored files so GitHub language stats stay accurate.
+package-lock.json linguist-generated=true

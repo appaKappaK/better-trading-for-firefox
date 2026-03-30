@@ -1,0 +1,40 @@
+{
+  "name": "better_trading_for_firefox",
+  "description": "Firefox-first rebuild spike for Better Trading on the Path of Exile trade site.",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "wxt -b firefox --mv3",
+    "dev:firefox": "npm run dev",
+    "build": "wxt build -b firefox --mv3",
+    "build:firefox": "npm run build",
+    "zip": "wxt zip -b firefox --mv3",
+    "zip:firefox": "npm run zip",
+    "lint:firefox": "node ./scripts/lint-firefox.mjs",
+    "compile": "tsc --noEmit",
+    "smoke:firefox": "npm run zip && node ./scripts/smoke-firefox.mjs",
+    "test": "vitest run",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "preact": "^10.29.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@wxt-dev/module-react": "^1.1.5",
+    "jsdom": "^26.1.0",
+    "selenium-webdriver": "^4.41.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "web-ext": "^9.4.0",
+    "wxt": "^0.20.20"
+  }
+}
