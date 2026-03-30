@@ -72,6 +72,14 @@ All v1, v2, and v3 export formats are supported. Your old extension data is neve
 
 To export your current data: go to the **Bookmarks** tab in the popup and use **Download backup** or **Copy full backup**.
 
+## Background
+
+This extension is a Firefox-native rebuild of [Better Trading](https://github.com/exile-center/better-trading) by exile-center.
+
+The original add-on is Chrome-first. The author has been open about deprioritizing Firefox, citing the stricter review process and smaller user base — the last Firefox release was v1.3.2, which predates Manifest V3 and has fallen increasingly out of step with both Firefox and the trade site itself.
+
+This rebuild starts from scratch with a Firefox-only MV3 architecture, using WXT and Preact instead of the original Ember-based stack. The bookmark export format is kept fully compatible with the original so existing data carries over without any loss.
+
 ## Notes
 
 - Firefox is the only supported browser — no Chrome, no cross-browser shims.
