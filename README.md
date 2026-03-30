@@ -77,4 +77,3 @@ To export your current data: go to the **Bookmarks** tab in the popup and use **
 - Firefox is the only supported browser — no Chrome, no cross-browser shims.
 - The build aliases `react`/`react-dom` to `preact/compat` to minimize bundle size.
 - `npm run lint:firefox` suppresses framework-generated `innerHTML` warnings from bundled output only. Any authored `innerHTML` in `src/` or `entrypoints/` will surface immediately.
-- The reference Ember-based repo lives at `../better-trading` and is kept frozen for parity checks and migration validation.
