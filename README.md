@@ -5,7 +5,7 @@ A Firefox-only MV3 extension that enhances the Path of Exile trade site with boo
 - **Bookmark trade searches** into named folders, mark trades complete, and update saved locations as leagues change
 - **Track search history** automatically as you browse trade pages
 - **Live enhancers** on trade result pages: equivalent chaos/divine pricing, stat filter highlighting, socket warnings, and grouped duplicate listings
-- **Import from the old add-on** — paste a folder export string or a full backup file and your data carries over
+- **Import from the old add-on**: paste a folder export string or a full backup file and your data carries over
 
 The in-page panel handles live trade work. The popup manages bookmarks, history, settings, and imports.
 
@@ -34,7 +34,7 @@ npm run build
 | `npm run zip` | Package a signed-ready `.zip` for AMO upload |
 | `npm run compile` | TypeScript type-check (no emit) |
 | `npm test` | Unit tests via Vitest |
-| `npm run lint:firefox` | `web-ext lint` — auto-builds if output is missing |
+| `npm run lint:firefox` | `web-ext lint`, auto-builds if output is missing |
 | `npm run smoke:firefox` | End-to-end Selenium smoke test against a real Firefox binary |
 
 ### Smoke test
@@ -51,11 +51,11 @@ FIREFOX_BINARY=/path/to/firefox npm run smoke:firefox
 
 The GitHub Actions pipeline runs on every push and pull request:
 
-1. `npm run compile` — TypeScript
-2. `npm test` — unit tests
-3. `npm run build` — production build
-4. `npm run lint:firefox` — web-ext lint (0 warnings required)
-5. `npm run smoke:firefox` — headless Firefox smoke test
+1. `npm run compile` - TypeScript
+2. `npm test` - unit tests
+3. `npm run build` - production build
+4. `npm run lint:firefox` - web-ext lint (0 warnings required)
+5. `npm run smoke:firefox` - headless Firefox smoke test
 
 A release workflow triggers on semver tags (`v*.*.*`), runs the same gates, then zips and attaches the artifact to a GitHub Release.
 
@@ -76,12 +76,12 @@ To export your current data: go to the **Bookmarks** tab in the popup and use **
 
 This extension is a Firefox-native rebuild of [Better Trading](https://github.com/exile-center/better-trading) by exile-center.
 
-The original add-on is Chrome-first. The author has been open about deprioritizing Firefox, citing the stricter review process and smaller user base — the last Firefox release was v1.3.2, which predates Manifest V3 and has fallen increasingly out of step with both Firefox and the trade site itself.
+The original add-on is Chrome-first. The author has been open about deprioritizing Firefox, citing the stricter review process and smaller user base. The last Firefox release was v1.3.2, which predates Manifest V3 and has fallen increasingly out of step with both Firefox and the trade site itself.
 
 This rebuild starts from scratch with a Firefox-only MV3 architecture, using WXT and Preact instead of the original Ember-based stack. The bookmark export format is kept fully compatible with the original so existing data carries over without any loss.
 
 ## Notes
 
-- Firefox is the only supported browser — no Chrome, no cross-browser shims.
+- Firefox is the only supported browser, no Chrome, no cross-browser shims.
 - The build aliases `react`/`react-dom` to `preact/compat` to minimize bundle size.
 - `npm run lint:firefox` suppresses framework-generated `innerHTML` warnings from bundled output only. Any authored `innerHTML` in `src/` or `entrypoints/` will surface immediately.
