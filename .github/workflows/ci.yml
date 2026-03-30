@@ -37,11 +37,14 @@ jobs:
         run: npm run lint:firefox
 
       - name: Install Firefox
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y firefox
+        id: setup-firefox
+        uses: browser-actions/setup-firefox@v1
+        with:
+          firefox-version: 'latest'
 
       - name: Smoke test
+        env:
+          FIREFOX_BINARY: ${{ steps.setup-firefox.outputs.firefox-path }}
         run: npm run smoke:firefox
 
       - name: Upload smoke screenshot
