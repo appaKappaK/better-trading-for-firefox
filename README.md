@@ -1,5 +1,6 @@
 # Better Trading for Firefox
-**POLISHING UI/USER-SPECIFIC NON-BREAKING BUGS BUT IT IS USABLE**
+``` ⚠️ POLISHING UI/USER-SPECIFIC NON-BREAKING BUGS BUT IT IS USABLE ⚠️ ```
+---
 A Firefox-only MV3 extension that enhances the Path of Exile trade site with bookmarks, search history, live trade enhancers, and seamless migration from the original Better Trading add-on.
 
 - **Bookmark trade searches** into named folders, mark trades complete, and update saved locations as leagues change
