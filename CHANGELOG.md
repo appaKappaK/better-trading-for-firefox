@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.0.4] - 2026-03-31
+
+### Added
+- Collapsed dock now shows a mini list of up to 5 pinned items with a scroll-to jump button each, so pinned results are accessible without expanding the panel
+- New setting "Allow dragging the overlay panel" (default off): enables header-drag repositioning in overlay mode; disabled automatically when sidebar mode is active
+- Few UI updates and fixes
+
+### Fixed
+- Panel logo now renders at 40×40 px, circular, with a subtle contrasting background so it reads clearly against the dark panel
+- Drag repositioning was broken: `applyOverlayPosition` was clearing the default `top`/`right` position immediately after it was set, leaving the panel without coordinates
+- Folder icon images now render in the in-page panel folder list (were only showing as emoji/text labels before)
+- Rename and Cancel buttons in the trade inline editor changed from the muted subtle style to ghost style so they no longer look disabled
+- Pinned item title extraction now tries `.itemName .itemHeader` before falling back to the full `.itemName` text content, preventing price and property text from bleeding into the title
+- Removed `.details .text` from pinned item subtitle selectors — it was duplicating price information in the subtitle field
+
+## [1.0.2] - 2026-03-31
+
+### Added
+- Sidebar mode for the in-page panel: new setting pushes trade page content aside instead of overlaying it; panel renders full-height flush to the viewport edge
+- Draggable overlay panel: the panel can be repositioned by dragging its header when not in sidebar mode; position is clamped to the viewport
+- Expanded folder icon set: PoE 2 class icons (Warrior, Sorceress, Ranger, Monk, Mercenary, Huntress) and additional currency icons (Orb of Alchemy, Essence, Fossil, Scarab, Map, Divination Card)
+
+### Changed
+- Collapse button in the panel footer is hidden when sidebar mode is active (collapsing is handled by toggling the setting)
+
 ## [1.0.1] - 2026-03-30
 
 ### Fixed

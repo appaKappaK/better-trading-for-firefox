@@ -45,6 +45,8 @@ export interface StorageSchemaV1 {
     expandedFolderIds: string[];
     disabledEnhancers: string[];
     sidePanelCollapsed: boolean;
+    sidePanelDraggable: boolean;
+    sidePanelSidebar: boolean;
     hasCompletedOnboarding: boolean;
     lastSeenLeagues: Record<TradeSiteVersion, string | null>;
   };
@@ -78,6 +80,8 @@ export function createEmptyStorageSchema(
       expandedFolderIds: [],
       disabledEnhancers: [],
       sidePanelCollapsed: false,
+      sidePanelDraggable: false,
+      sidePanelSidebar: false,
       hasCompletedOnboarding: false,
       lastSeenLeagues: {
         '1': null,

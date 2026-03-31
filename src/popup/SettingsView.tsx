@@ -10,6 +10,8 @@ const ORIGINAL_REPO_URL = 'https://github.com/exile-center/better-trading';
 interface Props {
   isSchemaLoading: boolean;
   onSetSidePanelCollapsed: (collapsed: boolean) => Promise<void> | void;
+  onSetSidePanelDraggable: (draggable: boolean) => Promise<void> | void;
+  onSetSidePanelSidebar: (sidebar: boolean) => Promise<void> | void;
   onToggleEnhancer: (slug: string, nextEnabled: boolean) => Promise<void> | void;
   schema: StorageSchemaV1 | null;
 }
@@ -17,18 +19,19 @@ interface Props {
 export function SettingsView({
   isSchemaLoading,
   onSetSidePanelCollapsed,
+  onSetSidePanelDraggable,
+  onSetSidePanelSidebar,
   onToggleEnhancer,
   schema,
 }: Props) {
   const disabledEnhancers = schema?.preferences.disabledEnhancers ?? [];
   const sidePanelCollapsed = Boolean(schema?.preferences.sidePanelCollapsed);
+  const sidePanelDraggable = Boolean(schema?.preferences.sidePanelDraggable);
+  const sidePanelSidebar = Boolean(schema?.preferences.sidePanelSidebar);
   const manifest = readManifestInfo();
 
   return (
     <>
-      <p className="popup-copy popup-copy--panel">
-        Changing an enhancer here updates what the in-page panel applies on trade pages.
-      </p>
 
       {isSchemaLoading ? (
         <p className="popup-empty">Loading saved settings...</p>
@@ -48,7 +51,35 @@ export function SettingsView({
                 type="checkbox"
               />
             </label>
+            <label className="popup-setting-card">
+              <div>
+                <strong>Open the in-page panel as a sidebar</strong>
+                <p>Pushes the trade page content over instead of overlaying it.</p>
+              </div>
+              <input
+                checked={sidePanelSidebar}
+                onChange={(event) => {
+                  void onSetSidePanelSidebar(event.target.checked);
+                }}
+                type="checkbox"
+              />
+            </label>
+            <label className="popup-setting-card">
+              <div>
+                <strong>Allow dragging the overlay panel</strong>
+                <p>Drag the panel header to reposition it when not in sidebar mode.</p>
+              </div>
+              <input
+                checked={sidePanelDraggable}
+                disabled={sidePanelSidebar}
+                onChange={(event) => {
+                  void onSetSidePanelDraggable(event.target.checked);
+                }}
+                type="checkbox"
+              />
+            </label>
           </section>
+
 
           <section className="popup-settings-list">
             {ENHANCER_DEFINITIONS.map((enhancer) => {
@@ -79,9 +110,6 @@ export function SettingsView({
             <article className="popup-setting-card popup-setting-card--stack">
               <div>
                 <strong>About this build</strong>
-                <p>
-                  {manifest.name} {manifest.version}
-                </p>
               </div>
 
               <div className="popup-about-grid">
@@ -138,7 +166,7 @@ function readManifestInfo() {
     | undefined;
 
   return {
-    name: manifest?.name ?? 'Better Trading for Firefox',
+    //name: manifest?.name ?? 'Better Trading for Firefox',
     version: manifest?.version ?? 'dev',
     geckoId: gecko?.id ?? null,
   };

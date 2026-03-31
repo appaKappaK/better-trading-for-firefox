@@ -19,7 +19,9 @@ import {
 } from '@/src/lib/storage/runtime';
 import {
   FOLDER_ICON_OPTIONS,
+  getFolderIconImageUrl,
   getFolderIconLabel,
+  getFolderIconSymbol,
 } from '@/src/lib/bookmarks/folderIcons';
 import { readImportFile } from '@/src/popup/importFiles';
 import { SettingsView } from '@/src/popup/SettingsView';
@@ -29,6 +31,7 @@ import './App.css';
 type PopupPage = 'bookmarks' | 'history' | 'import' | 'settings';
 type FeedbackTone = 'neutral' | 'success' | 'error';
 
+
 interface FeedbackState {
   tone: FeedbackTone;
   title: string;
@@ -37,9 +40,15 @@ interface FeedbackState {
 
 const DEFAULT_FEEDBACK: FeedbackState = {
   tone: 'neutral',
+  title: 'Loading schema',
+  message: 'Reading your saved Better Trading data...',
+};
+
+const ONBOARDING_FEEDBACK: FeedbackState = {
+  tone: 'neutral',
   title: 'Welcome to Better Trading for Firefox',
   message:
-    'Import a legacy backup or start fresh to begin. Use the Import tab to bring over folders from the old add-on.',
+    'Import a legacy backup or start fresh to begin. Use the Import tab to bring over folders from the original add-on.',
 };
 
 const PAGE_LABELS: Record<PopupPage, string> = {
@@ -85,7 +94,7 @@ function App() {
         applyLoadedSchema(nextSchema);
 
         if (!nextSchema.preferences.hasCompletedOnboarding) {
-          setFeedback(DEFAULT_FEEDBACK);
+          setFeedback(ONBOARDING_FEEDBACK);
         }
       } catch (error) {
         if (!isActive) return;
@@ -122,8 +131,8 @@ function App() {
     startTransition(() => {
       setSchema(nextSchema);
       setActivePage((currentPage) => {
-        if (!nextSchema.preferences.hasCompletedOnboarding) return 'import';
         if (currentPage === 'settings') return 'settings';
+        if (!nextSchema.preferences.hasCompletedOnboarding) return 'import';
         if (currentPage === 'import') {
           return normalizeStoredPage(nextSchema.preferences.currentPage);
         }
@@ -422,6 +431,50 @@ function App() {
     }
   }
 
+  async function handleSetSidePanelDraggable(draggable: boolean) {
+    try {
+      const nextSchema = await updateStoredPreferences({
+        sidePanelDraggable: draggable,
+      });
+      applyLoadedSchema(nextSchema);
+      setFeedback({
+        tone: 'success',
+        title: 'Panel preference saved',
+        message: draggable
+          ? 'The overlay panel can now be dragged by its header.'
+          : 'The overlay panel is fixed in place.',
+      });
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        title: 'Could not save panel preference',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  async function handleSetSidePanelSidebar(sidebar: boolean) {
+    try {
+      const nextSchema = await updateStoredPreferences({
+        sidePanelSidebar: sidebar,
+      });
+      applyLoadedSchema(nextSchema);
+      setFeedback({
+        tone: 'success',
+        title: 'Panel preference saved',
+        message: sidebar
+          ? 'The in-page panel will push page content over.'
+          : 'The in-page panel will overlay the page.',
+      });
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        title: 'Could not save panel preference',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   async function handleToggleEnhancer(slug: string, nextEnabled: boolean) {
     if (!schema) return;
 
@@ -455,31 +508,10 @@ function App() {
   return (
     <main className="popup-shell">
       <section className="popup-hero">
-        <p className="popup-eyebrow">Better Trading for Firefox</p>
-        <h1>Manage Bookmarks</h1>
+        <h2 className="popup-eyebrow">Better Trading for Firefox</h2>
         <p className="popup-copy">
-          Save trade searches, browse history, and manage bookmarks from here.
-          Use the in-page panel on trade pages for live enhancers and quick saves.
+          Use the in-page panel on the trade page for pinning searches, browsing history, managing bookmarks.
         </p>
-      </section>
-
-      <section className="popup-summary-grid" aria-label="Schema summary">
-        <article className="popup-summary-card">
-          <span className="popup-summary-label">Folders</span>
-          <strong>{folders.length}</strong>
-        </article>
-        <article className="popup-summary-card">
-          <span className="popup-summary-label">Trades</span>
-          <strong>{bookmarkTradeCount}</strong>
-        </article>
-        <article className="popup-summary-card">
-          <span className="popup-summary-label">History</span>
-          <strong>{historyEntries.length}</strong>
-        </article>
-        <article className="popup-summary-card">
-          <span className="popup-summary-label">Schema</span>
-          <strong>v{schema?.schemaVersion ?? 1}</strong>
-        </article>
       </section>
 
       <section className="popup-status" data-tone={feedback.tone}>
@@ -561,10 +593,31 @@ function App() {
           <SettingsView
             isSchemaLoading={isSchemaLoading}
             onSetSidePanelCollapsed={handleSetSidePanelCollapsed}
+            onSetSidePanelDraggable={handleSetSidePanelDraggable}
+            onSetSidePanelSidebar={handleSetSidePanelSidebar}
             onToggleEnhancer={handleToggleEnhancer}
             schema={schema}
           />
         ) : null}
+      </section>
+
+      <section className="popup-summary-grid" aria-label="Schema summary">
+        <article className="popup-summary-card">
+          <span className="popup-summary-label">Folders</span>
+          <strong>{folders.length}</strong>
+        </article>
+        <article className="popup-summary-card">
+          <span className="popup-summary-label">Trades</span>
+          <strong>{bookmarkTradeCount}</strong>
+        </article>
+        <article className="popup-summary-card">
+          <span className="popup-summary-label">History</span>
+          <strong>{historyEntries.length}</strong>
+        </article>
+        <article className="popup-summary-card">
+          <span className="popup-summary-label">Schema</span>
+          <strong>v{schema?.schemaVersion ?? 1}</strong>
+        </article>
       </section>
     </main>
   );
@@ -809,9 +862,15 @@ function BookmarksPanel({
                     <h3>{folder.title}</h3>
                     <p>
                       PoE {folder.version}
-                      {folder.icon ? ` • ${getFolderIconLabel(folder.icon)}` : ''}
+                      {folder.icon ? ` | ${getFolderIconLabel(folder.icon)}` : ''}
                     </p>
                   </div>
+                  {folder.icon ? (
+                    <FolderIcon
+                      label={getFolderIconLabel(folder.icon) ?? folder.icon}
+                      slug={folder.icon}
+                    />
+                  ) : null}
                   <div className="popup-record-badges">
                     <span>{trades.length} trades</span>
                     {folder.archivedAt ? <span>Archived</span> : <span>Active</span>}
@@ -919,7 +978,7 @@ function BookmarksPanel({
                             <div>
                               <strong>{trade.title}</strong>
                               <span>
-                                PoE {trade.location.version} • {trade.location.type} •{' '}
+                                PoE {trade.location.version} | {trade.location.type} |{' '}
                                 {shortenSlug(trade.location.slug)}
                               </span>
                             </div>
@@ -1000,8 +1059,7 @@ function HistoryPanel({ historyEntries, isSchemaLoading, onClearHistory }: Histo
   if (historyEntries.length === 0) {
     return (
       <p className="popup-empty">
-        Visit trade searches and the in-page panel will keep filling this
-        history feed from the pages you open.
+        Recent trade searches will appear here.
       </p>
     );
   }
@@ -1027,8 +1085,8 @@ function HistoryPanel({ historyEntries, isSchemaLoading, onClearHistory }: Histo
               <div>
                 <h3>{entry.title}</h3>
                 <p>
-                  PoE {entry.version} • {entry.league} • {entry.type}
-                  {entry.isLive ? ' • live' : ''}
+                  PoE {entry.version} | {entry.league} | {entry.type}
+                  {entry.isLive ? ' | live' : ''}
                 </p>
               </div>
               <span className="popup-history-date">{formatTimestamp(entry.createdAt)}</span>
@@ -1090,6 +1148,19 @@ function formatTimestamp(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date);
+}
+
+function FolderIcon({ slug, label }: { slug: string; label: string }) {
+  const imageUrl = getFolderIconImageUrl(slug);
+  if (imageUrl) {
+    return <img alt={label} className="popup-folder-icon" src={imageUrl} />;
+  }
+
+  return (
+    <span aria-label={label} className="popup-folder-icon-fallback" title={label}>
+      {getFolderIconSymbol(slug) ?? '📁'}
+    </span>
+  );
 }
 
 export default App;

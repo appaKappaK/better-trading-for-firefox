@@ -19,11 +19,12 @@ web-ext.config.ts
 .env.*
 
 # Editor directories and files
-.vscode/*
+.vscode/
 !.vscode/extensions.json
 .idea
 .DS_Store
 Thumbs.db
+EXTpics/
 
 # Icon source files
 ico/

@@ -1,19 +1,19 @@
 .popup-shell {
   box-sizing: border-box;
-  width: 360px;
+  width: 420px;
   min-height: 100vh;
   padding: 18px;
-  color: #17212c;
+  color: #cfd4db;
 }
 
 .popup-hero {
   padding: 14px 14px 12px;
-  border: 1px solid rgba(140, 97, 26, 0.18);
+  border: 1px solid rgba(184, 110, 39, 0.2);
   border-radius: 18px;
   background:
-    radial-gradient(circle at top right, rgba(247, 196, 91, 0.28), transparent 36%),
-    linear-gradient(180deg, rgba(255, 250, 238, 0.96), rgba(245, 236, 220, 0.92));
-  box-shadow: 0 18px 40px rgba(76, 59, 28, 0.12);
+    radial-gradient(circle at top right, rgba(184, 110, 39, 0.15), transparent 36%),
+    linear-gradient(180deg, rgba(26, 31, 42, 0.98), rgba(22, 27, 36, 0.96));
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3);
 }
 
 .popup-eyebrow,
@@ -25,7 +25,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #745624;
+  color: #c4952a;
 }
 
 .popup-shell h1,
@@ -46,7 +46,7 @@
 
 .popup-copy {
   margin: 10px 0 0;
-  color: #425263;
+  color: #6d7885;
   font-size: 13px;
 }
 
@@ -65,10 +65,10 @@
 .popup-tool-card,
 .popup-panel,
 .popup-status {
-  border: 1px solid rgba(34, 47, 62, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 12px 32px rgba(33, 42, 52, 0.08);
+  background: rgba(26, 32, 42, 0.95);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
 }
 
 .popup-summary-card {
@@ -79,7 +79,7 @@
   display: block;
   margin-top: 4px;
   font-size: 22px;
-  color: #112033;
+  color: #dfe3e8;
 }
 
 .popup-status {
@@ -88,17 +88,17 @@
 }
 
 .popup-status[data-tone='neutral'] {
-  border-color: rgba(125, 98, 43, 0.16);
+  border-color: rgba(184, 110, 39, 0.16);
 }
 
 .popup-status[data-tone='success'] {
-  border-color: rgba(47, 126, 85, 0.24);
-  background: rgba(239, 252, 244, 0.94);
+  border-color: rgba(47, 126, 85, 0.3);
+  background: rgba(20, 40, 28, 0.94);
 }
 
 .popup-status[data-tone='error'] {
-  border-color: rgba(168, 57, 39, 0.24);
-  background: rgba(255, 242, 239, 0.96);
+  border-color: rgba(168, 57, 39, 0.3);
+  background: rgba(38, 18, 16, 0.96);
 }
 
 .popup-status-title,
@@ -114,7 +114,7 @@
 .popup-status-message {
   margin-top: 4px;
   font-size: 12px;
-  color: #41505e;
+  color: #8a97a5;
 }
 
 .popup-tabs {
@@ -126,20 +126,23 @@
 
 .popup-tab {
   appearance: none;
-  border: 1px solid rgba(33, 48, 61, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.74);
-  color: #314252;
-  padding: 8px 10px;
-  font-size: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #8a97a5;
+  padding: 8px 6px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .popup-tab[data-active='true'] {
-  border-color: rgba(193, 132, 33, 0.4);
-  background: linear-gradient(180deg, rgba(255, 241, 208, 0.98), rgba(247, 228, 184, 0.96));
-  color: #6f4410;
+  border-color: rgba(184, 110, 39, 0.3);
+  background: rgba(184, 110, 39, 0.18);
+  color: #f0d090;
 }
 
 .popup-tab:disabled {
@@ -174,7 +177,7 @@
 .popup-file-picker span {
   font-size: 12px;
   font-weight: 700;
-  color: #233241;
+  color: #9aa5b1;
 }
 
 .popup-file-picker {
@@ -185,11 +188,11 @@
 
 .popup-file-picker input[type='file'] {
   font-size: 12px;
-  color: #243241;
+  color: #9aa5b1;
 }
 
 .popup-file-picker small {
-  color: #5a6875;
+  color: #6d7885;
   font-size: 11px;
 }
 
@@ -197,11 +200,11 @@
   width: 100%;
   resize: vertical;
   box-sizing: border-box;
-  border: 1px solid rgba(39, 53, 66, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(14, 18, 26, 0.9);
   padding: 10px 12px;
-  color: #152130;
+  color: #cfd4db;
   font:
     12px/1.5 Consolas,
     "Courier New",
@@ -209,29 +212,32 @@
 }
 
 .popup-field textarea:focus {
-  outline: 2px solid rgba(194, 138, 36, 0.26);
-  border-color: rgba(194, 138, 36, 0.52);
+  outline: 2px solid rgba(184, 110, 39, 0.2);
+  border-color: rgba(184, 110, 39, 0.4);
 }
 
 .popup-preview {
   margin-top: 12px;
   padding: 12px;
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(246, 242, 235, 0.92), rgba(255, 255, 255, 0.94));
+  background: rgba(26, 32, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .popup-preview[data-state='invalid'] {
-  background: rgba(255, 242, 239, 0.96);
+  background: rgba(38, 18, 16, 0.96);
+  border-color: rgba(168, 57, 39, 0.2);
 }
 
 .popup-preview[data-state='ready'] {
-  background: rgba(240, 251, 245, 0.94);
+  background: rgba(18, 36, 26, 0.94);
+  border-color: rgba(47, 126, 85, 0.2);
 }
 
 .popup-preview p {
   margin: 0;
   font-size: 12px;
-  color: #324353;
+  color: #9aa5b1;
 }
 
 .popup-preview-metrics {
@@ -244,10 +250,10 @@
 .popup-preview-metrics span {
   padding: 5px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.07);
   font-size: 11px;
   font-weight: 700;
-  color: #293646;
+  color: #cfd4db;
 }
 
 .popup-folder-list {
@@ -265,7 +271,7 @@
   align-items: center;
   padding: 8px 10px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.84);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .popup-folder-list strong,
@@ -275,7 +281,7 @@
 }
 
 .popup-folder-list span {
-  color: #4c5b6a;
+  color: #6d7885;
 }
 
 .popup-preview-footnote {
@@ -323,8 +329,8 @@
 .popup-history-item {
   padding: 12px;
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(250, 247, 240, 0.98), rgba(255, 255, 255, 0.94));
-  border: 1px solid rgba(39, 53, 66, 0.08);
+  background: rgba(26, 32, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .popup-folder-header {
@@ -336,6 +342,7 @@
   border: 0;
   padding: 0;
   background: transparent;
+  color: inherit;
   text-align: left;
   cursor: pointer;
 }
@@ -347,6 +354,27 @@
   align-items: flex-start;
 }
 
+.popup-folder-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  margin-top: 1px;
+}
+
+.popup-folder-icon-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+}
+
 .popup-record-header h3 {
   margin: 0;
   font-size: 14px;
@@ -354,7 +382,7 @@
 
 .popup-record-header p {
   margin: 4px 0 0;
-  color: #5a6671;
+  color: #6d7885;
   font-size: 11px;
 }
 
@@ -369,8 +397,8 @@
 .popup-history-date {
   padding: 4px 7px;
   border-radius: 999px;
-  background: rgba(242, 231, 208, 0.84);
-  color: #684516;
+  background: rgba(184, 110, 39, 0.2);
+  color: #f0d090;
   font-size: 10px;
   font-weight: 700;
 }
@@ -398,7 +426,7 @@
 .popup-trade-list li {
   padding: 9px 10px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(20, 25, 34, 0.95);
 }
 
 .popup-trade-list strong,
@@ -412,7 +440,7 @@
 .popup-inline-empty,
 .popup-empty {
   margin-top: 4px;
-  color: #516170;
+  color: #6d7885;
   font-size: 12px;
 }
 
@@ -423,14 +451,14 @@
 
 .popup-inline-note {
   margin: 10px 0 0;
-  color: #687583;
+  color: #6d7885;
   font-size: 11px;
 }
 
 .popup-empty {
   padding: 12px;
   border-radius: 14px;
-  background: rgba(248, 245, 237, 0.92);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .popup-empty--compact {
@@ -451,8 +479,8 @@
   align-items: flex-start;
   padding: 12px;
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(250, 247, 240, 0.98), rgba(255, 255, 255, 0.94));
-  border: 1px solid rgba(39, 53, 66, 0.08);
+  background: rgba(26, 32, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .popup-setting-card--stack {
@@ -470,7 +498,7 @@
 
 .popup-setting-card p {
   margin: 4px 0 0;
-  color: #53616f;
+  color: #6d7885;
   font-size: 12px;
 }
 
@@ -490,8 +518,8 @@
 .popup-about-pill {
   padding: 5px 8px;
   border-radius: 999px;
-  background: rgba(242, 231, 208, 0.84);
-  color: #684516;
+  background: rgba(184, 110, 39, 0.2);
+  color: #f0d090;
   font-size: 10px;
   font-weight: 700;
 }
@@ -508,14 +536,14 @@
 }
 
 .popup-about-details dt {
-  color: #5a6875;
+  color: #6d7885;
   font-size: 11px;
   font-weight: 700;
 }
 
 .popup-about-details dd {
   margin: 0;
-  color: #1f2f40;
+  color: #cfd4db;
   font-size: 12px;
 }
 
@@ -526,14 +554,48 @@
 }
 
 .popup-link-button {
-  color: #7c4f0d;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #c4952a;
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
+  cursor: pointer;
 }
 
-.popup-link-button:hover {
+.popup-link-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.popup-link-button:hover:not(:disabled) {
   text-decoration: underline;
+}
+
+.popup-poe-ninja-status {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #6d7885;
+}
+
+.popup-poe-ninja-status small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #5d6875;
+}
+
+.popup-poe-ninja-status[data-poe-ninja-state='success'] {
+  color: #4a9e6a;
+}
+
+.popup-poe-ninja-status[data-poe-ninja-state='error'] {
+  color: #c85a4a;
+}
+
+.popup-poe-ninja-status[data-poe-ninja-state='loading'] {
+  color: #5a8ab8;
 }
 
 .popup-inline-actions {
@@ -546,8 +608,8 @@
 .popup-inline-badge {
   padding: 4px 7px;
   border-radius: 999px;
-  background: rgba(233, 239, 246, 0.9);
-  color: #344454;
+  background: rgba(255, 255, 255, 0.07);
+  color: #9aa5b1;
   font-size: 10px;
   font-weight: 700;
 }
@@ -562,7 +624,7 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 10px 22px rgba(124, 78, 14, 0.24);
+  box-shadow: 0 10px 22px rgba(124, 78, 14, 0.3);
 }
 
 .popup-button:hover:enabled {
@@ -581,16 +643,16 @@
 }
 
 .popup-button--secondary {
-  background: rgba(255, 255, 255, 0.84);
-  color: #223344;
-  border: 1px solid rgba(33, 48, 61, 0.14);
+  background: rgba(255, 255, 255, 0.07);
+  color: #cfd4db;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: none;
 }
 
 .popup-button--danger {
-  border-color: rgba(168, 57, 39, 0.28);
-  color: #8e2817;
-  background: rgba(255, 242, 239, 0.96);
+  border: 1px solid rgba(168, 57, 39, 0.3);
+  color: #e07060;
+  background: rgba(38, 18, 16, 0.96);
 }
 
 .popup-record-actions {
@@ -602,29 +664,29 @@
   align-items: center;
   padding: 5px 8px;
   border-radius: 999px;
-  background: rgba(228, 246, 234, 0.94);
-  color: #2f6a43;
+  background: rgba(47, 126, 85, 0.2);
+  color: #4a9e6a;
   font-size: 10px;
   font-weight: 700;
 }
 
 .popup-badge--muted {
-  background: rgba(233, 239, 246, 0.9);
-  color: #344454;
+  background: rgba(255, 255, 255, 0.07);
+  color: #8a97a5;
 }
 
 .popup-confirmation {
   margin-top: 10px;
   padding: 10px;
   border-radius: 12px;
-  border: 1px solid rgba(168, 57, 39, 0.16);
-  background: rgba(255, 245, 241, 0.96);
+  border: 1px solid rgba(168, 57, 39, 0.2);
+  background: rgba(38, 18, 16, 0.96);
 }
 
 .popup-confirmation p {
   margin: 0;
   font-size: 12px;
-  color: #344453;
+  color: #9aa5b1;
 }
 
 .popup-confirmation-actions {

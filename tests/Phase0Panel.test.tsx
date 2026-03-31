@@ -73,7 +73,7 @@ describe('Phase0Panel collapse chrome', () => {
 
     expect(container.querySelector('.btff-panel')).not.toBeNull();
     expect(container.querySelector('.btff-panel__chrome-button')?.textContent).toContain(
-      'Collapse',
+      'Shrink',
     );
 
     container

@@ -16,6 +16,15 @@ The in-page panel handles live trade work. The popup manages bookmarks, history,
 - npm 10+
 - Firefox (any release channel)
 
+> If your system Node is older, use [nvm](https://github.com/nvm-sh/nvm): `nvm install 22 && nvm use 22`
+>
+> If you already ran `npm install` under the wrong Node version you will see `SyntaxError: Unexpected reserved word` from the `wxt prepare` postinstall step. Switch to Node 22, delete `node_modules`, then reinstall:
+> ```bash
+> nvm install 22 && nvm use 22
+> rm -rf node_modules
+> npm install
+> ```
+
 ## Install
 
 Install from [AMO](https://addons.mozilla.org) *(listing coming soon)*, or load it manually:

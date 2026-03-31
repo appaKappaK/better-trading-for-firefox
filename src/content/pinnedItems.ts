@@ -1,5 +1,6 @@
 export interface PinnedItemRecord {
   id: string;
+  imageUrl?: string | null;
   pinnedAt: string;
   price: string | null;
   subtitle: string;
@@ -102,7 +103,14 @@ export function createPinnedItemsStore(doc: Document = document) {
       button.addEventListener('click', () => {
         void toggleRow(row);
       });
-      host.append(button);
+      const hideoutButton = findHideoutButton(host);
+      if (hideoutButton?.nextSibling) {
+        hideoutButton.parentElement?.insertBefore(button, hideoutButton.nextSibling);
+      } else if (hideoutButton) {
+        hideoutButton.parentElement?.append(button);
+      } else {
+        host.append(button);
+      }
     }
 
     const itemId = row.getAttribute('data-id');
@@ -168,6 +176,15 @@ export function createPinnedItemsStore(doc: Document = document) {
   };
 }
 
+function findHideoutButton(host: HTMLElement) {
+  const buttons = Array.from(host.querySelectorAll<HTMLElement>('button, a'));
+  return (
+    buttons.find((element) =>
+      /travel to hideout/i.test(element.textContent ?? ''),
+    ) ?? null
+  );
+}
+
 function extractPinnedItem(row: HTMLElement): PinnedItemRecord {
   const itemId = row.getAttribute('data-id');
   if (!itemId) {
@@ -175,21 +192,27 @@ function extractPinnedItem(row: HTMLElement): PinnedItemRecord {
   }
 
   const title =
-    findText(row, [
-      '.itemName',
-      '.details .title',
-      '.details .price',
-      '.middle .itemLevel',
-    ]) ?? `Pinned result ${itemId}`;
-  const price = findText(row, ['.price .price-tag', '.price', '.listing-price']);
+    normalizePinnedText(
+      findText(row, [
+        '.itemName .itemHeader',
+        '.itemName',
+        '.details .title',
+        '.middle .itemLevel',
+      ]),
+    ) ?? `Pinned result ${itemId}`;
+  const price = normalizePinnedText(
+    findText(row, ['.price .price-tag', '.price', '.listing-price']),
+  );
   const subtitleParts = [
-    price,
-    findText(row, ['.itemLevel', '.details .account']),
-    findText(row, ['.sockets', '.details .text']),
-  ].filter(Boolean);
+    normalizePinnedText(findText(row, ['.itemLevel'])),
+    normalizePinnedText(findText(row, ['.details .account', '.account'])),
+  ]
+    .map((value) => normalizePinnedText(value))
+    .filter(Boolean);
 
   return {
     id: itemId,
+    imageUrl: findItemImageUrl(row),
     pinnedAt: new Date().toISOString(),
     price,
     subtitle:
@@ -198,6 +221,28 @@ function extractPinnedItem(row: HTMLElement): PinnedItemRecord {
         : 'Pinned from the current trade results.',
     title,
   };
+}
+
+function findItemImageUrl(row: HTMLElement) {
+  const image =
+    row.querySelector<HTMLImageElement>('.left img') ??
+    row.querySelector<HTMLImageElement>('.image img') ??
+    row.querySelector<HTMLImageElement>('img');
+  return image?.src ?? null;
+}
+
+function normalizePinnedText(value: string | null) {
+  if (!value) return null;
+
+  const compact = value.replace(/\s+/g, ' ').trim();
+  if (!compact) return null;
+
+  return compact
+    .replaceAll('Ã—', '×')
+    .replaceAll('Â·', '·')
+    .replaceAll('â€¢', '•')
+    .replaceAll('â€”', '—')
+    .replaceAll('â€“', '–');
 }
 
 function findRows(root: ParentNode = document) {

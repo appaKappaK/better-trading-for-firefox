@@ -2,7 +2,7 @@ import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 
-import { Phase0Panel, type PoeNinjaStatus } from '@/src/content/Phase0Panel';
+import { Phase0Panel } from '@/src/content/Phase0Panel';
 import {
   applyEquivalentPricings,
 } from '@/src/content/equivalentPricings';
@@ -72,10 +72,6 @@ export default defineContentScript({
     let equivalentPricingRequestId = 0;
     let lastSyncedPath: string | null = null;
     let pinnedItems: PinnedItemRecord[] = pinnedItemsStore.getItems();
-    let poeNinjaStatus: PoeNinjaStatus = {
-      state: 'idle',
-      message: 'Background fetch not tested yet.',
-    };
     let currentPage: ContentPage = normalizeContentPage(null);
 
     const render = () => {
@@ -88,10 +84,6 @@ export default defineContentScript({
           isSchemaLoading={isSchemaLoading}
           onClearHistory={() => clearHistory()}
           onClearPinnedItems={clearPinnedItems}
-          onPoeNinjaPing={() => {
-            void pingPoeNinja();
-          }}
-          onRefresh={refresh}
           onRenameTrade={(folderId, tradeId, title) =>
             renameTrade(folderId, tradeId, title)
           }
@@ -117,7 +109,6 @@ export default defineContentScript({
             updateTradeLocation(folderId, tradeId)
           }
           pinnedItems={pinnedItems}
-          poeNinjaStatus={poeNinjaStatus}
           schema={schema}
           snapshot={snapshot}
         />,
@@ -151,13 +142,124 @@ export default defineContentScript({
 
     const debouncedRefresh = debounce(refresh, REFRESH_DEBOUNCE_MS);
 
+    let shadowHostRef: HTMLElement | null = null;
+    let hostSidebarStyle: HTMLStyleElement | null = null;
+    let dragHeaderCleanup: (() => void) | null = null;
+    let dragState:
+      | {
+          offsetX: number;
+          offsetY: number;
+        }
+      | null = null;
+    let overlayPosition:
+      | {
+          left: number;
+          top: number;
+        }
+      | null = null;
+
+    function applyOverlayPosition() {
+      if (!shadowHostRef) return;
+      if (!overlayPosition) {
+        shadowHostRef.style.left = 'auto';
+        shadowHostRef.style.top = '16px';
+        shadowHostRef.style.right = '16px';
+        return;
+      }
+
+      shadowHostRef.style.left = `${overlayPosition.left}px`;
+      shadowHostRef.style.top = `${overlayPosition.top}px`;
+      shadowHostRef.style.right = 'auto';
+    }
+
+    function attachDragHandlers(shadow: ShadowRoot) {
+      const header = shadow.querySelector<HTMLElement>('.btff-panel__header');
+      if (!header || !shadowHostRef) return;
+
+      const startDrag = (event: MouseEvent) => {
+        if (event.button !== 0) return;
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('button, a, input, select, textarea, label')) {
+          return;
+        }
+
+        const rect = shadowHostRef!.getBoundingClientRect();
+        dragState = {
+          offsetX: event.clientX - rect.left,
+          offsetY: event.clientY - rect.top,
+        };
+      };
+
+      const onMove = (event: MouseEvent) => {
+        if (!dragState || !shadowHostRef) return;
+        if (schema?.preferences.sidePanelSidebar) return;
+        if (!schema?.preferences.sidePanelDraggable) return;
+
+        const panelWidth = shadowHostRef.offsetWidth || 320;
+        const panelHeight = shadowHostRef.offsetHeight || 300;
+        const maxLeft = Math.max(window.innerWidth - panelWidth, 0);
+        const maxTop = Math.max(window.innerHeight - panelHeight, 0);
+        const left = clamp(event.clientX - dragState.offsetX, 0, maxLeft);
+        const top = clamp(event.clientY - dragState.offsetY, 0, maxTop);
+
+        overlayPosition = { left, top };
+        applyOverlayPosition();
+      };
+
+      const stopDrag = () => {
+        dragState = null;
+      };
+
+      header.addEventListener('mousedown', startDrag);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', stopDrag);
+
+      dragHeaderCleanup = () => {
+        header.removeEventListener('mousedown', startDrag);
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', stopDrag);
+        dragHeaderCleanup = null;
+      };
+    }
+
+    function applySidebarMode(isSidebar: boolean) {
+      if (!shadowHostRef) return;
+      if (isSidebar) {
+        shadowHostRef.setAttribute('data-sidebar', 'true');
+        shadowHostRef.removeAttribute('data-draggable');
+        shadowHostRef.style.cssText =
+          'position:fixed;top:0;right:0;width:320px;height:100vh;z-index:2147483647;';
+        if (!hostSidebarStyle) {
+          hostSidebarStyle = document.createElement('style');
+          hostSidebarStyle.id = 'btff-sidebar-margin';
+          document.head.appendChild(hostSidebarStyle);
+        }
+        hostSidebarStyle.textContent = 'body{padding-right:320px!important;}';
+      } else {
+        shadowHostRef.removeAttribute('data-sidebar');
+        if (schema?.preferences.sidePanelDraggable) {
+          shadowHostRef.setAttribute('data-draggable', 'true');
+        } else {
+          shadowHostRef.removeAttribute('data-draggable');
+        }
+        shadowHostRef.style.cssText =
+          'position:fixed;top:16px;right:16px;z-index:2147483647;';
+        applyOverlayPosition();
+        if (hostSidebarStyle) {
+          hostSidebarStyle.remove();
+          hostSidebarStyle = null;
+        }
+      }
+    }
+
     const ui = await createShadowRootUi(ctx, {
       name: 'btff-phase0-panel',
       position: 'overlay',
       alignment: 'top-right',
       anchor: 'body',
       append: 'last',
-      onMount(container, _shadow, shadowHost) {
+      onMount(container, shadow, shadowHost) {
+        shadowHostRef = shadowHost;
         shadowHost.setAttribute('data-btff-phase0-host', 'true');
         document.documentElement.setAttribute('data-btff-phase0', 'mounted');
 
@@ -181,15 +283,45 @@ export default defineContentScript({
           subtree: true,
         });
 
+        attachDragHandlers(shadow);
+
+        const hostStyle = document.createElement('style');
+        hostStyle.id = 'btff-host-styles';
+        hostStyle.textContent = `
+          .btff-pin-button {
+            border: 0;
+            border-radius: 999px;
+            padding: 7px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #9aa5b1;
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+          }
+          .btff-pin-button[aria-pressed='true'] {
+            color: #fff7ea;
+            background: linear-gradient(135deg,#824f1d,#b86e27);
+          }
+          .row[data-btff-pinned='true'] {
+            box-shadow: inset 0 0 0 2px rgba(184,110,39,0.32);
+          }
+        `;
+        document.head.appendChild(hostStyle);
+
         void syncSchema();
 
         return root;
       },
       onRemove(mountedRoot) {
+        document.getElementById('btff-host-styles')?.remove();
         document.documentElement.removeAttribute('data-btff-phase0');
+        applySidebarMode(false);
+        shadowHostRef = null;
         observer?.disconnect();
         pageTitleController.disconnect();
         browser.storage.onChanged.removeListener(handleStorageChange);
+        dragHeaderCleanup?.();
         unsubscribePinnedItems?.();
         observer = null;
         unsubscribePinnedItems = null;
@@ -201,46 +333,6 @@ export default defineContentScript({
     ui.autoMount();
     refresh();
     browser.storage.onChanged.addListener(handleStorageChange);
-
-    async function pingPoeNinja() {
-      poeNinjaStatus = {
-        state: 'loading',
-        message: 'Contacting poe.ninja from background...',
-      };
-      render();
-
-      try {
-        const response = (await browser.runtime.sendMessage({
-          type: 'btff:poe-ninja-ping',
-        })) as {
-          durationMs?: number;
-          error?: string;
-          fetchedAt?: string;
-          lineCount?: number;
-          ok?: boolean;
-        };
-
-        if (response?.ok) {
-          poeNinjaStatus = {
-            state: 'success',
-            message: `Received ${response.lineCount ?? 0} currency rows from poe.ninja.`,
-            details: `${response.durationMs ?? 0} ms | ${response.fetchedAt ?? 'unknown time'}`,
-          };
-        } else {
-          poeNinjaStatus = {
-            state: 'error',
-            message: response?.error ?? 'Unknown background fetch failure.',
-          };
-        }
-      } catch (error) {
-        poeNinjaStatus = {
-          state: 'error',
-          message: error instanceof Error ? error.message : String(error),
-        };
-      }
-
-      render();
-    }
 
     async function syncSchema() {
       isSchemaLoading = true;
@@ -473,6 +565,7 @@ export default defineContentScript({
       if (currentPage !== 'pinned') {
         currentPage = normalizeContentPage(nextSchema.preferences.currentPage);
       }
+      applySidebarMode(Boolean(nextSchema.preferences.sidePanelSidebar));
       snapshot.socketWarnings = applyTradePageEnhancers();
       pageTitleController.update(nextSchema, snapshot.tradeLocation);
       render();
@@ -489,9 +582,14 @@ function debounce(callback: () => void, delayMs: number) {
   };
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function normalizeContentPage(currentPage: string | null): ContentPage {
-  if (currentPage === 'pinned') return 'pinned';
-  return currentPage === 'history' ? 'history' : 'bookmarks';
+  if (currentPage === 'history') return 'history';
+  if (currentPage === 'bookmarks') return 'bookmarks';
+  return 'pinned';
 }
 
 async function copyTextToClipboard(value: string) {
