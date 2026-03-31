@@ -123,6 +123,7 @@ function App() {
       setSchema(nextSchema);
       setActivePage((currentPage) => {
         if (!nextSchema.preferences.hasCompletedOnboarding) return 'import';
+        if (currentPage === 'settings') return 'settings';
         if (currentPage === 'import') {
           return normalizeStoredPage(nextSchema.preferences.currentPage);
         }
