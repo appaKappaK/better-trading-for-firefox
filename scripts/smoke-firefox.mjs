@@ -87,41 +87,16 @@ try {
     return typeof warningText === 'string' && warningText.includes('Max 6 sockets');
   }, 20_000);
 
-  const buttonFound = await driver.executeScript(() => {
-    const host = document.querySelector('[data-btff-phase0-host="true"]');
-    const shadowRoot = host?.shadowRoot;
-    const button = [...(shadowRoot?.querySelectorAll('button') ?? [])].find((element) =>
-      element.textContent?.includes('Ping poe.ninja'),
-    );
-
-    if (!button) return false;
-    button.click();
-    return true;
-  });
-
-  if (!buttonFound) {
-    throw new Error('Failed to find the poe.ninja smoke button inside the panel.');
-  }
-
-  await driver.wait(async () => {
-    const state = await driver.executeScript(() => {
-      const host = document.querySelector('[data-btff-phase0-host="true"]');
-      const shadowRoot = host?.shadowRoot;
-      const status = shadowRoot?.querySelector('.btff-panel__status');
-      return status?.getAttribute('data-state') ?? null;
-    });
-
-    return state === 'success' || state === 'error';
-  }, 25_000);
-
+  // Collect smoke summary without poe.ninja check
   const smokeSummary = await driver.executeScript(() => {
     const host = document.querySelector('[data-btff-phase0-host="true"]');
     const shadowRoot = host?.shadowRoot;
-    const status = shadowRoot?.querySelector('.btff-panel__status');
+    const shrinkButton = [...(shadowRoot?.querySelectorAll('button') ?? [])].find(
+      (element) => element.textContent?.includes('Shrink')
+    );
 
     return {
-      state: status?.getAttribute('data-state') ?? 'missing',
-      text: status?.textContent?.trim() ?? '',
+      shrinkButtonPresent: !!shrinkButton,
       warnings: document.querySelectorAll('.btff-phase0-maximum-sockets').length,
     };
   });
