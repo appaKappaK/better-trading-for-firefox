@@ -98,8 +98,8 @@ describe('Phase0Panel collapse chrome', () => {
           onClearHistory={async () => {}}
           onClearPinnedItems={() => {}}
           onCopyFolderExport={async () => {}}
-          onPoeNinjaPing={() => {}}
-          onRefresh={() => {}}
+          //onPoeNinjaPing={() => {}}
+          //onRefresh={() => {}}
           onReorderFolders={async () => {}}
           onRenameTrade={async () => {}}
           onSaveTrade={async () => {}}
@@ -112,10 +112,10 @@ describe('Phase0Panel collapse chrome', () => {
           onUnpinItem={() => {}}
           onUpdateTradeLocation={async () => {}}
           pinnedItems={[]}
-          poeNinjaStatus={{
-            state: 'idle',
-            message: 'Background fetch not tested yet.',
-          }}
+          //poeNinjaStatus={{
+          //  state: 'idle',
+          //  message: 'Background fetch not tested yet.',
+          //}}
           schema={schema}
           snapshot={createSnapshot()}
           {...overrides}

@@ -58,6 +58,8 @@ interface Props {
     folderId: string,
     tradeId: string,
   ) => Promise<void> | void;
+  //onPoeNinjaPing?: () => void; // Add this line (make it optional with ?)
+  //onRefresh?: () => void; // Add this line (make it optional with ?)
   pinnedItems: PinnedItemRecord[];
   schema: StorageSchemaV1 | null;
   snapshot: TradePageSnapshot;
@@ -81,6 +83,8 @@ export function Phase0Panel({
   onToggleTradeCompletion,
   onUnpinItem,
   onUpdateTradeLocation,
+  //onPoeNinjaPing,
+  //onRefresh,
   pinnedItems,
   schema,
   snapshot,

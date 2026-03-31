@@ -101,7 +101,9 @@ export function getFolderIconImageUrl(slug: string | null): string | null {
   if (!path) return null;
 
   if (typeof browser !== 'undefined' && browser.runtime?.getURL) {
-    return browser.runtime.getURL(path);
+    // Ensure the path starts with / and construct absolute URL
+    const absolutePath = path.startsWith('/') ? path : `/${path}`;
+    return browser.runtime.getURL(absolutePath as any);
   }
 
   return `/${path}`;
