@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.1] - 2026-03-30
+
+### Fixed
+- Settings page no longer navigates away when toggling an enhancer or the panel collapse preference
+- Settings page repo links now point to the correct repository
+- Corrected `homepage_url` in the extension manifest
+
+### Changed
+- Settings page copy cleaned up (removed internal dev notes)
+
 ## [1.0.0] - 2026-03-30
 
 Initial release.

@@ -42,8 +42,8 @@ export default defineConfig({
   }),
   manifest: {
     name: 'Better Trading for Firefox',
-    version: '1.0.0',
-    homepage_url: 'https://github.com/appaKappaK/better-trading',
+    version: '1.0.1',
+    homepage_url: 'https://github.com/appaKappaK/better-trading-for-firefox',
     description: 'Bookmark trade searches, track history, and apply live enhancers on the Path of Exile trade site. Firefox-only MV3 extension.',
     permissions: ['storage'],
     host_permissions: [
