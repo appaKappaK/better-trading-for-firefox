@@ -4,8 +4,8 @@ import {
 } from '@/src/lib/preferences/enhancers';
 import type { StorageSchemaV1 } from '@/src/lib/storage/schema';
 
-const FORK_REPO_URL = 'https://github.com/appaKappaK/better-trading';
-const UPSTREAM_REPO_URL = 'https://github.com/exile-center/better-trading';
+const REPO_URL = 'https://github.com/appaKappaK/better-trading-for-firefox';
+const ORIGINAL_REPO_URL = 'https://github.com/exile-center/better-trading';
 
 interface Props {
   isSchemaLoading: boolean;
@@ -27,8 +27,7 @@ export function SettingsView({
   return (
     <>
       <p className="popup-copy popup-copy--panel">
-        These toggles are live preferences for the Firefox rebuild. Changing an
-        enhancer here updates what the content script applies on trade pages.
+        Changing an enhancer here updates what the in-page panel applies on trade pages.
       </p>
 
       {isSchemaLoading ? (
@@ -81,8 +80,7 @@ export function SettingsView({
               <div>
                 <strong>About this build</strong>
                 <p>
-                  {manifest.name} {manifest.version} running as a Firefox-only MV3
-                  rebuild.
+                  {manifest.name} {manifest.version}
                 </p>
               </div>
 
@@ -108,17 +106,17 @@ export function SettingsView({
               <div className="popup-link-row">
                 <a
                   className="popup-link-button"
-                  href={FORK_REPO_URL}
+                  href={REPO_URL}
                   rel="noreferrer"
                   target="_blank">
-                  Fork repo
+                  GitHub
                 </a>
                 <a
                   className="popup-link-button"
-                  href={UPSTREAM_REPO_URL}
+                  href={ORIGINAL_REPO_URL}
                   rel="noreferrer"
                   target="_blank">
-                  Upstream repo
+                  Original add-on
                 </a>
               </div>
             </article>
