@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.0.5] - 2026-04-01
+
+### Added
+- Chaos-equivalent price (from poe.ninja) shown inline in pinned items with a chaos icon
+- Divine and chaos currency icons replace the currency name text in pinned item price display
+
+### Changed
+- "Clear all" button moves to the footer center slot in sidebar mode; stays under the history list in overlay mode
+- Import tab file picker redesigned as a full drop zone — click anywhere on it or drag a file directly; no more native white Browse button
+- History entries are now clickable links that open the trade search directly; metadata shown as colored pills (PoE version, type, live indicator) instead of plain pipe-separated text
+
+### Fixed
+- Pinned item price no longer includes the "Asking Price:" label, "Fee:" text, or raw chaos equivalent suffix — only the clean asking price is shown
+- Pin button is now placed in its own element after the entire button row, so it stays consistent regardless of Online/Offline/AFK status shown on the listing
+- Sidebar mode now shifts the page's scroll-to-top button out from behind the panel
+- `buildTradeUrl` now correctly appends `/live` for live trade searches
+- Consistent spacing between tab buttons and content across all tabs in the popup and the in-page panel
+
+### Removed
+- Folders/Trades/History/Schema stats grid from the popup footer
+- Section label dividers (In-Page Panel, Trade Enhancers, About) from the Settings page
+
 ## [1.0.4] - 2026-03-31
 
 ### Added
