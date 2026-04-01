@@ -498,7 +498,7 @@ function App() {
       <section className="popup-hero">
         <h2 className="popup-eyebrow">Better Trading for Firefox</h2>
         <p className="popup-copy">
-          Use the in-page panel on the trade page for pinning searches, browsing history, managing bookmarks.
+          Use the in-page panel on the trade page for pinning searches, browsing history, and managing bookmarks.
         </p>
       </section>
 
@@ -653,7 +653,6 @@ function MigrationPanel({
       </p>
 
       <div className="popup-file-picker">
-        <span className="popup-file-picker__label">Backup file</span>
         <label
           className="popup-file-picker__zone"
           data-disabled={String(isDisabled)}
@@ -687,7 +686,6 @@ function MigrationPanel({
       </div>
 
       <label className="popup-field" htmlFor="legacy-import-input">
-        <span>Legacy export or backup text</span>
         <textarea
           id="legacy-import-input"
           onChange={(event) => onImportInputChange(event.target.value)}
