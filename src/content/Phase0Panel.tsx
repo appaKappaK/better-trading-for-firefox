@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import betterTradingIcon from '/public/icon/better_tradingICO.png?url';
+import chaosIconUrl from '/public/assets/images/bookmark-folder/chaos.png?url';
+import divineIconUrl from '/public/assets/images/bookmark-folder/divine.png?url';
 
 import type {
   BookmarkFolder,
@@ -89,8 +91,10 @@ export function Phase0Panel({
   schema,
   snapshot,
 }: Props) {
+  const isSidebar = schema?.preferences.sidePanelSidebar ?? false;
   const folders = schema?.bookmarks.folders ?? [];
   const historyEntries = schema?.history.entries ?? [];
+  const [isClearingHistory, setIsClearingHistory] = useState(false);
   const bookmarkTradeCount = folders.reduce(
     (count, folder) =>
       count + (schema?.bookmarks.tradesByFolderId[folder.id]?.length ?? 0),
@@ -101,6 +105,7 @@ export function Phase0Panel({
   if (isCollapsed) {
     return (
       <section className="btff-panel-dock">
+        <div aria-hidden="true" className="btff-panel-dock__drag-handle" />
         <button
           aria-label="Expand Better Trading for Firefox"
           className="btff-panel-dock__button"
@@ -170,61 +175,87 @@ export function Phase0Panel({
         </button>
       </nav>
 
-      {needsOnboarding ? (
-        <section className="btff-panel__callout">
-          Use the popup to import a legacy backup or start fresh, then the saved
-          folders and history will appear here automatically.
-        </section>
-      ) : null}
+      <div className="btff-panel__scroll-area">
+        {needsOnboarding ? (
+          <section className="btff-panel__callout">
+            Use the popup to import a legacy backup or start fresh, then the saved
+            folders and history will appear here automatically.
+          </section>
+        ) : null}
 
-      {currentPage === 'bookmarks' ? (
-        <BookmarksView
-          expandedFolderIds={schema?.preferences.expandedFolderIds ?? []}
-          folders={folders}
-          isSchemaLoading={isSchemaLoading}
-          lastSeenLeagues={
-            schema?.preferences.lastSeenLeagues ?? { '1': null, '2': null }
-          }
-          onCopyFolderExport={onCopyFolderExport}
-          onRenameTrade={onRenameTrade}
-          onReorderFolders={onReorderFolders}
-          onSaveTrade={onSaveTrade}
-          onToggleFolder={onToggleFolder}
-          onToggleFolderArchive={onToggleFolderArchive}
-          onToggleTradeCompletion={onToggleTradeCompletion}
-          onUpdateTradeLocation={onUpdateTradeLocation}
-          snapshot={snapshot}
-          tradesByFolderId={schema?.bookmarks.tradesByFolderId ?? {}}
-        />
-      ) : null}
+        {currentPage === 'bookmarks' ? (
+          <BookmarksView
+            expandedFolderIds={schema?.preferences.expandedFolderIds ?? []}
+            folders={folders}
+            isSchemaLoading={isSchemaLoading}
+            lastSeenLeagues={
+              schema?.preferences.lastSeenLeagues ?? { '1': null, '2': null }
+            }
+            onCopyFolderExport={onCopyFolderExport}
+            onRenameTrade={onRenameTrade}
+            onReorderFolders={onReorderFolders}
+            onSaveTrade={onSaveTrade}
+            onToggleFolder={onToggleFolder}
+            onToggleFolderArchive={onToggleFolderArchive}
+            onToggleTradeCompletion={onToggleTradeCompletion}
+            onUpdateTradeLocation={onUpdateTradeLocation}
+            snapshot={snapshot}
+            tradesByFolderId={schema?.bookmarks.tradesByFolderId ?? {}}
+          />
+        ) : null}
 
-      {currentPage === 'history' ? (
-        <HistoryView
-          historyEntries={historyEntries}
-          isSchemaLoading={isSchemaLoading}
-          onClearHistory={onClearHistory}
-        />
-      ) : null}
+        {currentPage === 'history' ? (
+          <HistoryView
+            historyEntries={historyEntries}
+            isClearingHistory={isClearingHistory}
+            isSchemaLoading={isSchemaLoading}
+            onClearHistory={async () => {
+              setIsClearingHistory(true);
+              try { await onClearHistory(); } finally { setIsClearingHistory(false); }
+            }}
+            showClearAction={!isSidebar}
+          />
+        ) : null}
 
-      {currentPage === 'pinned' ? (
-        <PinnedItemsView
-          isSchemaLoading={isSchemaLoading}
-          items={pinnedItems}
-          onClear={onClearPinnedItems}
-          onScrollToItem={onScrollToPinnedItem}
-          onUnpinItem={onUnpinItem}
-        />
-      ) : null}
+        {currentPage === 'pinned' ? (
+          <PinnedItemsView
+            isSchemaLoading={isSchemaLoading}
+            items={pinnedItems}
+            onClear={onClearPinnedItems}
+            onScrollToItem={onScrollToPinnedItem}
+            onUnpinItem={onUnpinItem}
+            showClearAction={!isSidebar}
+          />
+        ) : null}
+      </div>
 
       <section className="btff-panel__footer">
         <span>{bookmarkTradeCount} saved trades</span>
-        {!schema?.preferences.sidePanelSidebar ? (
+        {!isSidebar ? (
           <button
             aria-label="Collapse Better Trading for Firefox"
             className="btff-panel__chrome-button btff-panel__chrome-button--footer"
             onClick={() => onSetCollapsed(true)}
             type="button">
             Shrink
+          </button>
+        ) : currentPage === 'history' ? (
+          <button
+            className="btff-panel__chrome-button btff-panel__chrome-button--footer"
+            disabled={isClearingHistory}
+            onClick={() => {
+              setIsClearingHistory(true);
+              void Promise.resolve(onClearHistory()).finally(() => setIsClearingHistory(false));
+            }}
+            type="button">
+            {isClearingHistory ? 'Clearing...' : 'Clear history'}
+          </button>
+        ) : currentPage === 'pinned' ? (
+          <button
+            className="btff-panel__chrome-button btff-panel__chrome-button--footer"
+            onClick={onClearPinnedItems}
+            type="button">
+            Clear pinned
           </button>
         ) : null}
         <span>{snapshot.socketWarnings} socket warnings</span>
@@ -581,6 +612,7 @@ function QuickSavePanel({
   selectedFolderId,
   title,
 }: QuickSavePanelProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const canSaveCurrentTrade = currentTradeLocation !== null;
   const currentTradeLabel = currentTradeLocation
     ? `${currentTradeLocation.type} | ${currentTradeLocation.league} | ${shortenSlug(
@@ -590,7 +622,16 @@ function QuickSavePanel({
 
   return (
     <section className="btff-panel__composer">
-      <p className="btff-panel__composer-label">Quick Save</p>
+      <button
+        className="btff-panel__composer-toggle"
+        onClick={() => setIsOpen((v) => !v)}
+        type="button">
+        <span className="btff-panel__composer-label">Quick Save</span>
+        <span className="btff-panel__composer-chevron">{isOpen ? '▲' : '▼'}</span>
+      </button>
+
+      {!isOpen ? null : (
+        <>
       <p className="btff-panel__composer-copy">{currentTradeLabel}</p>
 
       <div className="btff-panel__inline-actions">
@@ -687,6 +728,8 @@ function QuickSavePanel({
           {feedback.message}
         </p>
       ) : null}
+        </>
+      )}
     </section>
   );
 }
@@ -826,12 +869,13 @@ function TradeRow({
 
 interface HistoryViewProps {
   historyEntries: StorageSchemaV1['history']['entries'];
+  isClearingHistory: boolean;
   isSchemaLoading: boolean;
   onClearHistory: () => Promise<void> | void;
+  showClearAction: boolean;
 }
 
-function HistoryView({ historyEntries, isSchemaLoading, onClearHistory }: HistoryViewProps) {
-  const [isClearing, setIsClearing] = useState(false);
+function HistoryView({ historyEntries, isClearingHistory, isSchemaLoading, onClearHistory, showClearAction }: HistoryViewProps) {
 
   if (isSchemaLoading) {
     return <p className="btff-panel__empty">Loading saved history...</p>;
@@ -847,20 +891,17 @@ function HistoryView({ historyEntries, isSchemaLoading, onClearHistory }: Histor
 
   return (
     <>
-      <div className="btff-panel__section-actions">
-        <button
-          className="btff-panel__mini-button btff-panel__mini-button--ghost"
-          disabled={isClearing}
-          onClick={() => {
-            setIsClearing(true);
-            void Promise.resolve(onClearHistory()).finally(() =>
-              setIsClearing(false),
-            );
-          }}
-          type="button">
-          Clear all
-        </button>
-      </div>
+      {showClearAction ? (
+        <div className="btff-panel__section-actions">
+          <button
+            className="btff-panel__mini-button btff-panel__mini-button--ghost"
+            disabled={isClearingHistory}
+            onClick={() => void onClearHistory()}
+            type="button">
+            Clear all
+          </button>
+        </div>
+      ) : null}
       <ul className="btff-panel__history-list">
         {historyEntries.map((entry) => (
           <li key={entry.id} className="btff-panel__history-item">
@@ -869,12 +910,16 @@ function HistoryView({ historyEntries, isSchemaLoading, onClearHistory }: Histor
               href={getTradeUrl(entry, entry.isLive ? '/live' : '')}
               rel="noreferrer"
               target="_blank">
-              <strong>{entry.title}</strong>
-              <span>
-                PoE {entry.version} | {entry.league} | {entry.type}
-                {entry.isLive ? ' | live' : ''}
-              </span>
-              <small>{formatRelativeTimestamp(entry.createdAt)}</small>
+              <div className="btff-history-entry-header">
+                <strong>{entry.title}</strong>
+                <small className="btff-history-time">{formatRelativeTimestamp(entry.createdAt)}</small>
+              </div>
+              <div className="btff-history-pills">
+                <span className="btff-history-pill" data-version={entry.version}>PoE {entry.version}</span>
+                <span className="btff-history-pill">{entry.league}</span>
+                <span className="btff-history-pill">{entry.type}</span>
+                {entry.isLive ? <span className="btff-history-pill btff-history-pill--live">live</span> : null}
+              </div>
             </a>
           </li>
         ))}
@@ -889,6 +934,7 @@ interface PinnedItemsViewProps {
   onClear: () => void;
   onScrollToItem: (itemId: string) => void;
   onUnpinItem: (itemId: string) => void;
+  showClearAction: boolean;
 }
 
 function PinnedItemsView({
@@ -897,6 +943,7 @@ function PinnedItemsView({
   onClear,
   onScrollToItem,
   onUnpinItem,
+  showClearAction,
 }: PinnedItemsViewProps) {
   if (isSchemaLoading) {
     return <p className="btff-panel__empty">Loading the current panel state...</p>;
@@ -912,26 +959,36 @@ function PinnedItemsView({
 
   return (
     <>
-      <div className="btff-panel__section-actions">
-        <button
-          className="btff-panel__mini-button btff-panel__mini-button--ghost"
-          onClick={onClear}
-          type="button">
-          Clear all
-        </button>
-      </div>
+      {showClearAction ? (
+        <div className="btff-panel__section-actions">
+          <button
+            className="btff-panel__mini-button btff-panel__mini-button--ghost"
+            onClick={onClear}
+            type="button">
+            Clear all
+          </button>
+        </div>
+      ) : null}
 
       <ul className="btff-panel__history-list">
         {items.map((item) => (
           <li key={item.id} className="btff-panel__history-item">
             <div className="btff-panel__pinned-header">
               {item.imageUrl ? (
-                <img alt="" className="btff-panel__pinned-thumb" src={item.imageUrl} />
+                <div className="btff-panel__pinned-thumb-wrap">
+                  <img alt="" className="btff-panel__pinned-thumb" src={item.imageUrl} />
+                  <div className="btff-panel__pinned-tooltip" role="tooltip">
+                    <img alt="" className="btff-panel__pinned-tooltip-img" src={item.imageUrl} />
+                    <strong>{item.title}</strong>
+                    {item.price ? <PinnedPrice chaosEquivalent={item.chaosEquivalent} price={item.price} variant="tooltip" /> : null}
+                    {item.subtitle ? <small>{item.subtitle}</small> : null}
+                  </div>
+                </div>
               ) : null}
               <div className="btff-panel__pinned-info">
                 <strong>{item.title}</strong>
                 {item.price ? (
-                  <span className="btff-panel__pinned-price">{item.price}</span>
+                  <PinnedPrice chaosEquivalent={item.chaosEquivalent} price={item.price} />
                 ) : null}
                 <small>{item.subtitle}</small>
               </div>
@@ -957,6 +1014,53 @@ function PinnedItemsView({
         ))}
       </ul>
     </>
+  );
+}
+
+const CURRENCY_ICONS: Record<string, string> = {
+  'divine orb': divineIconUrl,
+  'chaos orb': chaosIconUrl,
+};
+
+function PinnedPrice({
+  price,
+  chaosEquivalent,
+  variant,
+}: {
+  price: string;
+  chaosEquivalent?: number | null;
+  variant?: 'tooltip';
+}) {
+  const className = variant === 'tooltip'
+    ? 'btff-panel__pinned-tooltip-price'
+    : 'btff-panel__pinned-price';
+
+  // Try to parse "NNN×Currency Name" → show icon in place of name
+  const match = price.match(/^([\d.]+)×(.+)$/);
+  const currencyLower = match?.[2].toLowerCase().trim() ?? '';
+  const currencyIcon = CURRENCY_ICONS[currencyLower] ?? null;
+
+  return (
+    <span className={className}>
+      {match ? (
+        <>
+          {match[1]}×
+          {currencyIcon ? (
+            <img alt={match[2]} className="btff-price-icon" src={currencyIcon} />
+          ) : (
+            match[2]
+          )}
+        </>
+      ) : (
+        price
+      )}
+      {chaosEquivalent ? (
+        <span className="btff-panel__pinned-price-chaos">
+          ≈{chaosEquivalent}
+          <img alt="Chaos Orb" className="btff-price-icon" src={chaosIconUrl} />
+        </span>
+      ) : null}
+    </span>
   );
 }
 

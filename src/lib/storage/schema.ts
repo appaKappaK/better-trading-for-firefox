@@ -49,6 +49,7 @@ export interface StorageSchemaV1 {
     sidePanelSidebar: boolean;
     hasCompletedOnboarding: boolean;
     lastSeenLeagues: Record<TradeSiteVersion, string | null>;
+    pendingUpdateNotice: string | null;
   };
   caches: {
     poeNinjaChaosRatiosByLeague: Record<string, StoredPoeNinjaRatios>;
@@ -87,6 +88,7 @@ export function createEmptyStorageSchema(
         '1': null,
         '2': null,
       },
+      pendingUpdateNotice: null,
     },
     caches: {
       poeNinjaChaosRatiosByLeague: {},

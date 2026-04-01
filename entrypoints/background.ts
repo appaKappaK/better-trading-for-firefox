@@ -29,10 +29,33 @@ interface PoeNinjaChaosRatiosResponse {
 }
 
 export default defineBackground(() => {
-  browser.runtime.onInstalled.addListener(() => {
+  browser.runtime.onInstalled.addListener(async (details) => {
     console.log('Better Trading for Firefox background ready.', {
       id: browser.runtime.id,
+      reason: details.reason,
     });
+
+    if (details.reason === 'update') {
+      const newVersion = browser.runtime.getManifest().version;
+      const stored = await browser.storage.local.get('btff-schema-v1');
+      const raw = stored['btff-schema-v1'];
+
+      if (raw && typeof raw === 'object' && !Array.isArray(raw) && 'preferences' in raw) {
+        const schema = raw as Record<string, unknown>;
+        const prefs = typeof schema.preferences === 'object' && schema.preferences !== null && !Array.isArray(schema.preferences)
+          ? schema.preferences as Record<string, unknown>
+          : {};
+        await browser.storage.local.set({
+          'btff-schema-v1': {
+            ...schema,
+            preferences: {
+              ...prefs,
+              pendingUpdateNotice: newVersion,
+            },
+          },
+        });
+      }
+    }
   });
 
   browser.runtime.onMessage.addListener((message) => {

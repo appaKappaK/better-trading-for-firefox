@@ -1,7 +1,20 @@
+/* The panel and dock are position: fixed inside the shadow DOM so they stay
+   anchored to the viewport regardless of page scroll. Coordinates are driven
+   via CSS custom properties set on the shadow host from JS, so dragging just
+   updates --btff-panel-top / --btff-panel-left without touching the host's own
+   layout styles (which WXT manages). */
+
 .btff-panel {
+  position: fixed;
+  z-index: 2147483647;
+  top: var(--btff-panel-top, 16px);
+  right: var(--btff-panel-right, 16px);
+  left: var(--btff-panel-left, auto);
   width: 320px;
   max-height: calc(100vh - 32px);
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -19,6 +32,9 @@
 
 /* Sidebar mode — full-height panel flush with right viewport edge */
 :host([data-sidebar='true']) .btff-panel {
+  top: 0;
+  right: 0;
+  left: auto;
   width: 320px;
   height: 100vh;
   max-height: 100vh;
@@ -26,17 +42,43 @@
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
 }
 
+.btff-panel-dock {
+  position: fixed;
+  z-index: 2147483647;
+  top: var(--btff-panel-top, 16px);
+  right: var(--btff-panel-right, 16px);
+  left: var(--btff-panel-left, auto);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
 :host([data-sidebar='true']) .btff-panel-dock {
+  top: 0;
+  right: 0;
+  left: auto;
   height: 100vh;
   align-items: flex-start;
   padding-top: 16px;
 }
 
-.btff-panel-dock {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
+.btff-panel-dock__drag-handle {
+  display: none;
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+  cursor: grab;
+}
+
+:host([data-draggable='true']) .btff-panel-dock__drag-handle {
+  display: block;
+}
+
+:host([data-draggable='true']) .btff-panel-dock__drag-handle:active {
+  cursor: grabbing;
 }
 
 .btff-panel-dock__button {
@@ -143,6 +185,7 @@
   flex: 0 0 auto;
   width: 40px;
   height: 40px;
+  margin-right: 25px;
   border-radius: 50%;
   border: 1.5px solid rgba(184, 110, 39, 0.55);
   background: rgba(255, 255, 255, 0.04);
@@ -219,7 +262,7 @@
 
 .btff-panel__section-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   align-items: center;
   margin: 0 0 12px;
@@ -242,6 +285,22 @@
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   background: rgba(26, 31, 40, 0.95);
+}
+
+.btff-panel__composer-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.btff-panel__composer-chevron {
+  font-size: 9px;
+  color: #6d7885;
 }
 
 .btff-panel__composer-label {
@@ -491,20 +550,121 @@
   padding: 12px;
 }
 
+.btff-history-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.btff-history-time {
+  flex-shrink: 0;
+  color: #5d6875;
+  font-size: 10px;
+}
+
+.btff-history-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.btff-history-pill {
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.07);
+  color: #6d7885;
+}
+
+.btff-history-pill[data-version='1'] {
+  background: rgba(184, 110, 39, 0.18);
+  color: #c4952a;
+}
+
+.btff-history-pill[data-version='2'] {
+  background: rgba(82, 130, 220, 0.18);
+  color: #7aabf0;
+}
+
+.btff-history-pill--live {
+  background: rgba(60, 170, 80, 0.18);
+  color: #5dba6e;
+}
+
 .btff-panel__pinned-header {
   display: flex;
   gap: 10px;
   align-items: flex-start;
 }
 
-.btff-panel__pinned-thumb {
+.btff-panel__pinned-thumb-wrap {
   flex: 0 0 auto;
+  position: relative;
+}
+
+.btff-panel__pinned-thumb {
+  display: block;
   width: 34px;
   height: 34px;
   border-radius: 8px;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.btff-panel__pinned-tooltip {
+  display: none;
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 0;
+  z-index: 10;
+  min-width: 180px;
+  max-width: 220px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 22, 30, 0.98);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.btff-panel__pinned-thumb-wrap:hover .btff-panel__pinned-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.btff-panel__pinned-tooltip-img {
+  width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.btff-panel__pinned-tooltip strong {
+  font-size: 12px;
+  color: #dfe3e8;
+  display: block;
+}
+
+.btff-panel__pinned-tooltip-price {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f0d090;
+}
+
+.btff-panel__pinned-tooltip small {
+  font-size: 10px;
+  color: #6d7885;
 }
 
 .btff-panel__pinned-info {
@@ -521,9 +681,29 @@
 }
 
 .btff-panel__pinned-price {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   font-size: 12px;
   font-weight: 700;
   color: #f0d090;
+}
+
+.btff-price-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.btff-panel__pinned-price-chaos {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 4px;
+  color: #a0a0a0;
+  font-weight: 400;
 }
 
 .btff-panel__pinned-info small {
@@ -590,35 +770,30 @@
   gap: 6px;
 }
 
+/* These rules are inside shadow DOM but target elements on the host page —
+   kept in sync with the btff-host-styles injection in content.tsx. */
 .btff-pin-button {
-  border: 0;
-  border-radius: 999px;
-  padding: 7px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #9aa5b1;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 5px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: center;
+  vertical-align: middle;
+  border-radius: 0;
+  border: 1px solid #444;
+  background-color: #222;
+  background-image: none;
+  color: #e9cf9f;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.resultset .btff-pin-button {
-  color: #9aa5b1 !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-.btff-pin-button[data-pinned='true'],
 .btff-pin-button[aria-pressed='true'] {
-  color: #fff7ea;
-  background: linear-gradient(135deg, #824f1d, #b86e27);
-}
-
-.resultset .btff-pin-button[data-pinned='true'],
-.resultset .btff-pin-button[aria-pressed='true'] {
-  color: #fff7ea !important;
-  background: linear-gradient(135deg, #824f1d, #b86e27) !important;
-  border-color: transparent !important;
+  background-color: #5a3a10;
+  border-color: #a06820;
+  color: #f5d98a;
 }
 
 .row[data-btff-pinned='true'] {
@@ -631,7 +806,16 @@
     0 0 24px rgba(184, 110, 39, 0.28);
 }
 
+.btff-panel__scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: 4px;
+}
+
 .btff-panel__footer {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;

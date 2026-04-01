@@ -161,42 +161,70 @@ export default defineContentScript({
     function applyOverlayPosition() {
       if (!shadowHostRef) return;
       if (!overlayPosition) {
-        shadowHostRef.style.left = 'auto';
-        shadowHostRef.style.top = '16px';
-        shadowHostRef.style.right = '16px';
+        shadowHostRef.style.removeProperty('--btff-panel-left');
+        shadowHostRef.style.setProperty('--btff-panel-top', '16px');
+        shadowHostRef.style.setProperty('--btff-panel-right', '16px');
         return;
       }
 
-      shadowHostRef.style.left = `${overlayPosition.left}px`;
-      shadowHostRef.style.top = `${overlayPosition.top}px`;
-      shadowHostRef.style.right = 'auto';
+      shadowHostRef.style.setProperty('--btff-panel-top', `${overlayPosition.top}px`);
+      shadowHostRef.style.setProperty('--btff-panel-left', `${overlayPosition.left}px`);
+      shadowHostRef.style.setProperty('--btff-panel-right', 'auto');
     }
 
     function attachDragHandlers(shadow: ShadowRoot) {
-      const header = shadow.querySelector<HTMLElement>('.btff-panel__header');
-      if (!header || !shadowHostRef) return;
+      if (!shadowHostRef) return;
 
-      const startDrag = (event: MouseEvent) => {
+      // Attach to the shadow root, not the header element directly.
+      // React replaces the header DOM node on collapse/expand, so a cached
+      // reference goes stale. The shadow root itself is stable for the lifetime
+      // of the content script.
+      const startDrag = ((rawEvent: Event) => {
+        const event = rawEvent as MouseEvent;
         if (event.button !== 0) return;
-        const target = event.target as HTMLElement | null;
-        if (target?.closest('button, a, input, select, textarea, label')) {
-          return;
+
+        // composedPath() gives the full internal path even from the shadow root listener.
+        const path = event.composedPath();
+        const inHeader = path.some(
+          (el) => el instanceof Element && el.classList.contains('btff-panel__header'),
+        );
+        const inDockHandle = path.some(
+          (el) => el instanceof Element && el.classList.contains('btff-panel-dock__drag-handle'),
+        );
+        if (!inHeader && !inDockHandle) return;
+
+        // Interactive-element guard only applies to the header (the dock handle
+        // is a plain div specifically for dragging, so no guard needed there).
+        if (inHeader) {
+          const inInteractive = path.some(
+            (el) =>
+              el instanceof Element &&
+              (el.matches('button, a, input, select, textarea, label') ||
+                el.closest('button, a, input, select, textarea, label') !== null),
+          );
+          if (inInteractive) return;
         }
 
-        const rect = shadowHostRef!.getBoundingClientRect();
+        const panelEl =
+          shadow.querySelector<HTMLElement>('.btff-panel') ??
+          shadow.querySelector<HTMLElement>('.btff-panel-dock');
+        const rect = panelEl ? panelEl.getBoundingClientRect() : shadowHostRef!.getBoundingClientRect();
         dragState = {
           offsetX: event.clientX - rect.left,
           offsetY: event.clientY - rect.top,
         };
-      };
+      }) as EventListener;
 
       const onMove = (event: MouseEvent) => {
         if (!dragState || !shadowHostRef) return;
         if (schema?.preferences.sidePanelSidebar) return;
         if (!schema?.preferences.sidePanelDraggable) return;
 
-        const panelWidth = shadowHostRef.offsetWidth || 320;
-        const panelHeight = shadowHostRef.offsetHeight || 300;
+        const panelEl =
+          shadow.querySelector<HTMLElement>('.btff-panel') ??
+          shadow.querySelector<HTMLElement>('.btff-panel-dock');
+        const panelWidth = panelEl?.offsetWidth || 320;
+        const panelHeight = panelEl?.offsetHeight || 300;
         const maxLeft = Math.max(window.innerWidth - panelWidth, 0);
         const maxTop = Math.max(window.innerHeight - panelHeight, 0);
         const left = clamp(event.clientX - dragState.offsetX, 0, maxLeft);
@@ -210,12 +238,12 @@ export default defineContentScript({
         dragState = null;
       };
 
-      header.addEventListener('mousedown', startDrag);
+      shadow.addEventListener('mousedown', startDrag as EventListener);
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', stopDrag);
 
       dragHeaderCleanup = () => {
-        header.removeEventListener('mousedown', startDrag);
+        shadow.removeEventListener('mousedown', startDrag as EventListener);
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', stopDrag);
         dragHeaderCleanup = null;
@@ -227,14 +255,16 @@ export default defineContentScript({
       if (isSidebar) {
         shadowHostRef.setAttribute('data-sidebar', 'true');
         shadowHostRef.removeAttribute('data-draggable');
-        shadowHostRef.style.cssText =
-          'position:fixed;top:0;right:0;width:320px;height:100vh;z-index:2147483647;';
         if (!hostSidebarStyle) {
           hostSidebarStyle = document.createElement('style');
           hostSidebarStyle.id = 'btff-sidebar-margin';
           document.head.appendChild(hostSidebarStyle);
         }
-        hostSidebarStyle.textContent = 'body{padding-right:320px!important;}';
+        hostSidebarStyle.textContent = [
+          'body{padding-right:320px!important;}',
+          // Push the trade site's fixed scroll-to-top button so the panel doesn't cover it.
+          '.top-btn{right:340px!important;transition:right 0.2s ease;}',
+        ].join('\n');
       } else {
         shadowHostRef.removeAttribute('data-sidebar');
         if (schema?.preferences.sidePanelDraggable) {
@@ -242,8 +272,6 @@ export default defineContentScript({
         } else {
           shadowHostRef.removeAttribute('data-draggable');
         }
-        shadowHostRef.style.cssText =
-          'position:fixed;top:16px;right:16px;z-index:2147483647;';
         applyOverlayPosition();
         if (hostSidebarStyle) {
           hostSidebarStyle.remove();
@@ -289,19 +317,32 @@ export default defineContentScript({
         hostStyle.id = 'btff-host-styles';
         hostStyle.textContent = `
           .btff-pin-button {
-            border: 0;
-            border-radius: 999px;
-            padding: 7px 10px;
-            font-size: 11px;
-            font-weight: 700;
-            color: #9aa5b1;
-            background: rgba(255,255,255,0.08);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: inline-block;
+            min-width: 22px;
+            padding: 1px 5px;
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 1.5;
+            text-align: center;
+            vertical-align: middle;
+            border-radius: 0;
+            border: 1px solid #444;
+            background-color: #222;
+            background-image: none;
+            color: #e9cf9f;
             cursor: pointer;
+            white-space: nowrap;
+            touch-action: manipulation;
+            user-select: none;
           }
           .btff-pin-button[aria-pressed='true'] {
-            color: #fff7ea;
-            background: linear-gradient(135deg,#824f1d,#b86e27);
+            background-color: #5a3a10;
+            border-color: #a06820;
+            color: #f5d98a;
+          }
+          .btff-pin-button:hover {
+            background-color: #2e2e2e;
+            border-color: #666;
           }
           .row[data-btff-pinned='true'] {
             box-shadow: inset 0 0 0 2px rgba(184,110,39,0.32);

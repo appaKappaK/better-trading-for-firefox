@@ -25,6 +25,7 @@ import {
 } from '@/src/lib/bookmarks/folderIcons';
 import { readImportFile } from '@/src/popup/importFiles';
 import { SettingsView } from '@/src/popup/SettingsView';
+import { buildTradeUrl } from '@/src/popup/tradeUrls';
 
 import './App.css';
 
@@ -65,7 +66,7 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReadingImportFile, setIsReadingImportFile] = useState(false);
   const [importInput, setImportInput] = useState('');
-  const [feedback, setFeedback] = useState<FeedbackState>(DEFAULT_FEEDBACK);
+  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
 
   const deferredImportInput = useDeferredValue(importInput);
   const importPreview = useMemo(
@@ -75,11 +76,6 @@ function App() {
 
   const folders = schema?.bookmarks.folders ?? [];
   const historyEntries = schema?.history.entries ?? [];
-  const bookmarkTradeCount = folders.reduce(
-    (count, folder) =>
-      count + (schema?.bookmarks.tradesByFolderId[folder.id]?.length ?? 0),
-    0,
-  );
   const needsOnboarding = !schema?.preferences.hasCompletedOnboarding;
 
   useEffect(() => {
@@ -95,6 +91,8 @@ function App() {
 
         if (!nextSchema.preferences.hasCompletedOnboarding) {
           setFeedback(ONBOARDING_FEEDBACK);
+        } else {
+          setFeedback(null);
         }
       } catch (error) {
         if (!isActive) return;
@@ -133,9 +131,7 @@ function App() {
       setActivePage((currentPage) => {
         if (currentPage === 'settings') return 'settings';
         if (!nextSchema.preferences.hasCompletedOnboarding) return 'import';
-        if (currentPage === 'import') {
-          return normalizeStoredPage(nextSchema.preferences.currentPage);
-        }
+        if (currentPage === 'import') return 'bookmarks';
         return currentPage;
       });
     });
@@ -159,25 +155,8 @@ function App() {
     }
   }
 
-  async function handleSelectPage(nextPage: PopupPage) {
-    if (nextPage === 'import' || nextPage === 'settings') {
-      setActivePage(nextPage);
-      return;
-    }
-
+  function handleSelectPage(nextPage: PopupPage) {
     setActivePage(nextPage);
-
-    try {
-      await updateStoredPreferences({
-        currentPage: nextPage,
-      });
-    } catch (error) {
-      setFeedback({
-        tone: 'error',
-        title: 'Could not save the selected view',
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
   }
 
   async function handleImportSubmit() {
@@ -475,6 +454,15 @@ function App() {
     }
   }
 
+  async function handleDismissUpdateNotice() {
+    try {
+      const nextSchema = await updateStoredPreferences({ pendingUpdateNotice: null });
+      applyLoadedSchema(nextSchema);
+    } catch {
+      // Non-critical — ignore
+    }
+  }
+
   async function handleToggleEnhancer(slug: string, nextEnabled: boolean) {
     if (!schema) return;
 
@@ -514,10 +502,32 @@ function App() {
         </p>
       </section>
 
-      <section className="popup-status" data-tone={feedback.tone}>
-        <p className="popup-status-title">{feedback.title}</p>
-        <p className="popup-status-message">{feedback.message}</p>
-      </section>
+      {schema?.preferences.pendingUpdateNotice ? (
+        <section className="popup-update-notice">
+          <div>
+            <strong>Updated to v{schema.preferences.pendingUpdateNotice}</strong>
+            <p>Better Trading for Firefox was just updated. Check the changelog for what's new.</p>
+          </div>
+          <button
+            className="popup-button popup-button--secondary popup-button--small"
+            onClick={() => void handleDismissUpdateNotice()}
+            type="button">
+            Dismiss
+          </button>
+        </section>
+      ) : null}
+
+      {isSchemaLoading ? (
+        <section className="popup-status" data-tone="neutral">
+          <p className="popup-status-title">Loading</p>
+          <p className="popup-status-message">Reading your saved Better Trading data…</p>
+        </section>
+      ) : feedback ? (
+        <section className="popup-status" data-tone={feedback.tone}>
+          <p className="popup-status-title">{feedback.title}</p>
+          <p className="popup-status-message">{feedback.message}</p>
+        </section>
+      ) : null}
 
       <nav className="popup-tabs" aria-label="Popup sections">
         {(Object.keys(PAGE_LABELS) as PopupPage[]).map((page) => (
@@ -540,12 +550,12 @@ function App() {
           <div>
             <p className="popup-panel-eyebrow">
               {activePage === 'import'
-                ? 'Import'
+                ? 'Migration'
                 : activePage === 'bookmarks'
                   ? 'Manage'
                   : activePage === 'history'
-                    ? 'History'
-                    : 'Settings'}
+                    ? 'Browse'
+                    : 'Configure'}
             </p>
             <h2>{PAGE_LABELS[activePage]}</h2>
           </div>
@@ -601,24 +611,6 @@ function App() {
         ) : null}
       </section>
 
-      <section className="popup-summary-grid" aria-label="Schema summary">
-        <article className="popup-summary-card">
-          <span className="popup-summary-label">Folders</span>
-          <strong>{folders.length}</strong>
-        </article>
-        <article className="popup-summary-card">
-          <span className="popup-summary-label">Trades</span>
-          <strong>{bookmarkTradeCount}</strong>
-        </article>
-        <article className="popup-summary-card">
-          <span className="popup-summary-label">History</span>
-          <strong>{historyEntries.length}</strong>
-        </article>
-        <article className="popup-summary-card">
-          <span className="popup-summary-label">Schema</span>
-          <strong>v{schema?.schemaVersion ?? 1}</strong>
-        </article>
-      </section>
     </main>
   );
 }
@@ -648,6 +640,10 @@ function MigrationPanel({
   onImportSubmit,
   onStartFresh,
 }: MigrationPanelProps) {
+  const [dragCounter, setDragCounter] = useState(0);
+  const isDragOver = dragCounter > 0;
+  const isDisabled = isReadingImportFile || isSubmitting;
+
   return (
     <>
       <p className="popup-copy popup-copy--panel">
@@ -656,23 +652,39 @@ function MigrationPanel({
         supports v1, v2, and v3 bookmark formats.
       </p>
 
-      <label className="popup-file-picker">
-        <span>Backup file</span>
-        <input
-          accept=".txt,text/plain"
-          disabled={isReadingImportFile || isSubmitting}
-          onChange={(event) => {
-            void onImportFileChange(event.target.files?.[0] ?? null);
-            event.target.value = '';
-          }}
-          type="file"
-        />
-        <small>
-          {isReadingImportFile
-            ? 'Reading file...'
-            : 'Loads the file into the import box below for preview and restore.'}
-        </small>
-      </label>
+      <div className="popup-file-picker">
+        <span className="popup-file-picker__label">Backup file</span>
+        <label
+          className="popup-file-picker__zone"
+          data-disabled={String(isDisabled)}
+          data-drag-over={String(isDragOver)}
+          onDragEnter={(e) => { e.preventDefault(); setDragCounter((c) => c + 1); }}
+          onDragLeave={() => setDragCounter((c) => c - 1)}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragCounter(0);
+            const file = e.dataTransfer.files[0] ?? null;
+            if (file && !isDisabled) void onImportFileChange(file);
+          }}>
+          <input
+            accept=".txt,text/plain"
+            className="popup-file-picker__input"
+            disabled={isDisabled}
+            onChange={(event) => {
+              void onImportFileChange(event.target.files?.[0] ?? null);
+              event.target.value = '';
+            }}
+            type="file"
+          />
+          <span className="popup-file-picker__cta">
+            {isReadingImportFile ? 'Reading file...' : 'Click or drag a backup file here'}
+          </span>
+          <small className="popup-file-picker__hint">
+            Loads the file into the import box below for preview and restore.
+          </small>
+        </label>
+      </div>
 
       <label className="popup-field" htmlFor="legacy-import-input">
         <span>Legacy export or backup text</span>
@@ -1081,28 +1093,32 @@ function HistoryPanel({ historyEntries, isSchemaLoading, onClearHistory }: Histo
       <ul className="popup-history-list">
         {historyEntries.map((entry) => (
           <li key={entry.id} className="popup-history-item">
-            <div className="popup-record-header">
-              <div>
-                <h3>{entry.title}</h3>
-                <p>
-                  PoE {entry.version} | {entry.league} | {entry.type}
-                  {entry.isLive ? ' | live' : ''}
-                </p>
+            <a
+              className="popup-history-link"
+              href={buildTradeUrl(entry)}
+              rel="noreferrer"
+              target="_blank">
+              <div className="popup-history-entry-header">
+                <h3 className="popup-history-title">{entry.title}</h3>
+                <span className="popup-history-date">{formatTimestamp(entry.createdAt)}</span>
               </div>
-              <span className="popup-history-date">{formatTimestamp(entry.createdAt)}</span>
-            </div>
-            <code>{shortenSlug(entry.slug)}</code>
+              <p className="popup-history-slug">{shortenSlug(entry.slug)}</p>
+              <div className="popup-history-pills">
+                <span className="popup-history-pill" data-version={entry.version}>
+                  PoE {entry.version}
+                </span>
+                <span className="popup-history-pill">{entry.league}</span>
+                <span className="popup-history-pill">{entry.type}</span>
+                {entry.isLive ? (
+                  <span className="popup-history-pill popup-history-pill--live">live</span>
+                ) : null}
+              </div>
+            </a>
           </li>
         ))}
       </ul>
     </>
   );
-}
-
-function normalizeStoredPage(value: string | null | undefined): PopupPage {
-  if (value === 'history') return 'history';
-  if (value === 'settings') return 'settings';
-  return 'bookmarks';
 }
 
 async function copyTextToClipboard(value: string) {

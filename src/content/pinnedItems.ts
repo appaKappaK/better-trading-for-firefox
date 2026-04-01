@@ -1,5 +1,6 @@
 export interface PinnedItemRecord {
   id: string;
+  chaosEquivalent?: number | null;
   imageUrl?: string | null;
   pinnedAt: string;
   price: string | null;
@@ -103,14 +104,7 @@ export function createPinnedItemsStore(doc: Document = document) {
       button.addEventListener('click', () => {
         void toggleRow(row);
       });
-      const hideoutButton = findHideoutButton(host);
-      if (hideoutButton?.nextSibling) {
-        hideoutButton.parentElement?.insertBefore(button, hideoutButton.nextSibling);
-      } else if (hideoutButton) {
-        hideoutButton.parentElement?.append(button);
-      } else {
-        host.append(button);
-      }
+      host.append(button);
     }
 
     const itemId = row.getAttribute('data-id');
@@ -141,15 +135,17 @@ export function createPinnedItemsStore(doc: Document = document) {
     const existingHost = row.querySelector<HTMLElement>(`.${PIN_ACTION_HOST_CLASS}`);
     if (existingHost) return existingHost;
 
+    const host = doc.createElement('div');
+    host.className = PIN_ACTION_HOST_CLASS;
+
+    // Place pin host AFTER the existing button row (.btns) so it always appears
+    // below Whisper / Travel to Hideout / AFK / Online — whatever is shown.
     const details = row.querySelector<HTMLElement>('.details');
     const existingButtons = details?.querySelector<HTMLElement>('.btns');
     if (existingButtons) {
-      existingButtons.classList.add(PIN_ACTION_HOST_CLASS);
-      return existingButtons;
+      existingButtons.insertAdjacentElement('afterend', host);
+      return host;
     }
-
-    const host = doc.createElement('div');
-    host.className = PIN_ACTION_HOST_CLASS;
 
     if (details) {
       details.append(host);
@@ -176,15 +172,6 @@ export function createPinnedItemsStore(doc: Document = document) {
   };
 }
 
-function findHideoutButton(host: HTMLElement) {
-  const buttons = Array.from(host.querySelectorAll<HTMLElement>('button, a'));
-  return (
-    buttons.find((element) =>
-      /travel to hideout/i.test(element.textContent ?? ''),
-    ) ?? null
-  );
-}
-
 function extractPinnedItem(row: HTMLElement): PinnedItemRecord {
   const itemId = row.getAttribute('data-id');
   if (!itemId) {
@@ -200,9 +187,7 @@ function extractPinnedItem(row: HTMLElement): PinnedItemRecord {
         '.middle .itemLevel',
       ]),
     ) ?? `Pinned result ${itemId}`;
-  const price = normalizePinnedText(
-    findText(row, ['.price .price-tag', '.price', '.listing-price']),
-  );
+  const price = extractCleanPrice(row);
   const subtitleParts = [
     normalizePinnedText(findText(row, ['.itemLevel'])),
     normalizePinnedText(findText(row, ['.details .account', '.account'])),
@@ -212,6 +197,7 @@ function extractPinnedItem(row: HTMLElement): PinnedItemRecord {
 
   return {
     id: itemId,
+    chaosEquivalent: extractChaosEquivalent(row),
     imageUrl: findItemImageUrl(row),
     pinnedAt: new Date().toISOString(),
     price,
@@ -221,6 +207,41 @@ function extractPinnedItem(row: HTMLElement): PinnedItemRecord {
         : 'Pinned from the current trade results.',
     title,
   };
+}
+
+function extractCleanPrice(row: HTMLElement): string | null {
+  // Prefer structured data-field elements — same source equivalentPricings uses,
+  // avoids "Asking Price:" labels and "Fee:" text the site injects into .price.
+  const valueText = row
+    .querySelector('[data-field="price"] > br + span')
+    ?.textContent?.trim();
+  const currencyName = row
+    .querySelector('[data-field="price"] .currency-text span')
+    ?.textContent?.trim();
+
+  if (valueText && currencyName) {
+    return normalizePinnedText(`${valueText}×${currencyName}`);
+  }
+
+  // Fallback: clone the element so we can strip our own injected nodes before reading.
+  const priceEl =
+    row.querySelector<HTMLElement>('.price .price-tag') ??
+    row.querySelector<HTMLElement>('.price') ??
+    row.querySelector<HTMLElement>('.listing-price');
+  if (!priceEl) return null;
+
+  const clone = priceEl.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll('.btff-equivalent-pricings').forEach((el) => el.remove());
+  return normalizePinnedText(clone.textContent ?? null);
+}
+
+function extractChaosEquivalent(row: HTMLElement): number | null {
+  const chaosEl = row.querySelector<HTMLElement>('.btff-equivalent-pricings-chaos');
+  if (!chaosEl) return null;
+  // textContent is "=NNNx[img-alt]" — extract just the digits/decimal
+  const raw = chaosEl.textContent?.replace(/[^0-9.]/g, '').trim();
+  const value = raw ? Number.parseFloat(raw) : NaN;
+  return Number.isNaN(value) ? null : value;
 }
 
 function findItemImageUrl(row: HTMLElement) {
