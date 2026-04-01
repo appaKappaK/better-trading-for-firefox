@@ -22,7 +22,7 @@
 - Folders/Trades/History/Schema stats grid from the popup footer
 - Section label dividers (In-Page Panel, Trade Enhancers, About) from the Settings page
 
-## [1.0.4] - 2026-03-31
+## [1.0.3-1.0.4] - 2026-03-31
 
 ### Added
 - Collapsed dock now shows a mini list of up to 5 pinned items with a scroll-to jump button each, so pinned results are accessible without expanding the panel
