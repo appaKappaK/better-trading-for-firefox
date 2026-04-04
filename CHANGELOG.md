@@ -1,6 +1,7 @@
 # Changelog
 
-## [1.0.5] - 2026-04-01
+## [1.0.5] - [1.0.6] - 2026-04-04
+// Merged to 1.0.6 to line up with app approval on FF store
 
 ### Added
 - Chaos-equivalent price (from poe.ninja) shown inline in pinned items with a chaos icon
@@ -21,6 +22,9 @@
 ### Removed
 - Folders/Trades/History/Schema stats grid from the popup footer
 - Section label dividers (In-Page Panel, Trade Enhancers, About) from the Settings page
+
+### In-Progress
+- Working on the image shown when hovering a pinned item
 
 ## [1.0.3-1.0.4] - 2026-03-31
 
