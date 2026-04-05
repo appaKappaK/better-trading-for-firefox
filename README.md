@@ -19,7 +19,13 @@ The in-page panel handles live trading, bookmarks, and history. The popup manage
 - npm 10+
 - Firefox (any release channel)
 
-> If your system Node is older, use [nvm](https://github.com/nvm-sh/nvm): `nvm install 22 && nvm use 22`
+> If your system Node is older, use [nvm](https://github.com/nvm-sh/nvm): `nvm install 22 && nvm use 22`  
+> *(This will also give you the correct npm version automatically.)*
+
+> If you already have Node 22+ but npm is older than 10, update it manually:
+> ```bash
+> npm install -g npm@latest
+> ```
 
 > If you already ran `npm install` under the wrong Node version you will see ``SyntaxError: Unexpected reserved word`` from the `wxt prepare` postinstall step. Switch to Node 22, delete `node_modules`, then reinstall:
 >
@@ -96,6 +102,6 @@ This rebuild starts from scratch with a Firefox-only MV3 architecture, using WXT
 
 ## Notes
 
-- Firefox is the only supported browser, no Chrome, no cross-browser shims.
+- Firefox is the only supported browser (no Chrome, no cross-browser shims). Use the original Better Trading extension for other browsers.
 - The build aliases `react`/`react-dom` to `preact/compat` to minimize bundle size.
-- `npm run lint:firefox` suppresses framework-generated `innerHTML` warnings from bundled output only.
+- `npm run lint:firefox` suppresses framework-generated `innerHTML` warnings from bundled output only. Any authored `innerHTML` in `src/` or `entrypoints/` will surface immediately.
