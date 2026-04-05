@@ -1,13 +1,17 @@
 # Better Trading for Firefox
 
-A Firefox-only MV3 extension that enhances the Path of Exile trade site with bookmarks, search history, live trade enhancers, and seamless migration from the original Better Trading add-on.
+[![GitHub Actions CI](https://github.com/appaKappaK/better-trading-for-firefox/actions/workflows/ci.yml/badge.svg)](https://github.com/appaKappaK/better-trading-for-firefox/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/en-US/firefox/addon/better-trading-for-firefox/)
+
+A Firefox-only Manifest V3 extension that enhances the Path of Exile trade site with bookmarks, search history, live trade enhancers, and seamless migration from the original Better Trading add-on.
 
 - **Bookmark trade searches** into named folders, mark trades complete, and update saved locations as leagues change
 - **Track search history** automatically as you browse trade pages
-- **Live enhancers** on trade result pages: equivalent chaos/divine pricing, stat filter highlighting, socket warnings, and grouped duplicate listings
-- **Import from the original add-on**: paste a folder export string or a full backup file and your data carries over
+- **Apply live enhancers** on trade result pages: equivalent chaos/divine pricing, stat filter highlighting, socket warnings, and grouped duplicate listings
+- **Import from the original add-on** – paste a folder export string or a full backup file to carry over all your data
 
-The in-page panel handles live trade work, bookmarks, and history. The popup manages importing old data, settings, and exports.
+The in-page panel handles live trading, bookmarks, and history. The popup manages imports, settings, and exports.
 
 ## Requirements
 
@@ -16,8 +20,9 @@ The in-page panel handles live trade work, bookmarks, and history. The popup man
 - Firefox (any release channel)
 
 > If your system Node is older, use [nvm](https://github.com/nvm-sh/nvm): `nvm install 22 && nvm use 22`
+
+> If you already ran `npm install` under the wrong Node version you will see ``SyntaxError: Unexpected reserved word`` from the `wxt prepare` postinstall step. Switch to Node 22, delete `node_modules`, then reinstall:
 >
-> If you already ran `npm install` under the wrong Node version you will see `SyntaxError: Unexpected reserved word` from the `wxt prepare` postinstall step. Switch to Node 22, delete `node_modules`, then reinstall:
 > ```bash
 > nvm install 22 && nvm use 22
 > rm -rf node_modules
@@ -37,7 +42,7 @@ npm run build
 ## Developer Commands
 
 | Command | What it does |
-|---|---|
+|---------|---------------|
 | `npm run dev` | Hot-reload dev build targeting Firefox MV3 |
 | `npm run build` | Production build |
 | `npm run zip` | Package a signed-ready `.zip` for AMO upload |
@@ -85,7 +90,7 @@ To export your current data: go to the **Bookmarks** tab in the popup and use **
 
 This extension is a Firefox-native rebuild of [Better Trading](https://github.com/exile-center/better-trading) by exile-center.
 
-The original add-on is Chrome-first. The author has been open about deprioritizing Firefox, citing the stricter review process and smaller user base. The last Firefox release was v1.3.2, which predates Manifest V3 and has fallen increasingly out of step with both Firefox and the trade site itself.
+The original add-on is Chrome-first. The author has been open about deprioritizing Firefox, citing the stricter review process and smaller user base. The last Firefox release was v1.3.2, which predates Manifest V3 and has become increasingly out of step with both Firefox and the trade site itself.
 
 This rebuild starts from scratch with a Firefox-only MV3 architecture, using WXT and Preact instead of the original Ember-based stack. The bookmark export format is kept fully compatible with the original so existing data carries over without any loss.
 
@@ -93,4 +98,4 @@ This rebuild starts from scratch with a Firefox-only MV3 architecture, using WXT
 
 - Firefox is the only supported browser, no Chrome, no cross-browser shims.
 - The build aliases `react`/`react-dom` to `preact/compat` to minimize bundle size.
-- `npm run lint:firefox` suppresses framework-generated `innerHTML` warnings from bundled output only. Any authored `innerHTML` in `src/` or `entrypoints/` will surface immediately.
+- `npm run lint:firefox` suppresses framework-generated `innerHTML` warnings from bundled output only.
