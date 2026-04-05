@@ -26,7 +26,7 @@ The in-page panel handles live trade work, bookmarks, and history. The popup man
 
 ## Install
 
-Install from AMO *(listing pending approval)*, or load it manually:
+Install from [AMO](https://addons.mozilla.org/en-US/firefox/addon/better-trading-for-firefox/), or load it manually:
 
 ```bash
 npm install
