@@ -14,6 +14,19 @@ const firefoxGeckoSettings: {
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
+  hooks: {
+    'build:manifestGenerated': (_wxt, manifest) => {
+      if (!Array.isArray(manifest.web_accessible_resources)) {
+        return;
+      }
+
+      for (const resource of manifest.web_accessible_resources) {
+        if (resource && typeof resource === 'object' && 'use_dynamic_url' in resource) {
+          delete (resource as { use_dynamic_url?: boolean }).use_dynamic_url;
+        }
+      }
+    },
+  },
   vite: () => ({
     resolve: {
       alias: [
@@ -42,7 +55,7 @@ export default defineConfig({
   }),
   manifest: {
     name: 'Better Trading for Firefox',
-    version: '1.0.6',
+    version: '1.1.0',
     homepage_url: 'https://github.com/appaKappaK/better-trading-for-firefox',
     description: 'Bookmark trade searches, track history, and apply live enhancers on the Path of Exile trade site. Firefox-only MV3 extension.',
     permissions: ['storage'],

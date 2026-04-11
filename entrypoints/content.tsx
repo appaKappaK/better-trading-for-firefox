@@ -14,6 +14,16 @@ import {
   createPinnedItemsStore,
   type PinnedItemRecord,
 } from '@/src/content/pinnedItems';
+import {
+  clearPendingPinnedJump,
+  isSessionPinsActive,
+  loadPendingPinnedJump,
+  loadSessionPinnedItems,
+  savePendingPinnedJump,
+  saveSessionPinnedItems,
+  setSessionPinsActive,
+  type PendingPinnedJump,
+} from '@/src/content/pinnedSession';
 import { createPageTitleController } from '@/src/content/pageTitle';
 import { createRegroupSimilarsController } from '@/src/content/regroupSimilars';
 import {
@@ -73,6 +83,12 @@ export default defineContentScript({
     let lastSyncedPath: string | null = null;
     let pinnedItems: PinnedItemRecord[] = pinnedItemsStore.getItems();
     let currentPage: ContentPage = normalizeContentPage(null);
+    let pageHideCleanup: (() => void) | null = null;
+    let pageShowCleanup: (() => void) | null = null;
+    let pendingJumpIntervalId: number | null = null;
+    let pendingJumpTimeoutId: number | null = null;
+    let sessionPinsActive = false;
+    const sessionStorageRef = window.sessionStorage;
 
     const render = () => {
       if (!root) return;
@@ -80,6 +96,7 @@ export default defineContentScript({
       root.render(
         <Phase0Panel
           currentPage={currentPage}
+          isPinnedItemOnCurrentPage={isPinnedItemOnCurrentPage}
           isCollapsed={Boolean(schema?.preferences.sidePanelCollapsed)}
           isSchemaLoading={isSchemaLoading}
           onClearHistory={() => clearHistory()}
@@ -90,7 +107,7 @@ export default defineContentScript({
           onCopyFolderExport={(folderId) => copyFolderExport(folderId)}
           onReorderFolders={(fromIndex, toIndex) => reorderFolders(fromIndex, toIndex)}
           onSaveTrade={(draft) => saveTrade(draft)}
-          onScrollToPinnedItem={scrollToPinnedItem}
+          onActivatePinnedItem={activatePinnedItem}
           onSelectPage={(page) => {
             void selectPage(page);
           }}
@@ -117,11 +134,13 @@ export default defineContentScript({
 
     const refresh = () => {
       snapshot = collectTradePageSnapshot(document);
+      pinnedItemsStore.setSourcePath(snapshot.currentPath);
       pageTitleController.update(schema, snapshot.tradeLocation);
 
       if (
-        (lastPinnedPath !== null && snapshot.currentPath !== lastPinnedPath) ||
-        snapshot.resultsFound === 0
+        !sessionPinsActive &&
+        ((lastPinnedPath !== null && snapshot.currentPath !== lastPinnedPath) ||
+          snapshot.resultsFound === 0)
       ) {
         pinnedItemsStore.clear();
         regroupSimilarsController.reset();
@@ -136,6 +155,9 @@ export default defineContentScript({
           snapshot.tradeLocation,
           pageTitleController.getHistorySourceTitle(),
         ).then(applySchema);
+      }
+      if (sessionPinsActive) {
+        resumePendingPinnedJump();
       }
       render();
     };
@@ -175,6 +197,10 @@ export default defineContentScript({
     function attachDragHandlers(shadow: ShadowRoot) {
       if (!shadowHostRef) return;
 
+      const getDraggableElement = () =>
+        shadow.querySelector<HTMLElement>('.btff-panel-dock') ??
+        shadow.querySelector<HTMLElement>('.btff-panel');
+
       // Attach to the shadow root, not the header element directly.
       // React replaces the header DOM node on collapse/expand, so a cached
       // reference goes stale. The shadow root itself is stable for the lifetime
@@ -192,6 +218,9 @@ export default defineContentScript({
           (el) => el instanceof Element && el.classList.contains('btff-panel-dock__drag-handle'),
         );
         if (!inHeader && !inDockHandle) return;
+        if (!schema?.preferences.sidePanelDraggable) return;
+        if (schema?.preferences.sidePanelSidebar) return;
+        event.preventDefault();
 
         // Interactive-element guard only applies to the header (the dock handle
         // is a plain div specifically for dragging, so no guard needed there).
@@ -205,9 +234,7 @@ export default defineContentScript({
           if (inInteractive) return;
         }
 
-        const panelEl =
-          shadow.querySelector<HTMLElement>('.btff-panel') ??
-          shadow.querySelector<HTMLElement>('.btff-panel-dock');
+        const panelEl = getDraggableElement();
         const rect = panelEl ? panelEl.getBoundingClientRect() : shadowHostRef!.getBoundingClientRect();
         dragState = {
           offsetX: event.clientX - rect.left,
@@ -220,9 +247,7 @@ export default defineContentScript({
         if (schema?.preferences.sidePanelSidebar) return;
         if (!schema?.preferences.sidePanelDraggable) return;
 
-        const panelEl =
-          shadow.querySelector<HTMLElement>('.btff-panel') ??
-          shadow.querySelector<HTMLElement>('.btff-panel-dock');
+        const panelEl = getDraggableElement();
         const panelWidth = panelEl?.offsetWidth || 320;
         const panelHeight = panelEl?.offsetHeight || 300;
         const maxLeft = Math.max(window.innerWidth - panelWidth, 0);
@@ -295,6 +320,9 @@ export default defineContentScript({
         root = createRoot(container);
         unsubscribePinnedItems = pinnedItemsStore.subscribe((nextPinnedItems) => {
           pinnedItems = nextPinnedItems;
+          if (sessionPinsActive) {
+            saveSessionPinnedItems(sessionStorageRef, nextPinnedItems);
+          }
           if (nextPinnedItems.length > 0) {
             currentPage = 'pinned';
           }
@@ -351,6 +379,7 @@ export default defineContentScript({
         document.head.appendChild(hostStyle);
 
         void syncSchema();
+        attachPageLifecycleListeners();
 
         return root;
       },
@@ -366,6 +395,11 @@ export default defineContentScript({
         unsubscribePinnedItems?.();
         observer = null;
         unsubscribePinnedItems = null;
+        stopPendingPinnedJumpWatch();
+        pageHideCleanup?.();
+        pageShowCleanup?.();
+        pageHideCleanup = null;
+        pageShowCleanup = null;
         mountedRoot?.unmount();
         root = null;
       },
@@ -485,8 +519,39 @@ export default defineContentScript({
       pinnedItemsStore.clear();
     }
 
-    function scrollToPinnedItem(itemId: string) {
-      pinnedItemsStore.scrollToItem(itemId);
+    function isPinnedItemOnCurrentPage(itemId: string) {
+      return pinnedItemsStore.hasRow(itemId);
+    }
+
+    function activatePinnedItem(itemId: string) {
+      const item = pinnedItemsStore.getItem(itemId);
+      if (!item) return;
+
+      if (pinnedItemsStore.hasRow(itemId)) {
+        pinnedItemsStore.scrollToItem(itemId);
+        clearPendingPinnedJump(sessionStorageRef);
+        stopPendingPinnedJumpWatch();
+        return;
+      }
+
+      if (!sessionPinsActive) {
+        return;
+      }
+
+      const pendingJump: PendingPinnedJump = {
+        itemId,
+        sourcePath: item.sourcePath,
+        startedAt: Date.now(),
+      };
+
+      savePendingPinnedJump(sessionStorageRef, pendingJump);
+
+      if (window.location.pathname !== item.sourcePath) {
+        window.location.assign(item.sourcePath);
+        return;
+      }
+
+      startPendingPinnedJumpWatch(pendingJump);
     }
 
     async function setSidePanelCollapsed(collapsed: boolean) {
@@ -511,6 +576,11 @@ export default defineContentScript({
 
     function unpinItem(itemId: string) {
       pinnedItemsStore.unpin(itemId);
+      const pendingJump = loadPendingPinnedJump(sessionStorageRef);
+      if (pendingJump?.itemId === itemId) {
+        clearPendingPinnedJump(sessionStorageRef);
+        stopPendingPinnedJumpWatch();
+      }
     }
 
     async function saveTrade(draft: {
@@ -602,14 +672,119 @@ export default defineContentScript({
     }
 
     function applySchema(nextSchema: StorageSchemaV1) {
+      const wasSessionPinsActive = sessionPinsActive;
       schema = nextSchema;
+      sessionPinsActive = syncSessionPinActivation(nextSchema);
       if (currentPage !== 'pinned') {
         currentPage = normalizeContentPage(nextSchema.preferences.currentPage);
+      }
+      if (sessionPinsActive && !wasSessionPinsActive) {
+        restoreOrPersistSessionPins();
       }
       applySidebarMode(Boolean(nextSchema.preferences.sidePanelSidebar));
       snapshot.socketWarnings = applyTradePageEnhancers();
       pageTitleController.update(nextSchema, snapshot.tradeLocation);
+      if (sessionPinsActive) {
+        resumePendingPinnedJump();
+      }
       render();
+    }
+
+    function attachPageLifecycleListeners() {
+      const handlePageHide = () => {
+        stopPendingPinnedJumpWatch();
+      };
+      const handlePageShow = () => {
+        if (sessionPinsActive) {
+          restoreOrPersistSessionPins();
+          resumePendingPinnedJump();
+        }
+        refresh();
+      };
+
+      window.addEventListener('pagehide', handlePageHide);
+      window.addEventListener('pageshow', handlePageShow);
+
+      pageHideCleanup = () => {
+        window.removeEventListener('pagehide', handlePageHide);
+      };
+      pageShowCleanup = () => {
+        window.removeEventListener('pageshow', handlePageShow);
+      };
+    }
+
+    function restoreOrPersistSessionPins() {
+      const storedPins = loadSessionPinnedItems(sessionStorageRef);
+
+      if (storedPins.length > 0) {
+        pinnedItemsStore.replaceItems(storedPins);
+        return;
+      }
+
+      if (pinnedItemsStore.getItems().length > 0) {
+        saveSessionPinnedItems(sessionStorageRef, pinnedItemsStore.getItems());
+      }
+    }
+
+    function syncSessionPinActivation(nextSchema: StorageSchemaV1) {
+      const preferenceEnabled = Boolean(
+        nextSchema.preferences.persistPinnedItemsInSession,
+      );
+      const alreadyActive = isSessionPinsActive(sessionStorageRef);
+
+      if (preferenceEnabled && !alreadyActive) {
+        setSessionPinsActive(sessionStorageRef, true);
+        return true;
+      }
+
+      return preferenceEnabled || alreadyActive;
+    }
+
+    function resumePendingPinnedJump() {
+      const pendingJump = loadPendingPinnedJump(sessionStorageRef);
+      if (!pendingJump) return;
+      if (window.location.pathname !== pendingJump.sourcePath) return;
+
+      startPendingPinnedJumpWatch(pendingJump);
+    }
+
+    function startPendingPinnedJumpWatch(pendingJump: PendingPinnedJump) {
+      stopPendingPinnedJumpWatch();
+
+      if (pinnedItemsStore.hasRow(pendingJump.itemId)) {
+        pinnedItemsStore.scrollToItem(pendingJump.itemId);
+        clearPendingPinnedJump(sessionStorageRef);
+        return;
+      }
+
+      pendingJumpIntervalId = window.setInterval(() => {
+        if (window.location.pathname !== pendingJump.sourcePath) {
+          stopPendingPinnedJumpWatch();
+          return;
+        }
+
+        if (pinnedItemsStore.hasRow(pendingJump.itemId)) {
+          pinnedItemsStore.scrollToItem(pendingJump.itemId);
+          clearPendingPinnedJump(sessionStorageRef);
+          stopPendingPinnedJumpWatch();
+        }
+      }, 200);
+
+      pendingJumpTimeoutId = window.setTimeout(() => {
+        clearPendingPinnedJump(sessionStorageRef);
+        stopPendingPinnedJumpWatch();
+      }, 10_000);
+    }
+
+    function stopPendingPinnedJumpWatch() {
+      if (pendingJumpIntervalId !== null) {
+        window.clearInterval(pendingJumpIntervalId);
+        pendingJumpIntervalId = null;
+      }
+      if (pendingJumpTimeoutId !== null) {
+        window.clearTimeout(pendingJumpTimeoutId);
+        pendingJumpTimeoutId = null;
+      }
     }
   },
 });

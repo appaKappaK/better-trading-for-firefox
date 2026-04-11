@@ -23,6 +23,7 @@ import {
   getFolderIconLabel,
   getFolderIconSymbol,
 } from '@/src/lib/bookmarks/folderIcons';
+import { formatTradeLeagueLabel } from '@/src/lib/trade/location';
 import { readImportFile } from '@/src/popup/importFiles';
 import { SettingsView } from '@/src/popup/SettingsView';
 import { buildTradeUrl } from '@/src/popup/tradeUrls';
@@ -454,6 +455,28 @@ function App() {
     }
   }
 
+  async function handleSetPinnedItemsSessionPersistence(enabled: boolean) {
+    try {
+      const nextSchema = await updateStoredPreferences({
+        persistPinnedItemsInSession: enabled,
+      });
+      applyLoadedSchema(nextSchema);
+      setFeedback({
+        tone: 'success',
+        title: 'Pinned-items preference saved',
+        message: enabled
+          ? 'Open trade tabs can now keep pinned items across multiple searches and filter changes for this Firefox session.'
+          : 'New trade tabs will go back to clearing pins when searches change. Tabs already using session pins keep their current pins until they close or Firefox quits.',
+      });
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        title: 'Could not save pinned-items preference',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   async function handleDismissUpdateNotice() {
     try {
       const nextSchema = await updateStoredPreferences({ pendingUpdateNotice: null });
@@ -602,6 +625,7 @@ function App() {
         {activePage === 'settings' ? (
           <SettingsView
             isSchemaLoading={isSchemaLoading}
+            onSetPinnedItemsSessionPersistence={handleSetPinnedItemsSessionPersistence}
             onSetSidePanelCollapsed={handleSetSidePanelCollapsed}
             onSetSidePanelDraggable={handleSetSidePanelDraggable}
             onSetSidePanelSidebar={handleSetSidePanelSidebar}
@@ -1053,13 +1077,17 @@ function BookmarksPanel({
   );
 }
 
-interface HistoryPanelProps {
+export interface HistoryPanelProps {
   historyEntries: HistoryEntry[];
   isSchemaLoading: boolean;
   onClearHistory: () => Promise<void>;
 }
 
-function HistoryPanel({ historyEntries, isSchemaLoading, onClearHistory }: HistoryPanelProps) {
+export function HistoryPanel({
+  historyEntries,
+  isSchemaLoading,
+  onClearHistory,
+}: HistoryPanelProps) {
   const [isClearing, setIsClearing] = useState(false);
 
   if (isSchemaLoading) {
@@ -1105,7 +1133,9 @@ function HistoryPanel({ historyEntries, isSchemaLoading, onClearHistory }: Histo
                 <span className="popup-history-pill" data-version={entry.version}>
                   PoE {entry.version}
                 </span>
-                <span className="popup-history-pill">{entry.league}</span>
+                <span className="popup-history-pill">
+                  {formatTradeLeagueLabel(entry.league)}
+                </span>
                 <span className="popup-history-pill">{entry.type}</span>
                 {entry.isLive ? (
                   <span className="popup-history-pill popup-history-pill--live">live</span>

@@ -66,6 +66,28 @@ describe('trade context storage helpers', () => {
     expect(updated.history.entries[0].id).toBe('history-1');
   });
 
+  it('stores compact fallback titles when the page does not provide one', () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+    const updated = applyTradePageContext(
+      schema,
+      {
+        version: '1',
+        type: 'search',
+        league: 'HC LANDMINED GSF (PL80003)',
+        slug: 'EB04ajr4S5',
+        isLive: false,
+      },
+      '   ',
+      () => 'history-1',
+    );
+
+    expect(updated.history.entries[0]).toMatchObject({
+      id: 'history-1',
+      title: 'search/EB04ajr4S5',
+      league: 'HC LANDMINED GSF (PL80003)',
+    });
+  });
+
   it('updates the saved current page only when it changes', () => {
     const schema = createEmptyStorageSchema('phase0-instance');
     const updated = applyCurrentPagePreference(schema, 'history');

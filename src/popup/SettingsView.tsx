@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import {
   ENHANCER_DEFINITIONS,
   isEnhancerEnabled,
@@ -9,6 +11,7 @@ const ORIGINAL_REPO_URL = 'https://github.com/exile-center/better-trading';
 
 interface Props {
   isSchemaLoading: boolean;
+  onSetPinnedItemsSessionPersistence: (enabled: boolean) => Promise<void> | void;
   onSetSidePanelCollapsed: (collapsed: boolean) => Promise<void> | void;
   onSetSidePanelDraggable: (draggable: boolean) => Promise<void> | void;
   onSetSidePanelSidebar: (sidebar: boolean) => Promise<void> | void;
@@ -18,13 +21,18 @@ interface Props {
 
 export function SettingsView({
   isSchemaLoading,
+  onSetPinnedItemsSessionPersistence,
   onSetSidePanelCollapsed,
   onSetSidePanelDraggable,
   onSetSidePanelSidebar,
   onToggleEnhancer,
   schema,
 }: Props) {
+  const [confirmingDisableSessionPins, setConfirmingDisableSessionPins] = useState(false);
   const disabledEnhancers = schema?.preferences.disabledEnhancers ?? [];
+  const persistPinnedItemsInSession = Boolean(
+    schema?.preferences.persistPinnedItemsInSession,
+  );
   const sidePanelCollapsed = Boolean(schema?.preferences.sidePanelCollapsed);
   const sidePanelDraggable = Boolean(schema?.preferences.sidePanelDraggable);
   const sidePanelSidebar = Boolean(schema?.preferences.sidePanelSidebar);
@@ -38,6 +46,54 @@ export function SettingsView({
       ) : (
         <>
           <section className="popup-settings-list">
+            <label className="popup-setting-card">
+              <div>
+                <strong>Keep pins across searches in this tab</strong>
+                <p>
+                  Pinned items survive multiple searches and filter changes in this
+                  trade tab for the current Firefox session.
+                </p>
+              </div>
+              <input
+                checked={persistPinnedItemsInSession}
+                onChange={(event) => {
+                  if (event.target.checked) {
+                    setConfirmingDisableSessionPins(false);
+                    void onSetPinnedItemsSessionPersistence(true);
+                    return;
+                  }
+
+                  setConfirmingDisableSessionPins(true);
+                }}
+                type="checkbox"
+              />
+            </label>
+            {confirmingDisableSessionPins ? (
+              <div className="popup-confirmation popup-confirmation--nested">
+                <p>
+                  Disable session pins? Trade tabs you already have open will keep
+                  their current pins until you close the tab or quit Firefox. New
+                  trade tabs will go back to clearing pins when you change filters.
+                </p>
+                <div className="popup-confirmation-actions">
+                  <button
+                    className="popup-button popup-button--secondary popup-button--danger"
+                    onClick={() => {
+                      setConfirmingDisableSessionPins(false);
+                      void onSetPinnedItemsSessionPersistence(false);
+                    }}
+                    type="button">
+                    Disable session pins
+                  </button>
+                  <button
+                    className="popup-button popup-button--secondary"
+                    onClick={() => setConfirmingDisableSessionPins(false)}
+                    type="button">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <label className="popup-setting-card">
               <div>
                 <strong>Open the in-page panel collapsed</strong>

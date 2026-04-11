@@ -1,6 +1,37 @@
 # Changelog
 
-## [1.0.5] - [1.0.6] - 2026-04-04
+## [1.1.0] - 2026-04-11
+
+### Added
+- New opt-in setting to keep pinned items across trade-search changes within the current Firefox tab session
+- Session-persistent pinned items can reopen their saved trade search when the original row is no longer on the current page
+- Pinned-item actions now switch between `Scroll to item` and `Open saved search` based on whether the row exists on the current page
+
+### Changed
+- Trade league names are now normalized to readable text in saved history and related trade-link displays, while outbound trade URLs remain correctly encoded
+- Existing saved history league values and last-seen league values are repaired automatically on load when older encoded values are present
+- Auto-generated history fallback titles now use a shorter `type/slug` format instead of repeating the league in the title
+- Session-persistent pins are isolated to the current trade-tab session and do not survive a full Firefox restart
+- Collapsed session pins now use short `Jump` / `Open` actions based on whether the pinned result is on the current page
+- The setting for per-session persistence now correctly explains that pins survive multiple searches and filter changes within the current trade tab session
+- In-page panel branding now uses a `Path of Exile` / `Better Trading` header hierarchy with the logo aligned with the History tab
+
+### Fixed
+- Multi-word and future league names no longer render as `%20`-encoded text in history pills or related trade links
+- Existing fallback history titles derived from older `type/league/slug` values are cleaned up when they are clearly auto-generated
+- Realm-prefixed trade leagues such as PoE2 now render with their user-facing labels (for example `PoE2 - Fate of the Vaal`) while still opening the correct trade URLs
+- Pinned item cards now surface item level above the relative pinned time, and the pinned-tab scrollbar no longer crowds the right card border
+- Firefox build output no longer includes the unsupported `web_accessible_resources.use_dynamic_url` manifest key, removing the warning shown in `about:debugging`
+- Firefox toolbar icons are cropped more aggressively at small sizes so the add-on reads larger in the browser UI
+
+### Removed
+- `Clear all` / `Clear pinned` controls from the in-page pinned-items view; pinned items are now cleared only by unpinning individual items
+- In-page history clear controls from the trade-site panel; clearing history now remains available from the extension popup
+- Hover preview tooltip/popover from pinned item thumbnails in the in-page pinned list
+- Separate pinned-list action row above the in-page pinned items list
+- Tooltip-only enlarged pinned item image preview in the in-page panel
+
+## [1.0.5-1.0.6] - 2026-04-04
 // Merged to 1.0.6 to line up with app approval on FF store
 
 ### Added

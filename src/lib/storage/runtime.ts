@@ -19,6 +19,7 @@ import {
 import {
   createEmptyStorageSchema,
   migrateStorageSchema,
+  normalizeStoredSchema,
   type StorageSchemaV1,
 } from '@/src/lib/storage/schema';
 import {
@@ -35,7 +36,16 @@ export const STORAGE_SCHEMA_KEY = 'btff-schema-v1';
 
 export async function loadStoredSchema(): Promise<StorageSchemaV1> {
   const result = await browser.storage.local.get(STORAGE_SCHEMA_KEY);
-  return migrateStorageSchema(result[STORAGE_SCHEMA_KEY]);
+  const migratedSchema = migrateStorageSchema(result[STORAGE_SCHEMA_KEY]);
+  const normalized = normalizeStoredSchema(migratedSchema);
+
+  if (normalized.changed) {
+    await browser.storage.local.set({
+      [STORAGE_SCHEMA_KEY]: normalized.schema,
+    });
+  }
+
+  return normalized.schema;
 }
 
 export async function saveStoredSchema(

@@ -1,7 +1,7 @@
 import type { ParsedTradeLocation } from '../trade/location';
 import {
   compareTradeLocations,
-  formatTradeLocationLabel,
+  formatTradeHistoryFallbackLabel,
 } from '../trade/location';
 import type { StorageSchemaV1 } from './schema';
 
@@ -83,9 +83,9 @@ export function applyCurrentPagePreference(
 
 function normalizeHistoryTitle(title: string, location: ParsedTradeLocation) {
   const trimmedTitle = title.trim();
-  if (!trimmedTitle) return formatTradeLocationLabel(location);
+  if (!trimmedTitle) return formatTradeHistoryFallbackLabel(location);
   if (trimmedTitle === 'Path of Exile Trade') {
-    return formatTradeLocationLabel(location);
+    return formatTradeHistoryFallbackLabel(location);
   }
 
   return trimmedTitle;

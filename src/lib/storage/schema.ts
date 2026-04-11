@@ -3,6 +3,11 @@ import type {
   BookmarkTrade,
   TradeSiteVersion,
 } from '@/src/features/bookmarks/types';
+import {
+  formatTradeHistoryFallbackLabel,
+  formatTradeLocationLabel,
+  normalizeTradeLeague,
+} from '@/src/lib/trade/location';
 
 export const STORAGE_SCHEMA_VERSION = 1 as const;
 
@@ -48,12 +53,18 @@ export interface StorageSchemaV1 {
     sidePanelDraggable: boolean;
     sidePanelSidebar: boolean;
     hasCompletedOnboarding: boolean;
+    persistPinnedItemsInSession: boolean;
     lastSeenLeagues: Record<TradeSiteVersion, string | null>;
     pendingUpdateNotice: string | null;
   };
   caches: {
     poeNinjaChaosRatiosByLeague: Record<string, StoredPoeNinjaRatios>;
   };
+}
+
+export interface NormalizeStoredSchemaResult {
+  schema: StorageSchemaV1;
+  changed: boolean;
 }
 
 export function createEmptyStorageSchema(
@@ -84,6 +95,7 @@ export function createEmptyStorageSchema(
       sidePanelDraggable: false,
       sidePanelSidebar: false,
       hasCompletedOnboarding: false,
+      persistPinnedItemsInSession: false,
       lastSeenLeagues: {
         '1': null,
         '2': null,
@@ -116,7 +128,10 @@ export function migrateStorageSchema(
     metadata: {
       ...defaults.metadata,
       ...(isRecord(value.metadata) ? value.metadata : {}),
-      updatedAt: new Date().toISOString(),
+      updatedAt:
+        typeof value.metadata?.updatedAt === 'string'
+          ? value.metadata.updatedAt
+          : defaults.metadata.updatedAt,
     },
     bookmarks: {
       ...defaults.bookmarks,
@@ -155,6 +170,10 @@ export function migrateStorageSchema(
         typeof value.preferences?.hasCompletedOnboarding === 'boolean'
           ? value.preferences.hasCompletedOnboarding
           : defaults.preferences.hasCompletedOnboarding,
+      persistPinnedItemsInSession:
+        typeof value.preferences?.persistPinnedItemsInSession === 'boolean'
+          ? value.preferences.persistPinnedItemsInSession
+          : defaults.preferences.persistPinnedItemsInSession,
       lastSeenLeagues: {
         ...defaults.preferences.lastSeenLeagues,
         ...(isRecord(value.preferences?.lastSeenLeagues)
@@ -177,10 +196,91 @@ export function migrateStorageSchema(
   };
 }
 
+export function normalizeStoredSchema(
+  schema: StorageSchemaV1,
+): NormalizeStoredSchemaResult {
+  let changed = false;
+
+  const historyEntries = schema.history.entries.map((entry) => {
+    const normalizedLeague = normalizeTradeLeague(entry.league);
+    const normalizedTitle = normalizeHistoryEntryTitle(entry, normalizedLeague);
+
+    if (
+      normalizedLeague === entry.league &&
+      normalizedTitle === entry.title
+    ) {
+      return entry;
+    }
+
+    changed = true;
+    return {
+      ...entry,
+      league: normalizedLeague,
+      title: normalizedTitle,
+    };
+  });
+
+  const normalizedLastSeenLeagues = {
+    '1': normalizeStoredLeagueValue(schema.preferences.lastSeenLeagues['1']),
+    '2': normalizeStoredLeagueValue(schema.preferences.lastSeenLeagues['2']),
+  };
+
+  if (
+    normalizedLastSeenLeagues['1'] !== schema.preferences.lastSeenLeagues['1'] ||
+    normalizedLastSeenLeagues['2'] !== schema.preferences.lastSeenLeagues['2']
+  ) {
+    changed = true;
+  }
+
+  if (!changed) {
+    return { schema, changed: false };
+  }
+
+  return {
+    changed: true,
+    schema: {
+      ...schema,
+      history: {
+        entries: historyEntries,
+      },
+      preferences: {
+        ...schema.preferences,
+        lastSeenLeagues: normalizedLastSeenLeagues,
+      },
+    },
+  };
+}
+
 function createInstanceId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `btff-${Date.now()}`;
 }
 
 function isRecord(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null;
+}
+
+function normalizeStoredLeagueValue(value: string | null) {
+  return typeof value === 'string' ? normalizeTradeLeague(value) : value;
+}
+
+function normalizeHistoryEntryTitle(
+  entry: HistoryEntry,
+  normalizedLeague: string,
+) {
+  const trimmedTitle = entry.title.trim();
+  const fallbackTitle = formatTradeHistoryFallbackLabel(entry);
+
+  if (!trimmedTitle || trimmedTitle === 'Path of Exile Trade') {
+    return fallbackTitle;
+  }
+
+  const fallbackCandidates = new Set([
+    formatTradeLocationLabel(entry),
+    formatTradeLocationLabel({
+      ...entry,
+      league: normalizedLeague,
+    }),
+  ]);
+
+  return fallbackCandidates.has(trimmedTitle) ? fallbackTitle : entry.title;
 }

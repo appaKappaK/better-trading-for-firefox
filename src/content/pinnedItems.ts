@@ -4,6 +4,7 @@ export interface PinnedItemRecord {
   imageUrl?: string | null;
   pinnedAt: string;
   price: string | null;
+  sourcePath: string;
   subtitle: string;
   title: string;
 }
@@ -18,6 +19,7 @@ const PINNED_GLOW_CLASS = 'btff-pinned-glow';
 export function createPinnedItemsStore(doc: Document = document) {
   const listeners = new Set<Listener>();
   const pinnedItems = new Map<string, PinnedItemRecord>();
+  let currentSourcePath = doc.defaultView?.location?.pathname ?? '';
 
   function subscribe(listener: Listener) {
     listeners.add(listener);
@@ -44,6 +46,10 @@ export function createPinnedItemsStore(doc: Document = document) {
     syncPinnedRowState(rows);
   }
 
+  function getItem(itemId: string) {
+    return pinnedItems.get(itemId) ?? null;
+  }
+
   function toggleRow(row: HTMLElement) {
     const itemId = row.getAttribute('data-id');
     if (!itemId) return false;
@@ -51,7 +57,7 @@ export function createPinnedItemsStore(doc: Document = document) {
     if (pinnedItems.has(itemId)) {
       pinnedItems.delete(itemId);
     } else {
-      pinnedItems.set(itemId, extractPinnedItem(row));
+      pinnedItems.set(itemId, extractPinnedItem(row, currentSourcePath));
     }
 
     syncPinnedRowState();
@@ -74,6 +80,19 @@ export function createPinnedItemsStore(doc: Document = document) {
     syncPinnedRowState();
     emit();
     return true;
+  }
+
+  function hasRow(itemId: string, root: ParentNode = doc) {
+    return findRows(root).some((row) => row.getAttribute('data-id') === itemId);
+  }
+
+  function replaceItems(items: PinnedItemRecord[]) {
+    pinnedItems.clear();
+    items.forEach((item) => {
+      pinnedItems.set(item.id, item);
+    });
+    syncPinnedRowState();
+    emit();
   }
 
   function scrollToItem(itemId: string) {
@@ -113,6 +132,10 @@ export function createPinnedItemsStore(doc: Document = document) {
     row.classList.toggle(PINNED_CLASS, isPinned);
     button.textContent = isPinned ? 'Unpin' : 'Pin';
     button.setAttribute('aria-pressed', isPinned ? 'true' : 'false');
+  }
+
+  function setSourcePath(sourcePath: string) {
+    currentSourcePath = sourcePath;
   }
 
   function syncPinnedRowState(rows: HTMLElement[] = findRows()) {
@@ -164,15 +187,19 @@ export function createPinnedItemsStore(doc: Document = document) {
   return {
     clear,
     ensureButtons,
+    getItem,
     getItems,
+    hasRow,
+    replaceItems,
     scrollToItem,
+    setSourcePath,
     subscribe,
     toggleRow,
     unpin,
   };
 }
 
-function extractPinnedItem(row: HTMLElement): PinnedItemRecord {
+function extractPinnedItem(row: HTMLElement, sourcePath: string): PinnedItemRecord {
   const itemId = row.getAttribute('data-id');
   if (!itemId) {
     throw new Error('Pinned rows must expose a data-id attribute.');
@@ -201,6 +228,7 @@ function extractPinnedItem(row: HTMLElement): PinnedItemRecord {
     imageUrl: findItemImageUrl(row),
     pinnedAt: new Date().toISOString(),
     price,
+    sourcePath,
     subtitle:
       subtitleParts.length > 0
         ? subtitleParts.join(' | ')

@@ -52,6 +52,8 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
+  width: max-content;
+  max-width: min(220px, calc(100vw - 32px));
 }
 
 :host([data-sidebar='true']) .btff-panel-dock {
@@ -114,6 +116,7 @@
   flex-direction: column;
   gap: 4px;
   min-width: 170px;
+  max-width: 100%;
 }
 
 .btff-panel-dock__pinned-item {
@@ -143,11 +146,13 @@
   flex: 0 0 auto;
   border: 0;
   border-radius: 999px;
-  padding: 3px 8px;
+  min-width: 42px;
+  padding: 3px 10px;
   font-size: 11px;
   color: #9aa5b1;
   background: rgba(255, 255, 255, 0.08);
   cursor: pointer;
+  text-align: center;
 }
 
 .btff-panel-dock__pinned-jump:hover {
@@ -157,7 +162,7 @@
 
 .btff-panel__header {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 10px;
@@ -173,6 +178,7 @@
 
 .btff-panel__header-copy {
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .btff-panel__header-actions {
@@ -183,9 +189,10 @@
 
 .btff-panel__logo-image {
   flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
-  margin-right: 25px;
+  width: 50px;
+  height: 50px;
+  margin-top: -7px;
+  margin-right: 18px;
   border-radius: 50%;
   border: 1.5px solid rgba(184, 110, 39, 0.55);
   background: rgba(255, 255, 255, 0.04);
@@ -206,17 +213,22 @@
 }
 
 .btff-panel__eyebrow {
-  margin: 0 0 8px;
-  font-size: 11px;
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #c4952a;
+  color: #cfd4db;
+  line-height: 1.05;
 }
 
 .btff-panel__title {
   margin: 0;
-  font-size: 22px;
-  line-height: 1.05;
+  font-size: 23px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: #c4952a;
+  white-space: nowrap;
 }
 
 .btff-panel__subtitle {
@@ -577,6 +589,9 @@
   font-weight: 700;
   background: rgba(255, 255, 255, 0.07);
   color: #6d7885;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .btff-history-pill[data-version='1'] {
@@ -600,71 +615,15 @@
   align-items: flex-start;
 }
 
-.btff-panel__pinned-thumb-wrap {
-  flex: 0 0 auto;
-  position: relative;
-}
-
 .btff-panel__pinned-thumb {
   display: block;
+  flex: 0 0 auto;
   width: 34px;
   height: 34px;
   border-radius: 8px;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
-  cursor: pointer;
-}
-
-.btff-panel__pinned-tooltip {
-  display: none;
-  position: absolute;
-  left: calc(100% + 8px);
-  top: 0;
-  z-index: 10;
-  min-width: 180px;
-  max-width: 220px;
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(18, 22, 30, 0.98);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
-}
-
-.btff-panel__pinned-thumb-wrap:hover .btff-panel__pinned-tooltip {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.btff-panel__pinned-tooltip-img {
-  width: 100%;
-  max-height: 120px;
-  object-fit: contain;
-  border-radius: 6px;
-  margin-bottom: 4px;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.btff-panel__pinned-tooltip strong {
-  font-size: 12px;
-  color: #dfe3e8;
-  display: block;
-}
-
-.btff-panel__pinned-tooltip-price {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #f0d090;
-}
-
-.btff-panel__pinned-tooltip small {
-  font-size: 10px;
-  color: #6d7885;
 }
 
 .btff-panel__pinned-info {
@@ -709,6 +668,15 @@
 .btff-panel__pinned-info small {
   color: #6d7885;
   font-size: 11px;
+}
+
+.btff-panel__pinned-item-level {
+  display: block;
+  color: #8995a3;
+}
+
+.btff-panel__pinned-subtitle {
+  display: block;
 }
 
 .btff-panel__pinned-time {
@@ -812,6 +780,9 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding-top: 4px;
+  padding-right: 8px;
+  margin-right: 4px;
+  scrollbar-gutter: stable;
 }
 
 .btff-panel__footer {
