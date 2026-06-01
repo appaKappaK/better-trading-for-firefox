@@ -33,7 +33,7 @@
     "jsdom": "^26.1.0",
     "selenium-webdriver": "^4.41.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
+    "vitest": "^4.1.0",
     "web-ext": "^10.0.0",
     "wxt": "^0.20.20"
   }
