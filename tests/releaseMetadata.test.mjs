@@ -12,6 +12,13 @@ import {
 
 const changelog = `# Changelog
 
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+### Added
+- Upcoming change
+
 ## [1.1.0] - 2026-04-11
 
 ### Added
@@ -27,7 +34,7 @@ const changelog = `# Changelog
 `;
 
 describe('release metadata', () => {
-  it('extracts release notes only from the latest changelog entry', () => {
+  it('skips Unreleased and extracts notes only from the latest dated release', () => {
     expect(extractLatestChangelogRelease(changelog)).toEqual({
       version: '1.1.0',
       date: '2026-04-11',

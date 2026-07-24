@@ -1,5 +1,48 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog], and this project adheres to
+[Semantic Versioning].
+
+## [Unreleased]
+
+### Added
+- Added accessible confirmation dialogs for clearing history and saved bookmark data
+- Added a double-click shortcut on the in-page logo for shrinking the overlay panel
+- Added changelog-driven GitHub release automation with metadata validation, Firefox verification, Firefox and source archives, and manual rebuilding of existing release tags
+
+### Changed
+- Standardized primary, utility, neutral, destructive, disabled, hover, pressed, and keyboard-focus states across popup and in-page controls
+- Reduced the size of history, pinned-item, bookmark-folder, and collapsed-launcher entries while retaining their useful metadata
+- Left-aligned history metadata groups, centered the text within each pill, and made full-height sidebar mode square and flush with the viewport
+- Replaced opaque Quick Save examples with descriptive folder and bookmark labels
+- Renamed `Reset to fresh` to `Clear saved data`; the action clears bookmarks, history, and pricing caches while preserving user preferences
+- Removed the multiplication marker between pinned prices and their currency icon or name
+- Limited the collapsed launcher to three pinned-item thumbnails with a summary of additional pins, and made the launcher itself draggable when overlay dragging is enabled
+- Replaced long native folder-icon menus with a capped preview picker that preserves imported and legacy icon choices
+- Kept bookmark folders collapsed until opened and changed the panel footer to report bookmark-folder count
+- Reserved a stable popup scrollbar gutter, limited scrollbar visibility to wheel activity, and moved the history-clear action beside the History heading
+- Raised the development requirement to Node.js 22.13, pinned Node.js 22.22.2 through `.nvmrc`, and aligned CI with the `dev` and `master` branch model
+
+### Fixed
+- Restored the Firefox toolbar popup to its intended 420×600 size
+- Distinguished unavailable backup actions from exports that are actively running
+- Extracted readable pinned-item names from legacy and current trade-result headers, repaired late-loading placeholders, retained item and seller metadata, and prevented internal result IDs from appearing as titles
+- Prioritized seller names over repeated base-type metadata in compact pinned-item cards
+- Centered Pin and Unpin controls beneath the native trade-result actions with consistent spacing
+- Restored bookmark folder artwork in the in-page panel, added named fallback monograms, and normalized exported icon identifiers for Better Trading compatibility
+- Prevented a launcher drag from also expanding the panel and re-clamped moved overlays when their expanded size exceeds the viewport
+- Prevented repeated DOM mutations from equivalent pricing, socket warnings, pin controls, and similar-result grouping
+- Excluded bulk-exchange and incomplete listings from similar-result groups while preserving each group’s expanded state
+- Kept popup button labels centered, confirmation dialogs inside the visible popup, and the in-page panel usable at narrow viewport widths
+
+### Removed
+- Removed the dedicated drag handle; the collapsed launcher serves as the drag surface
+
+### Security
+- Restricted web-accessible bookmark icon assets to the official Path of Exile origins
+
 ## [1.1.0] - 2026-04-11
 
 ### Added
@@ -31,8 +74,9 @@
 - Separate pinned-list action row above the in-page pinned items list
 - Tooltip-only enlarged pinned item image preview in the in-page panel
 
-## [1.0.5-1.0.6] - 2026-04-04
-// Merged to 1.0.6 to line up with app approval on FF store
+## [1.0.6] - 2026-04-04
+
+_The original changelog grouped these changes under 1.0.5–1.0.6; Firefox Add-ons published them as version 1.0.6._
 
 ### Added
 - Chaos-equivalent price (from poe.ninja) shown inline in pinned items with a chaos icon
@@ -54,15 +98,13 @@
 - Folders/Trades/History/Schema stats grid from the popup footer
 - Section label dividers (In-Page Panel, Trade Enhancers, About) from the Settings page
 
-### In-Progress
-- Working on the image shown when hovering a pinned item
+## [1.0.4] - 2026-03-31
 
-## [1.0.3-1.0.4] - 2026-03-31
+_The original changelog grouped these changes under 1.0.3–1.0.4; no separate 1.0.3 tag or release is recorded._
 
 ### Added
 - Collapsed dock now shows a mini list of up to 5 pinned items with a scroll-to jump button each, so pinned results are accessible without expanding the panel
 - New setting "Allow dragging the overlay panel" (default off): enables header-drag repositioning in overlay mode; disabled automatically when sidebar mode is active
-- Few UI updates and fixes
 
 ### Fixed
 - Panel logo now renders at 40×40 px, circular, with a subtle contrasting background so it reads clearly against the dark panel
@@ -90,13 +132,13 @@
 - Corrected `homepage_url` in the extension manifest
 
 ### Changed
-- Settings page copy cleaned up (removed internal dev notes)
+- Updated Settings descriptions for release use
 
 ## [1.0.0] - 2026-03-30
 
 Initial release.
 
-### Features
+### Added
 - Bookmark trade searches into named folders with icons, archiving, and drag-and-drop reordering
 - Folder export and import compatible with the original Better Trading backup format (v1, v2, v3)
 - Automatic search history tracking with timestamps and quick-jump links
@@ -105,9 +147,17 @@ Initial release.
 - Collapsible in-page side panel with dock button showing pinned and result counts
 - Popup for managing bookmarks, history, settings, and legacy imports
 - Full settings page with per-enhancer toggles
-
-### Infrastructure
 - Firefox-only MV3 with WXT and Preact
 - CI pipeline: typecheck, unit tests, production build, web-ext lint, headless Selenium smoke test
 - Release workflow: zips and attaches artifact to GitHub Release on semver tags
 - 51 unit tests across all core modules
+
+[Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
+[Semantic Versioning]: https://semver.org/spec/v2.0.0.html
+[Unreleased]: https://github.com/appaKappaK/better-trading-for-firefox/compare/v1.1.0...dev
+[1.1.0]: https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.1.0
+[1.0.6]: https://github.com/appaKappaK/better-trading-for-firefox/commit/35d906496c7bd8594c2a643b99ed2caa350f5d1c
+[1.0.4]: https://github.com/appaKappaK/better-trading-for-firefox/commit/c0821d1ddfb6872f2090fcc0272accf59988bcd9
+[1.0.2]: https://github.com/appaKappaK/better-trading-for-firefox/commit/c0821d1ddfb6872f2090fcc0272accf59988bcd9
+[1.0.1]: https://github.com/appaKappaK/better-trading-for-firefox/commit/24103b77e8e3de0cbd04a339842d1abd91f53e9a
+[1.0.0]: https://github.com/appaKappaK/better-trading-for-firefox/commit/6a27757538e721b1e9c3b658608ff8d4cf8f4091

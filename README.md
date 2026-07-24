@@ -15,11 +15,11 @@ The in-page panel handles live trading, bookmarks, and history. The popup manage
 
 ## Requirements
 
-- Node.js 22+
+- Node.js 22.13+ (the repository currently pins 22.22.2)
 - npm 10+
 - Firefox (any release channel)
 
-> If your system Node is older, use [nvm](https://github.com/nvm-sh/nvm): `nvm install 22 && nvm use 22`  
+> If your system Node is older, use [nvm](https://github.com/nvm-sh/nvm): `nvm install && nvm use`
 > *(This will also give you the correct npm version automatically.)*
 
 > If you already have Node 22+ but npm is older than 10, update it manually:
@@ -27,12 +27,12 @@ The in-page panel handles live trading, bookmarks, and history. The popup manage
 > npm install -g npm@latest
 > ```
 
-> If you already ran `npm install` under the wrong Node version you will see ``SyntaxError: Unexpected reserved word`` from the `wxt prepare` postinstall step. Switch to Node 22, delete `node_modules`, then reinstall:
+> If you already ran `npm install` under the wrong Node version, switch to the pinned version and reinstall from the lockfile:
 >
 > ```bash
-> nvm install 22 && nvm use 22
-> rm -rf node_modules
-> npm install
+> nvm install
+> nvm use
+> npm ci --legacy-peer-deps
 > ```
 
 ## Install
@@ -40,7 +40,8 @@ The in-page panel handles live trading, bookmarks, and history. The popup manage
 Install from [AMO](https://addons.mozilla.org/en-US/firefox/addon/better-trading-for-firefox/), or load it manually:
 
 ```bash
-npm install
+nvm use
+npm ci --legacy-peer-deps
 npm run build
 # Load .output/firefox-mv3/ as a temporary add-on in about:debugging
 ```
@@ -78,9 +79,9 @@ The GitHub Actions pipeline runs on every push and pull request:
 4. `npm run lint:firefox` - web-ext lint (0 warnings required)
 5. `npm run smoke:firefox` - headless Firefox smoke test
 
-Active development lives on `dev`; `master` tracks the latest released source. For a release, update `package.json` and the top `CHANGELOG.md` entry to the same version, merge the release commit into `master`, and tag it as `vX.Y.Z`.
+Active development lives on `dev`; `master` tracks the latest released source. For a release, move the relevant changes from `[Unreleased]` into a dated `## [X.Y.Z] - YYYY-MM-DD` section, leave a fresh `[Unreleased]` section at the top, run `npm version X.Y.Z --no-git-tag-version` to synchronize the package and lockfile versions, merge the release commit into `master`, and tag it as `vX.Y.Z`.
 
-The release workflow triggers on semver tags and can also be run manually for an existing tag. It requires the tag, package, lockfile, generated manifest, archive filenames, and latest changelog entry to agree. After the same typecheck, unit-test, build, lint, and Firefox smoke gates as CI, it attaches both the Firefox and source archives to a GitHub Release whose notes come from that exact changelog entry.
+The release workflow triggers on semver tags and can also be run manually for an existing tag. It requires the tag, package, lockfile, generated manifest, archive filenames, and latest dated changelog release to agree. After the same typecheck, unit-test, build, lint, and Firefox smoke gates as CI, it attaches both the Firefox and source archives to a GitHub Release whose notes come from that exact changelog entry.
 
 ## Legacy Migration
 
