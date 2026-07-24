@@ -232,12 +232,13 @@ export function Phase0Panel({
         {needsOnboarding ? (
           <section className="btff-panel__callout">
             <p>
-              Open the extension popup to import a legacy backup or continue with
-              an empty bookmark library. Saved folders and history will appear here
-              automatically.
+              Open the extension popup to import a legacy backup, or dismiss this
+              notice to continue without importing. Saved folders and history will
+              appear here automatically.
             </p>
             <button
-              className="btff-panel__callout-action"
+              aria-label="Dismiss and continue without import"
+              className="btff-panel__callout-dismiss"
               disabled={isCompletingOnboarding}
               onClick={() => {
                 setIsCompletingOnboarding(true);
@@ -246,9 +247,7 @@ export function Phase0Panel({
                 });
               }}
               type="button">
-              {isCompletingOnboarding
-                ? 'Continuing...'
-                : 'Continue without import'}
+              {isCompletingOnboarding ? 'Dismissing...' : 'Dismiss'}
             </button>
           </section>
         ) : null}

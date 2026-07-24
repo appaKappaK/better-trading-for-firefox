@@ -44,9 +44,9 @@ describe('popup interaction layout styles', () => {
     );
   });
 
-  it('uses a restrained lake-green palette for continuing without an import', () => {
+  it('renders onboarding dismissal as a quiet lake-colored text action', () => {
     expect(popupCss).toMatch(
-      /\.popup-button--continue\s*\{[^}]*border:\s*1px solid rgba\(91, 153, 134, 0\.5\);[^}]*color:\s*#d9eee7;[^}]*background:\s*linear-gradient\(180deg, #376b5e, #244b42\);/s,
+      /\.popup-status__dismiss\s*\{[^}]*justify-self:\s*start;[^}]*border:\s*0;[^}]*padding:\s*0;[^}]*background:\s*transparent;[^}]*color:\s*#8fb7ad;[^}]*text-decoration:\s*underline;/s,
     );
   });
 

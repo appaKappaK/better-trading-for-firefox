@@ -109,8 +109,29 @@
   color: #8a97a5;
 }
 
-.popup-status__action {
+.popup-status__dismiss {
+  appearance: none;
   justify-self: start;
+  min-height: 24px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #8fb7ad;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.popup-status__dismiss:hover:not(:disabled) {
+  color: #b7d0c9;
+}
+
+.popup-status__dismiss:disabled {
+  color: #718e87;
+  cursor: progress;
 }
 
 .popup-update-notice {
@@ -1065,13 +1086,6 @@
   border: 1px solid rgba(196, 149, 42, 0.34);
   background: rgba(184, 110, 39, 0.14);
   color: #f0d090;
-  box-shadow: none;
-}
-
-.popup-button--continue {
-  border: 1px solid rgba(91, 153, 134, 0.5);
-  color: #d9eee7;
-  background: linear-gradient(180deg, #376b5e, #244b42);
   box-shadow: none;
 }
 

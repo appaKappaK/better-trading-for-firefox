@@ -55,7 +55,7 @@ const ONBOARDING_FEEDBACK: FeedbackState = {
   tone: 'neutral',
   title: 'Welcome to Better Trading for Firefox',
   message:
-    'Import a legacy backup or continue with an empty bookmark library. Use the Import tab to bring over folders from the original add-on.',
+    'Import a legacy backup from the Import tab, or dismiss this notice to continue without importing.',
 };
 
 const PAGE_LABELS: Record<PopupPage, string> = {
@@ -597,11 +597,12 @@ function App() {
           {feedback === ONBOARDING_FEEDBACK ? (
             <button
               aria-busy={isSubmitting}
-              className="popup-button popup-button--continue popup-button--small popup-status__action"
+              aria-label="Dismiss and continue without import"
+              className="popup-status__dismiss"
               disabled={isSubmitting}
               onClick={() => void handleContinueWithoutImport()}
               type="button">
-              {isSubmitting ? 'Continuing...' : 'Continue without import'}
+              {isSubmitting ? 'Dismissing...' : 'Dismiss'}
             </button>
           ) : null}
         </section>

@@ -409,17 +409,20 @@ describe('Phase0Panel collapse chrome', () => {
     });
 
     expect(container.textContent).toContain(
-      'Open the extension popup to import a legacy backup or continue with an empty bookmark library.',
+      'Open the extension popup to import a legacy backup, or dismiss this notice to continue without importing.',
     );
     expect(container.textContent?.toLowerCase()).not.toContain('start fresh');
-    const continueButton = Array.from(
+    const dismissButton = Array.from(
       container.querySelectorAll<HTMLButtonElement>('button'),
-    ).find((button) => button.textContent === 'Continue without import');
-    expect(continueButton?.classList.contains('btff-panel__callout-action')).toBe(
+    ).find((button) => button.textContent === 'Dismiss');
+    expect(dismissButton?.classList.contains('btff-panel__callout-dismiss')).toBe(
       true,
     );
+    expect(dismissButton?.getAttribute('aria-label')).toBe(
+      'Dismiss and continue without import',
+    );
 
-    continueButton?.click();
+    dismissButton?.click();
     expect(onCompleteOnboarding).toHaveBeenCalledOnce();
   });
 

@@ -23,6 +23,10 @@ const POPUP_HISTORY_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
   'firefox-popup-history.png',
 );
+const POPUP_ONBOARDING_SCREENSHOT_PATH = path.join(
+  ARTIFACTS_DIR,
+  'firefox-popup-onboarding.png',
+);
 const POPUP_PICKER_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
   'firefox-popup-icon-picker.png',
@@ -270,6 +274,11 @@ try {
     );
   }
 
+  await mkdir(ARTIFACTS_DIR, { recursive: true });
+  const pinRow = await driver.findElement(By.css('[data-id="phase0-row"]'));
+  const pinRowScreenshot = await pinRow.takeScreenshot(true);
+  await writeFile(PIN_ROW_SCREENSHOT_PATH, pinRowScreenshot, 'base64');
+
   const regroupSimilar = await verifyRegroupSimilarResults(driver);
   const enhancerQuiescence = await verifyEnhancersQuiesce(driver);
 
@@ -333,9 +342,6 @@ try {
     pinnedPanelScreenshot,
     'base64',
   );
-  const pinRow = await driver.findElement(By.css('[data-id="phase0-row"]'));
-  const pinRowScreenshot = await pinRow.takeScreenshot(true);
-  await writeFile(PIN_ROW_SCREENSHOT_PATH, pinRowScreenshot, 'base64');
 
   const inPageHistory = await measureInPageHistory(driver);
 
@@ -393,6 +399,7 @@ try {
   console.log(`Collapsed bookmark screenshot: ${BOOKMARK_SCREENSHOT_PATH}`);
   console.log(`Draggable dock screenshot: ${DOCK_SCREENSHOT_PATH}`);
   console.log(`Popup history screenshot: ${POPUP_HISTORY_SCREENSHOT_PATH}`);
+  console.log(`Popup onboarding screenshot: ${POPUP_ONBOARDING_SCREENSHOT_PATH}`);
   console.log(`Popup icon picker screenshot: ${POPUP_PICKER_SCREENSHOT_PATH}`);
   console.log(`Pinned panel screenshot: ${PINNED_PANEL_SCREENSHOT_PATH}`);
   console.log(`Pin row screenshot: ${PIN_ROW_SCREENSHOT_PATH}`);
@@ -510,15 +517,20 @@ async function initializeFreshProfile(driver, extensionId) {
     'Extension popup did not load for smoke-profile initialization.',
   );
 
-  const continueWithoutImport = await driver.wait(async () => {
-    const buttons = await driver.findElements(By.css('.popup-status__action'));
+  const dismissOnboarding = await driver.wait(async () => {
+    const buttons = await driver.findElements(By.css('.popup-status__dismiss'));
     const button = buttons[0];
     if (!button) return false;
 
-    return (await button.getText()).trim() === 'Continue without import'
-      ? button
-      : false;
-  }, 20_000, 'Fresh smoke profile did not expose its onboarding action.');
+    return (await button.getText()).trim() === 'Dismiss' ? button : false;
+  }, 20_000, 'Fresh smoke profile did not expose its onboarding dismissal.');
+
+  if (
+    (await dismissOnboarding.getAttribute('aria-label')) !==
+    'Dismiss and continue without import'
+  ) {
+    throw new Error('Onboarding dismissal did not explain its continuation behavior.');
+  }
 
   const legacyButtons = await driver.findElements(
     By.xpath("//button[normalize-space(.)='Start fresh']"),
@@ -527,7 +539,15 @@ async function initializeFreshProfile(driver, extensionId) {
     throw new Error('Fresh smoke profile still exposed the destructive Start fresh action.');
   }
 
-  await continueWithoutImport.click();
+  await mkdir(ARTIFACTS_DIR, { recursive: true });
+  const onboardingScreenshot = await driver.takeScreenshot();
+  await writeFile(
+    POPUP_ONBOARDING_SCREENSHOT_PATH,
+    onboardingScreenshot,
+    'base64',
+  );
+
+  await dismissOnboarding.click();
 
   await driver.wait(async () => {
     const tabs = await driver.findElements(By.css('.popup-tab'));
