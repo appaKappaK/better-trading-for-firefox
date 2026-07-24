@@ -101,7 +101,7 @@ export function applyMaximumSocketWarnings(
       warning.className = SOCKET_WARNING_CLASS;
       warning.textContent = warningText;
       itemRendered.prepend(warning);
-    } else {
+    } else if (existingWarning.textContent !== warningText) {
       existingWarning.textContent = warningText;
     }
 

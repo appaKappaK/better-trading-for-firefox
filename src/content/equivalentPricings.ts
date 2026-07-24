@@ -30,9 +30,8 @@ export function applyEquivalentPricings(
     root.querySelectorAll<HTMLElement>('.resultset > div.row[data-id]'),
   );
 
-  rows.forEach((row) => clearEquivalentPricings(row));
-
   if (version !== 'poe1' || !chaosRatios) {
+    rows.forEach((row) => clearEquivalentPricings(row));
     return 0;
   }
 
@@ -40,34 +39,40 @@ export function applyEquivalentPricings(
 
   rows.forEach((row) => {
     const price = parsePrice(row);
-    if (!price) return;
+    if (!price) {
+      clearEquivalentPricings(row);
+      return;
+    }
+
+    let equivalents: HTMLElement[] = [];
 
     if (
       price.currencySlug === CHAOS_SLUG &&
       typeof chaosRatios[DIVINE_SLUG] === 'number'
     ) {
-      if (applyChaosEquivalent(price.container, price.value, chaosRatios[DIVINE_SLUG])) {
-        enhancedCount++;
-      }
-      return;
-    }
-
-    const chaosValue = chaosRatios[price.currencySlug];
-    if (typeof chaosValue !== 'number') {
-      return;
-    }
-
-    if (
-      applyNonChaosEquivalent(
-        price.container,
-        price.currencyAlt,
-        price.currencyIconUrl,
+      equivalents = renderChaosEquivalents(
         price.value,
-        chaosValue,
-      )
-    ) {
-      enhancedCount++;
+        chaosRatios[DIVINE_SLUG],
+      );
+    } else {
+      const chaosValue = chaosRatios[price.currencySlug];
+      if (typeof chaosValue === 'number') {
+        equivalents = renderNonChaosEquivalents(
+          price.currencyAlt,
+          price.currencyIconUrl,
+          price.value,
+          chaosValue,
+        );
+      }
     }
+
+    if (equivalents.length === 0) {
+      clearEquivalentPricings(row);
+      return;
+    }
+
+    reconcileEquivalentPricings(price.container, equivalents);
+    enhancedCount++;
   });
 
   return enhancedCount;
@@ -77,6 +82,24 @@ function clearEquivalentPricings(row: HTMLElement) {
   row
     .querySelectorAll(`.${EQUIVALENT_CLASS}`)
     .forEach((element) => element.remove());
+}
+
+function reconcileEquivalentPricings(
+  container: HTMLElement,
+  equivalents: HTMLElement[],
+) {
+  const existing = Array.from(container.children).filter(
+    (element): element is HTMLElement =>
+      element instanceof HTMLElement && element.classList.contains(EQUIVALENT_CLASS),
+  );
+  const isUnchanged =
+    existing.length === equivalents.length &&
+    existing.every((element, index) => element.isEqualNode(equivalents[index]));
+
+  if (isUnchanged) return;
+
+  existing.forEach((element) => element.remove());
+  container.append(...equivalents);
 }
 
 function parsePrice(row: HTMLElement): ParsedPrice | null {
@@ -104,8 +127,7 @@ function parsePrice(row: HTMLElement): ParsedPrice | null {
   };
 }
 
-function applyNonChaosEquivalent(
-  container: HTMLElement,
+function renderNonChaosEquivalents(
   currencyAlt: string,
   currencyIconUrl: string,
   currencyValue: number,
@@ -113,17 +135,17 @@ function applyNonChaosEquivalent(
 ) {
   const chaosEquivalentValue = Math.round(currencyValue * chaosValue);
   if (!chaosEquivalentValue) {
-    return false;
+    return [];
   }
 
-  container.append(
+  const equivalents = [
     renderEquivalentLine(
       `${chaosEquivalentValue}x`,
       CHAOS_IMAGE_URL,
       'chaos',
       EQUIVALENT_CHAOS_CLASS,
     ),
-  );
+  ];
 
   const flooredCurrencyValue = Math.floor(currencyValue);
   if (
@@ -131,11 +153,11 @@ function applyNonChaosEquivalent(
     chaosValue < 1 ||
     flooredCurrencyValue === currencyValue
   ) {
-    return true;
+    return equivalents;
   }
 
   const chaosFractionValue = Math.round((currencyValue - flooredCurrencyValue) * chaosValue);
-  container.append(
+  equivalents.push(
     renderFractionLine(
       `${flooredCurrencyValue}x`,
       currencyIconUrl,
@@ -144,31 +166,28 @@ function applyNonChaosEquivalent(
     ),
   );
 
-  return true;
+  return equivalents;
 }
 
-function applyChaosEquivalent(
-  container: HTMLElement,
+function renderChaosEquivalents(
   currencyValue: number,
   divineChaosValue: number,
 ) {
   if (currencyValue < NORMALIZED_CURRENCY_THRESHOLD * divineChaosValue) {
-    return false;
+    return [];
   }
 
   const divineEquivalent =
     Math.round((currencyValue / divineChaosValue) * 10) / 10;
 
-  container.append(
+  return [
     renderEquivalentLine(
       `${divineEquivalent}x`,
       DIVINE_IMAGE_URL,
       'divine',
       EQUIVALENT_CHAOS_CLASS,
     ),
-  );
-
-  return true;
+  ];
 }
 
 function renderEquivalentLine(

@@ -41,6 +41,36 @@ describe('equivalentPricings enhancer', () => {
     );
   });
 
+  it('does not replace unchanged equivalent-pricing decorations', () => {
+    document.body.innerHTML = `
+      <div class="resultset">
+        <div data-id="chaos-row" class="row">
+          <div class="right">
+            <div class="details">
+              <div class="price">
+                <span data-field="price"><br><span>100</span>
+                  <span class="currency-text currency-image">
+                    <img src="https://example.com/chaos.png" alt="chaos">
+                    <span>Chaos Orb</span>
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    const observer = new MutationObserver(() => {});
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    applyEquivalentPricings(document, 'poe1', { 'divine-orb': 150 });
+    observer.takeRecords();
+    applyEquivalentPricings(document, 'poe1', { 'divine-orb': 150 });
+
+    expect(observer.takeRecords()).toHaveLength(0);
+    observer.disconnect();
+  });
+
   it('adds chaos equivalence and a fractional remainder for non-chaos prices', () => {
     document.body.innerHTML = `
       <div class="resultset">

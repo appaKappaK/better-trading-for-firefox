@@ -1,6 +1,7 @@
 import {
   createChaosRatiosCacheEntry,
   parseChaosRatios,
+  POE_NINJA_CACHE_PREFIX,
   readValidChaosRatiosCacheEntry,
   type PoeNinjaChaosRatios,
   type PoeNinjaCurrenciesPayload,
@@ -9,7 +10,6 @@ import {
 const POE_NINJA_API_ROOT = 'https://poe.ninja/api';
 const POE_NINJA_PING_URL =
   `${POE_NINJA_API_ROOT}/data/currencyoverview?league=Standard&type=Currency`;
-const POE_NINJA_CACHE_PREFIX = 'btff-poe-ninja-chaos-ratios:';
 const POE_NINJA_CACHE_TTL_MS = 60 * 60 * 1000;
 
 interface PoeNinjaPingResponse {

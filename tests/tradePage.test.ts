@@ -46,6 +46,32 @@ describe('tradePage spike helpers', () => {
     expect(document.querySelector('.btff-phase0-maximum-sockets')?.textContent).toContain('Max 6 sockets');
   });
 
+  it('does not mutate an unchanged maximum-sockets warning', () => {
+    document.body.innerHTML = `
+      <div class="resultset">
+        <div data-id="phase0-row" class="row">
+          <div class="left">
+            <div class="itemRendered"></div>
+            <div class="icon">
+              <img src="https://web.poecdn.com/image/Art/2DItems/Armours/BodyArmours/Fancy.png" alt="">
+              <div class="sockets"><span class="socket"></span></div>
+            </div>
+          </div>
+          <div class="middle"><div class="itemLevel">Item Level: 80</div></div>
+        </div>
+      </div>
+    `;
+    const observer = new MutationObserver(() => {});
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    applyMaximumSocketWarnings(document);
+    observer.takeRecords();
+    applyMaximumSocketWarnings(document);
+
+    expect(observer.takeRecords()).toHaveLength(0);
+    observer.disconnect();
+  });
+
   it('does not add warnings on PoE 2 pages', () => {
     window.history.replaceState({}, '', '/trade2/search/poe2/Standard');
 

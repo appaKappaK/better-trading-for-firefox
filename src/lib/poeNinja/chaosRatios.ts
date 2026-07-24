@@ -17,6 +17,8 @@ export interface PoeNinjaChaosRatiosCacheEntry {
   value: PoeNinjaChaosRatios;
 }
 
+export const POE_NINJA_CACHE_PREFIX = 'btff-poe-ninja-chaos-ratios:';
+
 export function parseChaosRatios(
   payload: PoeNinjaCurrenciesPayload,
 ): PoeNinjaChaosRatios {
