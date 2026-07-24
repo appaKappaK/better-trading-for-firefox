@@ -1081,9 +1081,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding-top: 4px;
-  padding-right: 8px;
-  margin-right: 4px;
-  scrollbar-gutter: stable;
+  padding-right: 0;
+  margin-right: 0;
 }
 
 .btff-panel__footer {

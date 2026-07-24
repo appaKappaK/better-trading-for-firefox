@@ -54,7 +54,7 @@ const ONBOARDING_FEEDBACK: FeedbackState = {
   tone: 'neutral',
   title: 'Welcome to Better Trading for Firefox',
   message:
-    'Import a legacy backup or start fresh to begin. Use the Import tab to bring over folders from the original add-on.',
+    'Import a legacy backup or continue with an empty bookmark library. Use the Import tab to bring over folders from the original add-on.',
 };
 
 const PAGE_LABELS: Record<PopupPage, string> = {

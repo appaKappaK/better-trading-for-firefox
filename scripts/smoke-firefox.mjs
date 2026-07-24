@@ -321,6 +321,12 @@ try {
     );
   }
 
+  if (Math.abs(pinnedItem.contentRightGap) > 1) {
+    throw new Error(
+      `Pinned list does not align with the tab row: ${pinnedItem.contentRightGap}px`,
+    );
+  }
+
   const pinnedPanelScreenshot = await driver.takeScreenshot();
   await writeFile(
     PINNED_PANEL_SCREENSHOT_PATH,
@@ -1291,10 +1297,16 @@ async function pinResultAndMeasure(driver) {
     const actions = root?.querySelector('.btff-panel__pinned-actions');
     const thumbnail = root?.querySelector('.btff-panel__pinned-thumb');
     const thumbnailRect = thumbnail?.getBoundingClientRect();
+    const tabsRect = root?.querySelector('.btff-panel__tabs')?.getBoundingClientRect();
+    const cardRect = card?.getBoundingClientRect();
 
     return {
       actions: actions?.textContent?.replace(/\s+/g, ' ').trim() ?? null,
-      cardHeight: card?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
+      cardHeight: cardRect?.height ?? Number.POSITIVE_INFINITY,
+      contentRightGap:
+        tabsRect && cardRect
+          ? Math.round((tabsRect.right - cardRect.right) * 100) / 100
+          : Number.POSITIVE_INFINITY,
       subtitle: subtitle?.textContent?.trim() ?? null,
       thumbnailHeight: thumbnailRect?.height ?? 0,
       thumbnailWidth: thumbnailRect?.width ?? 0,
@@ -1350,8 +1362,10 @@ async function measureInPageHistory(driver) {
   });
   const rect = await historyItem.getRect();
 
-  if (layout.titleHeight <= 20) {
-    throw new Error('In-page history smoke title did not wrap to two lines.');
+  if (layout.titleHeight <= 0 || layout.titleHeight > 34) {
+    throw new Error(
+      `In-page history title exceeded its two-line limit: ${layout.titleHeight}px`,
+    );
   }
 
   if (rect.height > 82) {

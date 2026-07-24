@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Standardized primary, utility, neutral, destructive, disabled, hover, pressed, and keyboard-focus states across popup and in-page controls
 - Reduced the size of history, pinned-item, bookmark-folder, and collapsed-launcher entries while retaining their useful metadata
 - Increased pinned-item artwork slightly for better visibility
+- Aligned in-page list surfaces with the tab row and clarified first-run empty-library guidance
 - Left-aligned history metadata groups, centered the text within each pill, and made full-height sidebar mode square and flush with the viewport
 - Replaced opaque Quick Save examples with descriptive folder and bookmark labels
 - Renamed `Reset to fresh` to `Clear saved data`; the action clears bookmarks, history, and pricing caches while preserving user preferences

@@ -228,8 +228,9 @@ export function Phase0Panel({
       <div className="btff-panel__scroll-area">
         {needsOnboarding ? (
           <section className="btff-panel__callout">
-            Use the popup to import a legacy backup or start fresh, then the saved
-            folders and history will appear here automatically.
+            Open the extension popup to import a legacy backup or continue with an
+            empty bookmark library. Saved folders and history will appear here
+            automatically.
           </section>
         ) : null}
 

@@ -398,6 +398,20 @@ describe('Phase0Panel collapse chrome', () => {
     expect(container.querySelector('.btff-panel__pinned-thumb')).not.toBeNull();
   });
 
+  it('describes first-run setup without telling the user to start fresh', async () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+
+    await renderPanel({
+      currentPage: 'pinned',
+      schema,
+    });
+
+    expect(container.textContent).toContain(
+      'Open the extension popup to import a legacy backup or continue with an empty bookmark library.',
+    );
+    expect(container.textContent?.toLowerCase()).not.toContain('start fresh');
+  });
+
   it('does not render in-page history clear controls in sidebar mode', async () => {
     const schema = createEmptyStorageSchema('phase0-instance');
     schema.preferences.hasCompletedOnboarding = true;

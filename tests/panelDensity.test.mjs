@@ -31,6 +31,12 @@ describe('in-page panel density styles', () => {
     );
   });
 
+  it('lets in-page list surfaces align with the tab row', () => {
+    expect(panelCss).toMatch(
+      /\.btff-panel__scroll-area\s*\{[^}]*padding-right:\s*0;[^}]*margin-right:\s*0;/s,
+    );
+  });
+
   it('anchors history pill rows left while centering each label internally', () => {
     expect(panelCss).toMatch(
       /\.btff-history-pills\s*\{[^}]*justify-content:\s*flex-start;[^}]*\}\s*\.btff-history-pill\s*\{[^}]*display:\s*inline-flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*text-align:\s*center;/s,
