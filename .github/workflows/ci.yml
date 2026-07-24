@@ -13,12 +13,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version-file: '.node-version'
           cache: 'npm'
 
       - name: Install dependencies
@@ -49,7 +49,7 @@ jobs:
 
       - name: Upload smoke screenshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: firefox-smoke
           path: .output/smoke/firefox-smoke.png
