@@ -19,6 +19,9 @@ describe('first-run guidance', () => {
     expect(popupSource).toContain(
       'aria-label="Dismiss and continue without import"',
     );
+    expect(popupSource).toContain(
+      'className="popup-button popup-button--secondary popup-button--small popup-status__dismiss"',
+    );
     expect(popupSource).toMatch(
       /popup-status__dismiss[\s\S]*onClick=\{\(\) => void handleContinueWithoutImport\(\)\}[\s\S]*Dismiss/,
     );

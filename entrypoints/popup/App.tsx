@@ -598,7 +598,7 @@ function App() {
             <button
               aria-busy={isSubmitting}
               aria-label="Dismiss and continue without import"
-              className="popup-status__dismiss"
+              className="popup-button popup-button--secondary popup-button--small popup-status__dismiss"
               disabled={isSubmitting}
               onClick={() => void handleContinueWithoutImport()}
               type="button">

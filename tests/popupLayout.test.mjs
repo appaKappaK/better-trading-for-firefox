@@ -44,9 +44,18 @@ describe('popup interaction layout styles', () => {
     );
   });
 
-  it('renders onboarding dismissal as a quiet lake-colored text action', () => {
+  it('renders onboarding dismissal as a compact neutral button', () => {
     expect(popupCss).toMatch(
-      /\.popup-status__dismiss\s*\{[^}]*justify-self:\s*start;[^}]*border:\s*0;[^}]*padding:\s*0;[^}]*background:\s*transparent;[^}]*color:\s*#8fb7ad;[^}]*text-decoration:\s*underline;/s,
+      /\.popup-button--secondary\s*\{[^}]*background:\s*rgba\(75, 84, 96, 0\.22\);[^}]*color:\s*#cfd4db;[^}]*border:\s*1px solid rgba\(167, 177, 190, 0\.16\);/s,
+    );
+    expect(popupCss).toMatch(
+      /\.popup-status__dismiss\s*\{[^}]*justify-self:\s*start;[^}]*\}/s,
+    );
+    expect(popupCss).not.toMatch(
+      /\.popup-status__dismiss\s*\{[^}]*background:\s*transparent;/s,
+    );
+    expect(popupCss).not.toMatch(
+      /\.popup-status__dismiss\s*\{[^}]*text-decoration:\s*underline;/s,
     );
   });
 

@@ -238,7 +238,7 @@ export function Phase0Panel({
             </p>
             <button
               aria-label="Dismiss and continue without import"
-              className="btff-panel__callout-dismiss"
+              className="btff-panel__mini-button btff-panel__mini-button--choice btff-panel__callout-dismiss"
               disabled={isCompletingOnboarding}
               onClick={() => {
                 setIsCompletingOnboarding(true);

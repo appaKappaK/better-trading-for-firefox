@@ -1307,12 +1307,18 @@ async function pinResultAndMeasure(driver) {
   await pinnedTab.click();
 
   await waitForElements(driver, shadowRoot, '.btff-panel__pinned-item');
-  const pinnedTime = await shadowRoot.findElement(
-    By.css('.btff-panel__pinned-time'),
-  );
-  const initialTimestamp = await pinnedTime.getText();
+  const readPinnedTimestamp = () =>
+    driver.executeScript(() => {
+      const hostElement = document.querySelector('[data-btff-phase0-host="true"]');
+      return (
+        hostElement?.shadowRoot
+          ?.querySelector('.btff-panel__pinned-time')
+          ?.textContent?.trim() ?? null
+      );
+    });
+  const initialTimestamp = await readPinnedTimestamp();
   const updatedTimestamp = await driver.wait(async () => {
-    const timestamp = await pinnedTime.getText();
+    const timestamp = await readPinnedTimestamp();
     return timestamp !== initialTimestamp ? timestamp : false;
   }, 3_000, 'Pinned item relative time did not update while the tab remained open.');
 

@@ -110,28 +110,7 @@
 }
 
 .popup-status__dismiss {
-  appearance: none;
   justify-self: start;
-  min-height: 24px;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: #8fb7ad;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.popup-status__dismiss:hover:not(:disabled) {
-  color: #b7d0c9;
-}
-
-.popup-status__dismiss:disabled {
-  color: #718e87;
-  cursor: progress;
 }
 
 .popup-update-notice {

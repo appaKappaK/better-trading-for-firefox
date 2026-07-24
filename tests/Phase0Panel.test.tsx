@@ -418,6 +418,12 @@ describe('Phase0Panel collapse chrome', () => {
     expect(dismissButton?.classList.contains('btff-panel__callout-dismiss')).toBe(
       true,
     );
+    expect(dismissButton?.classList.contains('btff-panel__mini-button')).toBe(
+      true,
+    );
+    expect(
+      dismissButton?.classList.contains('btff-panel__mini-button--choice'),
+    ).toBe(true);
     expect(dismissButton?.getAttribute('aria-label')).toBe(
       'Dismiss and continue without import',
     );
