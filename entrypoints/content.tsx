@@ -45,7 +45,6 @@ import type { PoeNinjaChaosRatios } from '@/src/lib/poeNinja/chaosRatios';
 import type { StorageSchemaV1 } from '@/src/lib/storage/schema';
 import {
   clearStoredHistory,
-  completeStoredOnboarding,
   exportStoredBookmarkFolder,
   loadStoredSchema,
   renameStoredBookmarkTrade,
@@ -112,7 +111,6 @@ export default defineContentScript({
           isSchemaLoading={isSchemaLoading}
           onClearHistory={() => clearHistory()}
           onClearPinnedItems={clearPinnedItems}
-          onCompleteOnboarding={() => completeOnboarding()}
           onRenameTrade={(folderId, tradeId, title) =>
             renameTrade(folderId, tradeId, title)
           }
@@ -623,15 +621,6 @@ export default defineContentScript({
         applySchema(nextSchema);
       } catch (error) {
         console.error('Failed to persist side-panel collapse state.', error);
-      }
-    }
-
-    async function completeOnboarding() {
-      try {
-        const nextSchema = await completeStoredOnboarding();
-        applySchema(nextSchema);
-      } catch (error) {
-        console.error('Failed to complete onboarding.', error);
       }
     }
 

@@ -45,19 +45,6 @@ interface FeedbackState {
   message: string;
 }
 
-const DEFAULT_FEEDBACK: FeedbackState = {
-  tone: 'neutral',
-  title: 'Loading schema',
-  message: 'Reading your saved Better Trading data...',
-};
-
-const ONBOARDING_FEEDBACK: FeedbackState = {
-  tone: 'neutral',
-  title: 'Welcome to Better Trading for Firefox',
-  message:
-    'Import a legacy backup from the Import tab, or dismiss this notice to continue without importing.',
-};
-
 const PAGE_LABELS: Record<PopupPage, string> = {
   bookmarks: 'Bookmarks',
   history: 'History',
@@ -67,6 +54,7 @@ const PAGE_LABELS: Record<PopupPage, string> = {
 
 function App() {
   const popupShellRef = useRef<HTMLElement | null>(null);
+  const hasLoadedInitialSchemaRef = useRef(false);
   const [schema, setSchema] = useState<StorageSchemaV1 | null>(null);
   const [activePage, setActivePage] = useState<PopupPage>('import');
   const [isSchemaLoading, setIsSchemaLoading] = useState(true);
@@ -83,7 +71,6 @@ function App() {
 
   const folders = schema?.bookmarks.folders ?? [];
   const historyEntries = schema?.history.entries ?? [];
-  const needsOnboarding = !schema?.preferences.hasCompletedOnboarding;
 
   useEffect(() => {
     let isActive = true;
@@ -94,12 +81,21 @@ function App() {
 
         if (!isActive) return;
 
+        const isInitialSchemaLoad = !hasLoadedInitialSchemaRef.current;
         applyLoadedSchema(nextSchema);
+        setFeedback(null);
 
-        if (!nextSchema.preferences.hasCompletedOnboarding) {
-          setFeedback(ONBOARDING_FEEDBACK);
-        } else {
-          setFeedback(null);
+        if (
+          isInitialSchemaLoad &&
+          !nextSchema.preferences.hasCompletedOnboarding
+        ) {
+          void completeStoredOnboarding()
+            .then((completedSchema) => {
+              if (isActive) applyLoadedSchema(completedSchema);
+            })
+            .catch((error) => {
+              console.error('Failed to record the first popup open.', error);
+            });
         }
       } catch (error) {
         if (!isActive) return;
@@ -140,14 +136,18 @@ function App() {
   }, []);
 
   function applyLoadedSchema(nextSchema: StorageSchemaV1) {
+    const isInitialSchemaLoad = !hasLoadedInitialSchemaRef.current;
+    hasLoadedInitialSchemaRef.current = true;
+
     startTransition(() => {
       setSchema(nextSchema);
-      setActivePage((currentPage) => {
-        if (currentPage === 'settings') return 'settings';
-        if (!nextSchema.preferences.hasCompletedOnboarding) return 'import';
-        if (currentPage === 'import') return 'bookmarks';
-        return currentPage;
-      });
+      if (isInitialSchemaLoad) {
+        setActivePage(
+          nextSchema.preferences.hasCompletedOnboarding
+            ? 'bookmarks'
+            : 'import',
+        );
+      }
     });
   }
 
@@ -236,35 +236,6 @@ function App() {
       });
     } finally {
       setIsReadingImportFile(false);
-    }
-  }
-
-  async function handleContinueWithoutImport() {
-    setIsSubmitting(true);
-
-    try {
-      const nextSchema = await completeStoredOnboarding();
-
-      startTransition(() => {
-        setSchema(nextSchema);
-        setImportInput('');
-        setActivePage('bookmarks');
-      });
-
-      setFeedback({
-        tone: 'success',
-        title: 'Setup complete',
-        message:
-          'Your existing data and settings were kept. Use the in-page panel to save a trade search whenever you are ready.',
-      });
-    } catch (error) {
-      setFeedback({
-        tone: 'error',
-        title: 'Could not complete setup',
-        message: error instanceof Error ? error.message : String(error),
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
@@ -594,17 +565,6 @@ function App() {
             <p className="popup-status-title">{feedback.title}</p>
             <p className="popup-status-message">{feedback.message}</p>
           </div>
-          {feedback === ONBOARDING_FEEDBACK ? (
-            <button
-              aria-busy={isSubmitting}
-              aria-label="Dismiss and continue without import"
-              className="popup-button popup-button--secondary popup-button--small popup-status__dismiss"
-              disabled={isSubmitting}
-              onClick={() => void handleContinueWithoutImport()}
-              type="button">
-              {isSubmitting ? 'Dismissing...' : 'Dismiss'}
-            </button>
-          ) : null}
         </section>
       ) : null}
 
@@ -614,7 +574,6 @@ function App() {
             key={page}
             className="popup-tab"
             data-active={activePage === page}
-            disabled={needsOnboarding && page !== 'import' && page !== 'settings'}
             onClick={() => {
               void handleSelectPage(page);
             }}
@@ -647,7 +606,6 @@ function App() {
             isReadingImportFile={isReadingImportFile}
             isSchemaLoading={isSchemaLoading}
             isSubmitting={isSubmitting}
-            needsOnboarding={needsOnboarding}
             onImportFileChange={handleImportFileChange}
             onImportInputChange={setImportInput}
             onImportSubmit={handleImportSubmit}
@@ -701,7 +659,6 @@ interface MigrationPanelProps {
   isReadingImportFile: boolean;
   isSchemaLoading: boolean;
   isSubmitting: boolean;
-  needsOnboarding: boolean;
   onClearSavedData: () => void;
   onImportFileChange: (file: File | null) => void | Promise<void>;
   onImportInputChange: (value: string) => void;
@@ -714,7 +671,6 @@ export function MigrationPanel({
   isReadingImportFile,
   isSchemaLoading,
   isSubmitting,
-  needsOnboarding,
   onClearSavedData,
   onImportFileChange,
   onImportInputChange,
@@ -825,17 +781,15 @@ export function MigrationPanel({
           type="button">
           {isSubmitting ? 'Working...' : 'Import legacy data'}
         </button>
-        {!needsOnboarding ? (
-          <button
-            className="popup-button popup-button--secondary popup-button--danger"
-            disabled={isSubmitting || isReadingImportFile || isSchemaLoading}
-            onClick={() => setIsConfirmingReset(true)}
-            type="button">
-            Clear saved data
-          </button>
-        ) : null}
+        <button
+          className="popup-button popup-button--secondary popup-button--danger"
+          disabled={isSubmitting || isReadingImportFile || isSchemaLoading}
+          onClick={() => setIsConfirmingReset(true)}
+          type="button">
+          Clear saved data
+        </button>
       </div>
-      {!needsOnboarding && isConfirmingReset ? (
+      {isConfirmingReset ? (
         <ConfirmationDialog
           confirmation="reset-data"
           confirmLabel="Clear saved data"

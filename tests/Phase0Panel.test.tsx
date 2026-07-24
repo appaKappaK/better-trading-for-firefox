@@ -398,38 +398,26 @@ describe('Phase0Panel collapse chrome', () => {
     expect(container.querySelector('.btff-panel__pinned-thumb')).not.toBeNull();
   });
 
-  it('describes first-run setup without telling the user to start fresh', async () => {
+  it('uses the normal empty state on first run without an onboarding notice', async () => {
     const schema = createEmptyStorageSchema('phase0-instance');
-    const onCompleteOnboarding = vi.fn();
 
     await renderPanel({
       currentPage: 'pinned',
-      onCompleteOnboarding,
       schema,
     });
 
     expect(container.textContent).toContain(
-      'Open the extension popup to import a legacy backup, or dismiss this notice to continue without importing.',
+      'Pin an item on the Trade page and it will appear here.',
     );
+    expect(container.textContent).not.toContain('import a legacy backup');
+    expect(container.textContent).not.toContain('continue without importing');
     expect(container.textContent?.toLowerCase()).not.toContain('start fresh');
-    const dismissButton = Array.from(
-      container.querySelectorAll<HTMLButtonElement>('button'),
-    ).find((button) => button.textContent === 'Dismiss');
-    expect(dismissButton?.classList.contains('btff-panel__callout-dismiss')).toBe(
-      true,
-    );
-    expect(dismissButton?.classList.contains('btff-panel__mini-button')).toBe(
-      true,
-    );
+    expect(container.querySelector('.btff-panel__callout')).toBeNull();
     expect(
-      dismissButton?.classList.contains('btff-panel__mini-button--choice'),
-    ).toBe(true);
-    expect(dismissButton?.getAttribute('aria-label')).toBe(
-      'Dismiss and continue without import',
-    );
-
-    dismissButton?.click();
-    expect(onCompleteOnboarding).toHaveBeenCalledOnce();
+      Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(
+        (button) => button.textContent === 'Dismiss',
+      ),
+    ).toBeUndefined();
   });
 
   it('does not render in-page history clear controls in sidebar mode', async () => {
@@ -790,7 +778,6 @@ describe('Phase0Panel collapse chrome', () => {
           isSchemaLoading={false}
           onClearHistory={async () => {}}
           onClearPinnedItems={() => {}}
-          onCompleteOnboarding={() => {}}
           onCopyFolderExport={async () => {}}
           //onPoeNinjaPing={() => {}}
           //onRefresh={() => {}}

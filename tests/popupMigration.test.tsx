@@ -26,7 +26,6 @@ describe('popup fresh-start controls', () => {
   it('requires an accessible modal before clearing initialized extension data', async () => {
     const onClearSavedData = vi.fn();
     renderMigrationPanel(MigrationPanel, {
-      needsOnboarding: false,
       onClearSavedData,
     });
 
@@ -68,16 +67,15 @@ describe('popup fresh-start controls', () => {
     expect(onClearSavedData).toHaveBeenCalledOnce();
   });
 
-  it('keeps destructive data clearing out of the first-run import panel', () => {
+  it('shows the normal import controls without a separate setup choice', () => {
     const onClearSavedData = vi.fn();
     renderMigrationPanel(MigrationPanel, {
-      needsOnboarding: true,
       onClearSavedData,
     });
 
     expect(findButton('Start fresh')).toBeUndefined();
     expect(findButton('Continue without import')).toBeUndefined();
-    expect(findButton('Clear saved data')).toBeUndefined();
+    expect(findButton('Clear saved data')).toBeDefined();
     expect(onClearSavedData).not.toHaveBeenCalled();
     expect(container.textContent).not.toContain('Clear Better Trading data?');
   });
@@ -101,7 +99,6 @@ describe('popup fresh-start controls', () => {
           isReadingImportFile={false}
           isSchemaLoading={false}
           isSubmitting={false}
-          needsOnboarding={false}
           onImportFileChange={() => {}}
           onImportInputChange={() => {}}
           onImportSubmit={() => {}}

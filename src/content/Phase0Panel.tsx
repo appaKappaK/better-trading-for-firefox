@@ -39,7 +39,6 @@ interface Props {
   isSchemaLoading: boolean;
   onClearHistory: () => Promise<void> | void;
   onClearPinnedItems: () => void;
-  onCompleteOnboarding: () => Promise<void> | void;
   onReorderFolders: (fromIndex: number, toIndex: number) => Promise<void> | void;
   onRenameTrade: (
     folderId: string,
@@ -75,7 +74,6 @@ export function Phase0Panel({
   isCollapsed,
   isSchemaLoading,
   onClearPinnedItems,
-  onCompleteOnboarding,
   onRenameTrade,
   onReorderFolders,
   onCopyFolderExport,
@@ -98,8 +96,6 @@ export function Phase0Panel({
   const folders = schema?.bookmarks.folders ?? [];
   const historyEntries = schema?.history.entries ?? [];
   const bookmarkFolderCount = folders.length;
-  const needsOnboarding = !schema?.preferences.hasCompletedOnboarding;
-  const [isCompletingOnboarding, setIsCompletingOnboarding] = useState(false);
 
   if (isCollapsed) {
     return (
@@ -229,29 +225,6 @@ export function Phase0Panel({
       </nav>
 
       <div className="btff-panel__scroll-area">
-        {needsOnboarding ? (
-          <section className="btff-panel__callout">
-            <p>
-              Open the extension popup to import a legacy backup, or dismiss this
-              notice to continue without importing. Saved folders and history will
-              appear here automatically.
-            </p>
-            <button
-              aria-label="Dismiss and continue without import"
-              className="btff-panel__mini-button btff-panel__mini-button--choice btff-panel__callout-dismiss"
-              disabled={isCompletingOnboarding}
-              onClick={() => {
-                setIsCompletingOnboarding(true);
-                void Promise.resolve(onCompleteOnboarding()).finally(() => {
-                  setIsCompletingOnboarding(false);
-                });
-              }}
-              type="button">
-              {isCompletingOnboarding ? 'Dismissing...' : 'Dismiss'}
-            </button>
-          </section>
-        ) : null}
-
         {currentPage === 'bookmarks' ? (
           <BookmarksView
             expandedFolderIds={schema?.preferences.expandedFolderIds ?? []}

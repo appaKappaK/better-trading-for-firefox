@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Reduced the size of history, pinned-item, bookmark-folder, and collapsed-launcher entries while retaining their useful metadata
 - Increased pinned-item artwork slightly for better visibility
 - Aligned in-page list surfaces with the tab row and clarified first-run empty-library guidance
-- Replaced the destructive first-run `Start fresh` action with compact, neutral `Dismiss` buttons in both onboarding notices; dismissing continues without importing or clearing data
+- Removed the redundant first-run notices and tab gating; new installs open Import once with every tab available, then use the normal empty-library views
 - Left-aligned history metadata groups, centered the text within each pill, and made full-height sidebar mode square and flush with the viewport
 - Replaced opaque Quick Save examples with descriptive folder and bookmark labels
 - Renamed `Reset to fresh` to `Clear saved data`; the action clears bookmarks, history, and pricing caches while preserving user preferences

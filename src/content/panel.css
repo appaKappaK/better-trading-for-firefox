@@ -320,7 +320,6 @@
   border-color: rgba(184, 110, 39, 0.3);
 }
 
-.btff-panel__callout,
 .btff-panel__empty {
   margin: 0 0 12px;
   padding: 11px 12px;
@@ -328,23 +327,6 @@
   background: rgba(255, 255, 255, 0.04);
   color: #8a97a5;
   font-size: 12px;
-}
-
-.btff-panel__callout {
-  display: grid;
-  gap: 10px;
-}
-
-.btff-panel__callout p {
-  margin: 0;
-}
-
-.btff-panel__callout-dismiss {
-  justify-self: start;
-}
-
-.btff-panel__callout-dismiss:disabled {
-  cursor: progress;
 }
 
 .btff-panel__section-actions {

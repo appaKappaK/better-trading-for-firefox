@@ -6,24 +6,23 @@ const popupSource = readFileSync(
   'utf8',
 );
 
-describe('first-run guidance', () => {
-  it('describes an empty library without presenting setup as a reset', () => {
+describe('first-run flow', () => {
+  it('opens Import without rendering or enforcing an onboarding notice', () => {
     expect(popupSource).not.toContain(
       'Import a legacy backup or start fresh to begin.',
     );
-    expect(popupSource).toContain(
-      'Import a legacy backup from the Import tab, or dismiss this notice to continue without importing.',
-    );
+    expect(popupSource).not.toContain('ONBOARDING_FEEDBACK');
+    expect(popupSource).not.toContain('popup-status__dismiss');
+    expect(popupSource).not.toContain('handleContinueWithoutImport');
+    expect(popupSource).not.toContain('disabled={needsOnboarding');
+    expect(popupSource).not.toContain('needsOnboarding: boolean');
     expect(popupSource).not.toContain("'Start fresh'");
     expect(popupSource).not.toContain("'Continue without import'");
-    expect(popupSource).toContain(
-      'aria-label="Dismiss and continue without import"',
-    );
-    expect(popupSource).toContain(
-      'className="popup-button popup-button--secondary popup-button--small popup-status__dismiss"',
+    expect(popupSource).toMatch(
+      /hasLoadedInitialSchemaRef[\s\S]*hasCompletedOnboarding\s*\?\s*'bookmarks'\s*:\s*'import'/,
     );
     expect(popupSource).toMatch(
-      /popup-status__dismiss[\s\S]*onClick=\{\(\) => void handleContinueWithoutImport\(\)\}[\s\S]*Dismiss/,
+      /!nextSchema\.preferences\.hasCompletedOnboarding[\s\S]*completeStoredOnboarding\(\)/,
     );
   });
 });

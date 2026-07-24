@@ -23,9 +23,9 @@ const POPUP_HISTORY_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
   'firefox-popup-history.png',
 );
-const POPUP_ONBOARDING_SCREENSHOT_PATH = path.join(
+const POPUP_FIRST_RUN_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
-  'firefox-popup-onboarding.png',
+  'firefox-popup-first-run.png',
 );
 const POPUP_PICKER_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
@@ -225,8 +225,8 @@ const driver = await new Builder()
 
 try {
   const extensionId = await driver.installAddon(EXTENSION_ARCHIVE_PATH, true);
-  const toolbarPopup = await verifyToolbarPopupOpens(driver, extensionId);
   await initializeFreshProfile(driver, extensionId);
+  const toolbarPopup = await verifyToolbarPopupOpens(driver, extensionId);
   await driver.get(START_URL);
 
   await driver.wait(
@@ -306,6 +306,8 @@ try {
   const bookmarkScreenshot = await driver.takeScreenshot();
   await writeFile(BOOKMARK_SCREENSHOT_PATH, bookmarkScreenshot, 'base64');
 
+  const inPageHistory = await measureInPageHistory(driver);
+
   const pinnedItem = await pinResultAndMeasure(driver);
 
   if (pinnedItem.title !== 'The Taming') {
@@ -342,8 +344,6 @@ try {
     pinnedPanelScreenshot,
     'base64',
   );
-
-  const inPageHistory = await measureInPageHistory(driver);
 
   // Collect smoke summary without poe.ninja check
   const smokeSummary = await driver.executeScript(
@@ -399,7 +399,7 @@ try {
   console.log(`Collapsed bookmark screenshot: ${BOOKMARK_SCREENSHOT_PATH}`);
   console.log(`Draggable dock screenshot: ${DOCK_SCREENSHOT_PATH}`);
   console.log(`Popup history screenshot: ${POPUP_HISTORY_SCREENSHOT_PATH}`);
-  console.log(`Popup onboarding screenshot: ${POPUP_ONBOARDING_SCREENSHOT_PATH}`);
+  console.log(`Popup first-run screenshot: ${POPUP_FIRST_RUN_SCREENSHOT_PATH}`);
   console.log(`Popup icon picker screenshot: ${POPUP_PICKER_SCREENSHOT_PATH}`);
   console.log(`Pinned panel screenshot: ${PINNED_PANEL_SCREENSHOT_PATH}`);
   console.log(`Pin row screenshot: ${PIN_ROW_SCREENSHOT_PATH}`);
@@ -517,37 +517,61 @@ async function initializeFreshProfile(driver, extensionId) {
     'Extension popup did not load for smoke-profile initialization.',
   );
 
-  const dismissOnboarding = await driver.wait(async () => {
-    const buttons = await driver.findElements(By.css('.popup-status__dismiss'));
-    const button = buttons[0];
-    if (!button) return false;
+  await driver.wait(async () => {
+    const tabs = await driver.findElements(By.css('.popup-tab'));
+    if (tabs.length !== 4) return false;
 
-    return (await button.getText()).trim() === 'Dismiss' ? button : false;
-  }, 20_000, 'Fresh smoke profile did not expose its onboarding dismissal.');
+    const states = await Promise.all(
+      tabs.map(async (tab) => ({
+        active: (await tab.getAttribute('data-active')) === 'true',
+        disabled: (await tab.getAttribute('disabled')) !== null,
+        label: (await tab.getText()).trim(),
+      })),
+    );
+    const importTab = states.find((tab) => tab.label === 'Import');
 
-  if (
-    (await dismissOnboarding.getAttribute('aria-label')) !==
-    'Dismiss and continue without import'
-  ) {
-    throw new Error('Onboarding dismissal did not explain its continuation behavior.');
+    return importTab?.active && states.every((tab) => !tab.disabled);
+  }, 20_000, 'Fresh smoke profile did not open Import with every tab enabled.');
+
+  const onboardingNotices = await driver.findElements(By.css('.popup-status'));
+  if (onboardingNotices.length > 0) {
+    throw new Error('Fresh smoke profile still exposed an onboarding notice.');
   }
 
   const legacyButtons = await driver.findElements(
-    By.xpath("//button[normalize-space(.)='Start fresh']"),
+    By.xpath(
+      "//button[normalize-space(.)='Start fresh' or normalize-space(.)='Continue without import' or normalize-space(.)='Dismiss']",
+    ),
   );
   if (legacyButtons.length > 0) {
-    throw new Error('Fresh smoke profile still exposed the destructive Start fresh action.');
+    throw new Error('Fresh smoke profile still exposed a legacy onboarding action.');
   }
 
   await mkdir(ARTIFACTS_DIR, { recursive: true });
-  const onboardingScreenshot = await driver.takeScreenshot();
+  const firstRunScreenshot = await driver.takeScreenshot();
   await writeFile(
-    POPUP_ONBOARDING_SCREENSHOT_PATH,
-    onboardingScreenshot,
+    POPUP_FIRST_RUN_SCREENSHOT_PATH,
+    firstRunScreenshot,
     'base64',
   );
 
-  await dismissOnboarding.click();
+  await driver.wait(async () => {
+    return driver.executeAsyncScript((done) => {
+      browser.storage.local
+        .get('btff-schema-v1')
+        .then((result) => {
+          done(Boolean(result['btff-schema-v1']?.preferences?.hasCompletedOnboarding));
+        })
+        .catch(() => done(false));
+    });
+  }, 20_000, 'Fresh smoke profile did not record its first popup open.');
+
+  await driver.navigate().refresh();
+  await driver.wait(
+    until.elementLocated(By.css('.popup-shell')),
+    20_000,
+    'Extension popup did not reload after first-run initialization.',
+  );
 
   await driver.wait(async () => {
     const tabs = await driver.findElements(By.css('.popup-tab'));
@@ -562,7 +586,7 @@ async function initializeFreshProfile(driver, extensionId) {
     }
 
     return false;
-  }, 20_000, 'Fresh smoke profile did not finish initialization.');
+  }, 20_000, 'Initialized smoke profile did not return to Bookmarks.');
 }
 
 async function measurePinActionSpacing(driver) {
@@ -1443,10 +1467,17 @@ async function findElementContainingText(root, selector, text) {
 }
 
 async function waitForElements(driver, root, selector, minimumCount = 1) {
-  return driver.wait(async () => {
-    const elements = await root.findElements(By.css(selector));
-    return elements.length >= minimumCount ? elements : false;
-  }, 20_000, `Expected at least ${minimumCount} element(s) matching ${selector}.`);
+  try {
+    return await driver.wait(async () => {
+      const elements = await root.findElements(By.css(selector));
+      return elements.length >= minimumCount ? elements : false;
+    }, 20_000, `Expected at least ${minimumCount} element(s) matching ${selector}.`);
+  } catch (error) {
+    throw new Error(
+      `Could not resolve ${minimumCount} element(s) matching ${selector}.`,
+      { cause: error },
+    );
+  }
 }
 
 function resolveExtensionArchivePath() {
