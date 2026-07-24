@@ -4,23 +4,39 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing semver tag to release (for example, v1.2.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   release:
-    name: Build · Lint · Package · Publish
+    name: Verify · Build · Smoke · Package · Publish
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
+    timeout-minutes: 20
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version-file: '.node-version'
           cache: 'npm'
 
       - name: Install dependencies
@@ -38,12 +54,55 @@ jobs:
       - name: web-ext lint
         run: npm run lint:firefox
 
-      - name: Package
-        run: npm run zip
-
-      - name: Publish to GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Install Firefox
+        id: setup-firefox
+        uses: browser-actions/setup-firefox@v1
         with:
-          files: |
-            .output/*.zip
-          generate_release_notes: true
+          firefox-version: 'latest'
+
+      - name: Firefox smoke test and package
+        env:
+          FIREFOX_BINARY: ${{ steps.setup-firefox.outputs.firefox-path }}
+        run: npm run smoke:firefox
+
+      - name: Validate release metadata and notes
+        run: npm run release:prepare -- --tag "$RELEASE_TAG"
+
+      - name: Upload smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: firefox-smoke-${{ env.RELEASE_TAG }}
+          path: .output/smoke/firefox-smoke.png
+          if-no-files-found: ignore
+
+      - name: Upload release packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: better-trading-for-firefox-${{ env.RELEASE_TAG }}
+          path: |
+            .output/*-firefox.zip
+            .output/*-sources.zip
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          release_assets=(
+            .output/*-"$version"-firefox.zip
+            .output/*-"$version"-sources.zip
+          )
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${release_assets[@]}" --clobber
+            gh release edit "$RELEASE_TAG" \
+              --title "Better Trading for Firefox $RELEASE_TAG" \
+              --notes-file .output/release-notes.md
+          else
+            gh release create "$RELEASE_TAG" "${release_assets[@]}" \
+              --verify-tag \
+              --title "Better Trading for Firefox $RELEASE_TAG" \
+              --notes-file .output/release-notes.md
+          fi

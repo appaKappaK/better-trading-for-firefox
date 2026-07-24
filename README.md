@@ -56,6 +56,7 @@ npm run build
 | `npm test` | Unit tests via Vitest |
 | `npm run lint:firefox` | `web-ext lint`, auto-builds if output is missing |
 | `npm run smoke:firefox` | End-to-end Selenium smoke test against a real Firefox binary |
+| `npm run release:prepare -- --tag vX.Y.Z` | Validate release metadata and extract that changelog entry |
 
 ### Smoke test
 
@@ -77,7 +78,9 @@ The GitHub Actions pipeline runs on every push and pull request:
 4. `npm run lint:firefox` - web-ext lint (0 warnings required)
 5. `npm run smoke:firefox` - headless Firefox smoke test
 
-A release workflow triggers on semver tags (`v*.*.*`), runs the same gates, then zips and attaches the artifact to a GitHub Release.
+Active development lives on `dev`; `master` tracks the latest released source. For a release, update `package.json` and the top `CHANGELOG.md` entry to the same version, merge the release commit into `master`, and tag it as `vX.Y.Z`.
+
+The release workflow triggers on semver tags and can also be run manually for an existing tag. It requires the tag, package, lockfile, generated manifest, archive filenames, and latest changelog entry to agree. After the same typecheck, unit-test, build, lint, and Firefox smoke gates as CI, it attaches both the Firefox and source archives to a GitHub Release whose notes come from that exact changelog entry.
 
 ## Legacy Migration
 

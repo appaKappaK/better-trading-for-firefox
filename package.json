@@ -2,7 +2,7 @@
   "name": "better_trading_for_firefox",
   "description": "Firefox-first rebuild spike for Better Trading on the Path of Exile trade site.",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.1.0",
   "type": "module",
   "engines": {
     "node": ">=22.0.0",
@@ -16,6 +16,7 @@
     "zip": "wxt zip -b firefox --mv3",
     "zip:firefox": "npm run zip",
     "lint:firefox": "node ./scripts/lint-firefox.mjs",
+    "release:prepare": "node ./scripts/release-metadata.mjs",
     "compile": "tsc --noEmit",
     "smoke:firefox": "npm run zip && node ./scripts/smoke-firefox.mjs",
     "test": "vitest run",
