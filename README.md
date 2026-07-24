@@ -105,3 +105,4 @@ This rebuild starts from scratch with a Firefox-only MV3 architecture, using WXT
 - Firefox is the only supported browser (no Chrome, no cross-browser shims). Use the original Better Trading extension for other browsers.
 - The build aliases `react`/`react-dom` to `preact/compat` to minimize bundle size.
 - The npm run lint:firefox command intentionally suppresses framework-generated innerHTML warnings that originate from bundled output only. This is a build-time suppression, not a runtime bypass. Any authored innerHTML in the source directories (src/ or entrypoints/) is not suppressed and will surface immediately in linting results for manual review.
+- I do not play PoE2 so that side is unpolished
