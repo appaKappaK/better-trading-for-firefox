@@ -4,11 +4,15 @@ import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 
 const changelogHeadingPattern =
-  /^## \[(\d+\.\d+\.\d+)\] - (\d{4}-\d{2}-\d{2})[ \t]*$/gmu;
+  /^## \[([^\]\r\n]+)\] - (\d{4}-\d{2}-\d{2})[ \t]*$/gmu;
+const semanticVersionPattern = /^\d+\.\d+\.\d+$/u;
 
 export function extractLatestChangelogRelease(changelogText) {
   const headings = [...changelogText.matchAll(changelogHeadingPattern)];
-  const latestHeading = headings[0];
+  const latestHeadingIndex = headings.findIndex((heading) =>
+    semanticVersionPattern.test(heading[1]),
+  );
+  const latestHeading = headings[latestHeadingIndex];
 
   if (!latestHeading || latestHeading.index === undefined) {
     throw new Error(
@@ -26,7 +30,7 @@ export function extractLatestChangelogRelease(changelogText) {
   }
 
   const notesStart = latestHeading.index + latestHeading[0].length;
-  const notesEnd = headings[1]?.index ?? changelogText.length;
+  const notesEnd = headings[latestHeadingIndex + 1]?.index ?? changelogText.length;
   const notes = changelogText.slice(notesStart, notesEnd).trim();
 
   if (!notes) {

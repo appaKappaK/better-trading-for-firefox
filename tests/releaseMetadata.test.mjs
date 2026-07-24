@@ -41,6 +41,27 @@ describe('release metadata', () => {
     });
   });
 
+  it('stops release notes before a combined historical version heading', () => {
+    const changelogWithCombinedVersion = `# Changelog
+
+## [1.1.0] - 2026-04-11
+
+### Added
+- Current release
+
+## [1.0.5-1.0.6] - 2026-04-04
+
+### Added
+- Older release
+`;
+
+    expect(extractLatestChangelogRelease(changelogWithCombinedVersion)).toEqual({
+      version: '1.1.0',
+      date: '2026-04-11',
+      notes: ['### Added', '- Current release'].join('\n'),
+    });
+  });
+
   it('accepts a release only when tag, package, lockfile, manifest, and changelog versions match', () => {
     expect(
       validateReleaseMetadata({
