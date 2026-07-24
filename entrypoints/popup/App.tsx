@@ -1,6 +1,14 @@
-import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import {
+  startTransition,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import type { BookmarkFolder, BookmarkTrade } from '@/src/features/bookmarks/types';
+import { FolderIcon, FolderIconPicker } from '@/src/components/FolderIcon';
 import { previewLegacyImport } from '@/src/lib/legacy/importPreview';
 import type { HistoryEntry, StorageSchemaV1 } from '@/src/lib/storage/schema';
 import {
@@ -17,14 +25,10 @@ import {
   updateStoredBookmarkFolderIcon,
   updateStoredPreferences,
 } from '@/src/lib/storage/runtime';
-import {
-  FOLDER_ICON_OPTIONS,
-  getFolderIconImageUrl,
-  getFolderIconLabel,
-  getFolderIconSymbol,
-} from '@/src/lib/bookmarks/folderIcons';
+import { getFolderIconLabel } from '@/src/lib/bookmarks/folderIcons';
 import { formatTradeLeagueLabel } from '@/src/lib/trade/location';
 import { readImportFile } from '@/src/popup/importFiles';
+import { ConfirmationDialog } from '@/src/popup/ConfirmationDialog';
 import { SettingsView } from '@/src/popup/SettingsView';
 import { buildTradeUrl } from '@/src/popup/tradeUrls';
 
@@ -61,6 +65,7 @@ const PAGE_LABELS: Record<PopupPage, string> = {
 };
 
 function App() {
+  const popupShellRef = useRef<HTMLElement | null>(null);
   const [schema, setSchema] = useState<StorageSchemaV1 | null>(null);
   const [activePage, setActivePage] = useState<PopupPage>('import');
   const [isSchemaLoading, setIsSchemaLoading] = useState(true);
@@ -124,6 +129,13 @@ function App() {
       isActive = false;
       browser.storage.onChanged.removeListener(handleStorageChange);
     };
+  }, []);
+
+  useEffect(() => {
+    const popupShell = popupShellRef.current;
+    if (!popupShell) return;
+
+    return attachTransientScrollbar(popupShell);
   }, []);
 
   function applyLoadedSchema(nextSchema: StorageSchemaV1) {
@@ -517,7 +529,7 @@ function App() {
   }
 
   return (
-    <main className="popup-shell">
+    <main className="popup-shell" ref={popupShellRef}>
       <section className="popup-hero">
         <h2 className="popup-eyebrow">Better Trading for Firefox</h2>
         <p className="popup-copy">
@@ -569,20 +581,20 @@ function App() {
       </nav>
 
       <section className="popup-panel">
-        <div className="popup-panel-header">
-          <div>
-            <p className="popup-panel-eyebrow">
-              {activePage === 'import'
-                ? 'Migration'
-                : activePage === 'bookmarks'
-                  ? 'Manage'
-                  : activePage === 'history'
-                    ? 'Browse'
+        {activePage !== 'history' ? (
+          <div className="popup-panel-header">
+            <div>
+              <p className="popup-panel-eyebrow">
+                {activePage === 'import'
+                  ? 'Migration'
+                  : activePage === 'bookmarks'
+                    ? 'Manage'
                     : 'Configure'}
-            </p>
-            <h2>{PAGE_LABELS[activePage]}</h2>
+              </p>
+              <h2>{PAGE_LABELS[activePage]}</h2>
+            </div>
           </div>
-        </div>
+        ) : null}
 
         {activePage === 'import' ? (
           <MigrationPanel
@@ -652,7 +664,7 @@ interface MigrationPanelProps {
   onStartFresh: () => void;
 }
 
-function MigrationPanel({
+export function MigrationPanel({
   importInput,
   importPreview,
   isReadingImportFile,
@@ -665,6 +677,7 @@ function MigrationPanel({
   onStartFresh,
 }: MigrationPanelProps) {
   const [dragCounter, setDragCounter] = useState(0);
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const isDragOver = dragCounter > 0;
   const isDisabled = isReadingImportFile || isSubmitting;
 
@@ -769,13 +782,36 @@ function MigrationPanel({
           {isSubmitting ? 'Working...' : 'Import legacy data'}
         </button>
         <button
-          className="popup-button popup-button--secondary"
+          className={`popup-button popup-button--secondary${
+            needsOnboarding ? '' : ' popup-button--danger'
+          }`}
           disabled={isSubmitting || isReadingImportFile || isSchemaLoading}
-          onClick={onStartFresh}
+          onClick={() => {
+            if (needsOnboarding) {
+              onStartFresh();
+              return;
+            }
+
+            setIsConfirmingReset(true);
+          }}
           type="button">
-          {needsOnboarding ? 'Start fresh' : 'Reset to fresh'}
+          {needsOnboarding ? 'Start fresh' : 'Clear saved data'}
         </button>
       </div>
+      {!needsOnboarding && isConfirmingReset ? (
+        <ConfirmationDialog
+          confirmation="reset-data"
+          confirmLabel="Clear saved data"
+          description="This permanently removes your bookmarks and history and clears cached pricing data. Your settings will stay the same."
+          disabled={isSubmitting || isReadingImportFile}
+          onCancel={() => setIsConfirmingReset(false)}
+          onConfirm={() => {
+            setIsConfirmingReset(false);
+            onStartFresh();
+          }}
+          title="Clear Better Trading data?"
+        />
+      ) : null}
     </>
   );
 }
@@ -793,7 +829,7 @@ interface BookmarksPanelProps {
   tradesByFolderId: Record<string, BookmarkTrade[]>;
 }
 
-function BookmarksPanel({
+export function BookmarksPanel({
   folders,
   isSchemaLoading,
   onChangeFolderIcon,
@@ -844,22 +880,26 @@ function BookmarksPanel({
       <div className="popup-toolbar">
         <div className="popup-toolbar-group">
           <button
-            className="popup-button popup-button--secondary popup-button--small"
+            aria-busy={busyAction === 'copy-backup'}
+            className="popup-button popup-button--utility popup-button--small"
             disabled={folders.length === 0 || busyAction !== null}
             onClick={() => {
               void runAction('copy-backup', onCopyBackup);
             }}
             type="button">
-            Copy full backup
+            {busyAction === 'copy-backup' ? 'Copying...' : 'Copy full backup'}
           </button>
           <button
-            className="popup-button popup-button--secondary popup-button--small"
+            aria-busy={busyAction === 'download-backup'}
+            className="popup-button popup-button--utility popup-button--small"
             disabled={folders.length === 0 || busyAction !== null}
             onClick={() => {
               void runAction('download-backup', onDownloadBackup);
             }}
             type="button">
-            Download backup
+            {busyAction === 'download-backup'
+              ? 'Preparing...'
+              : 'Download backup'}
           </button>
         </div>
 
@@ -892,47 +932,43 @@ function BookmarksPanel({
             return (
               <article key={folder.id} className="popup-record-card">
                 <div className="popup-record-header">
-                  <div>
-                    <h3>{folder.title}</h3>
-                    <p>
-                      PoE {folder.version}
-                      {folder.icon ? ` | ${getFolderIconLabel(folder.icon)}` : ''}
-                    </p>
-                  </div>
                   {folder.icon ? (
                     <FolderIcon
+                      fallbackClassName="popup-folder-icon-fallback"
+                      imageClassName="popup-folder-icon"
                       label={getFolderIconLabel(folder.icon) ?? folder.icon}
                       slug={folder.icon}
                     />
                   ) : null}
+                  <div className="popup-record-copy">
+                    <h3>{folder.title}</h3>
+                    <p>
+                      PoE {folder.version}
+                      {folder.icon ? ` · ${getFolderIconLabel(folder.icon)}` : ''}
+                    </p>
+                  </div>
                   <div className="popup-record-badges">
                     <span>{trades.length} trades</span>
                     {folder.archivedAt ? <span>Archived</span> : <span>Active</span>}
                   </div>
                 </div>
 
-                <label className="popup-field">
+                <div className="popup-field">
                   <span>Icon</span>
-                  <select
+                  <FolderIconPicker
                     disabled={busyAction !== null}
-                    onChange={(event) => {
+                    onChange={(icon) => {
                       void runAction(`icon-folder:${folder.id}`, () =>
-                        onChangeFolderIcon(folder, event.target.value || null),
+                        onChangeFolderIcon(folder, icon),
                       );
                     }}
-                    value={folder.icon ?? ''}>
-                    <option value="">None</option>
-                    {FOLDER_ICON_OPTIONS.map((opt) => (
-                      <option key={opt.slug} value={opt.slug}>
-                        {opt.group} — {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    value={folder.icon}
+                  />
+                </div>
 
                 <div className="popup-record-actions">
                   <button
-                    className="popup-button popup-button--secondary popup-button--small"
+                    className="popup-button popup-button--utility popup-button--small"
                     disabled={busyAction !== null}
                     onClick={() => {
                       void runAction(`export-folder:${folder.id}`, () =>
@@ -1025,7 +1061,7 @@ function BookmarksPanel({
                                 </span>
                               )}
                               <button
-                                className="popup-button popup-button--secondary popup-button--small"
+                                className="popup-button popup-button--danger popup-button--small"
                                 disabled={busyAction !== null}
                                 onClick={() => {
                                   setConfirmingFolderId(null);
@@ -1089,64 +1125,114 @@ export function HistoryPanel({
   onClearHistory,
 }: HistoryPanelProps) {
   const [isClearing, setIsClearing] = useState(false);
-
-  if (isSchemaLoading) {
-    return <p className="popup-empty">Loading saved history...</p>;
-  }
-
-  if (historyEntries.length === 0) {
-    return (
-      <p className="popup-empty">
-        Recent trade searches will appear here.
-      </p>
-    );
-  }
+  const [isConfirmingClear, setIsConfirmingClear] = useState(false);
 
   return (
     <>
-      <div className="popup-toolbar">
-        <button
-          className="popup-button popup-button--secondary popup-button--small"
-          disabled={isClearing}
-          onClick={() => {
-            setIsClearing(true);
-            void onClearHistory().finally(() => setIsClearing(false));
-          }}
-          type="button">
-          Clear all history
-        </button>
+      <div className="popup-panel-header popup-panel-header--history">
+        <div>
+          <p className="popup-panel-eyebrow">Browse</p>
+          <h2>History</h2>
+        </div>
+        {!isSchemaLoading && historyEntries.length > 0 ? (
+          <button
+            className="popup-button popup-button--danger popup-button--small"
+            disabled={isClearing}
+            onClick={() => setIsConfirmingClear(true)}
+            type="button">
+            Clear all history
+          </button>
+        ) : null}
       </div>
-      <ul className="popup-history-list">
-        {historyEntries.map((entry) => (
-          <li key={entry.id} className="popup-history-item">
-            <a
-              className="popup-history-link"
-              href={buildTradeUrl(entry)}
-              rel="noreferrer"
-              target="_blank">
-              <div className="popup-history-entry-header">
-                <h3 className="popup-history-title">{entry.title}</h3>
-                <span className="popup-history-date">{formatTimestamp(entry.createdAt)}</span>
-              </div>
-              <p className="popup-history-slug">{shortenSlug(entry.slug)}</p>
-              <div className="popup-history-pills">
-                <span className="popup-history-pill" data-version={entry.version}>
-                  PoE {entry.version}
-                </span>
-                <span className="popup-history-pill">
-                  {formatTradeLeagueLabel(entry.league)}
-                </span>
-                <span className="popup-history-pill">{entry.type}</span>
-                {entry.isLive ? (
-                  <span className="popup-history-pill popup-history-pill--live">live</span>
-                ) : null}
-              </div>
-            </a>
-          </li>
-        ))}
-      </ul>
+      {isConfirmingClear ? (
+        <ConfirmationDialog
+          confirmation="clear-history"
+          confirmLabel="Clear history"
+          description="This removes every saved search from History. Your bookmarks are not affected."
+          disabled={isClearing}
+          onCancel={() => setIsConfirmingClear(false)}
+          onConfirm={() => {
+            setIsClearing(true);
+            void onClearHistory().finally(() => {
+              setIsClearing(false);
+              setIsConfirmingClear(false);
+            });
+          }}
+          title="Clear all saved history?"
+        />
+      ) : null}
+      {isSchemaLoading ? (
+        <p className="popup-empty">Loading saved history...</p>
+      ) : historyEntries.length === 0 ? (
+        <p className="popup-empty">Recent trade searches will appear here.</p>
+      ) : (
+        <ul className="popup-history-list">
+          {historyEntries.map((entry) => (
+            <li key={entry.id} className="popup-history-item">
+              <a
+                className="popup-history-link"
+                href={buildTradeUrl(entry)}
+                rel="noreferrer"
+                target="_blank">
+                <div className="popup-history-entry-header">
+                  <h3 className="popup-history-title">{entry.title}</h3>
+                  <span className="popup-history-date">
+                    {formatTimestamp(entry.createdAt)}
+                  </span>
+                </div>
+                <div className="popup-history-pills">
+                  <span className="popup-history-pill" data-version={entry.version}>
+                    PoE {entry.version}
+                  </span>
+                  <span className="popup-history-pill">
+                    {formatTradeLeagueLabel(entry.league)}
+                  </span>
+                  <span className="popup-history-pill">{entry.type}</span>
+                  {entry.isLive ? (
+                    <span className="popup-history-pill popup-history-pill--live">
+                      live
+                    </span>
+                  ) : null}
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   );
+}
+
+export function attachTransientScrollbar(
+  element: HTMLElement,
+  hideDelayMs = 700,
+) {
+  let hideTimer: number | null = null;
+
+  const showScrollbar = () => {
+    element.dataset.scrolling = 'true';
+
+    if (hideTimer !== null) {
+      window.clearTimeout(hideTimer);
+    }
+
+    hideTimer = window.setTimeout(() => {
+      delete element.dataset.scrolling;
+      hideTimer = null;
+    }, hideDelayMs);
+  };
+
+  element.addEventListener('wheel', showScrollbar, { passive: true });
+
+  return () => {
+    element.removeEventListener('wheel', showScrollbar);
+
+    if (hideTimer !== null) {
+      window.clearTimeout(hideTimer);
+    }
+
+    delete element.dataset.scrolling;
+  };
 }
 
 async function copyTextToClipboard(value: string) {
@@ -1192,19 +1278,6 @@ function formatTimestamp(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date);
-}
-
-function FolderIcon({ slug, label }: { slug: string; label: string }) {
-  const imageUrl = getFolderIconImageUrl(slug);
-  if (imageUrl) {
-    return <img alt={label} className="popup-folder-icon" src={imageUrl} />;
-  }
-
-  return (
-    <span aria-label={label} className="popup-folder-icon-fallback" title={label}>
-      {getFolderIconSymbol(slug) ?? '📁'}
-    </span>
-  );
 }
 
 export default App;

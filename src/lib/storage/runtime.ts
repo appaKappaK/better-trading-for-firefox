@@ -22,6 +22,7 @@ import {
   normalizeStoredSchema,
   type StorageSchemaV1,
 } from '@/src/lib/storage/schema';
+import { POE_NINJA_CACHE_PREFIX } from '@/src/lib/poeNinja/chaosRatios';
 import {
   applyCurrentPagePreference,
   applyTradePageContext,
@@ -74,13 +75,28 @@ export async function updateStoredSchema(
 }
 
 export async function startFreshSchema(): Promise<StorageSchemaV1> {
+  const currentSchema = await loadStoredSchema();
   const schema = createEmptyStorageSchema();
+  const storedValues = await browser.storage.local.get(null);
+  const pricingCacheKeys = Object.keys(storedValues).filter((key) =>
+    key.startsWith(POE_NINJA_CACHE_PREFIX),
+  );
+
+  if (pricingCacheKeys.length > 0) {
+    await browser.storage.local.remove(pricingCacheKeys);
+  }
 
   return saveStoredSchema({
     ...schema,
     preferences: {
       ...schema.preferences,
+      disabledEnhancers: [...currentSchema.preferences.disabledEnhancers],
+      sidePanelCollapsed: currentSchema.preferences.sidePanelCollapsed,
+      sidePanelDraggable: currentSchema.preferences.sidePanelDraggable,
+      sidePanelSidebar: currentSchema.preferences.sidePanelSidebar,
       hasCompletedOnboarding: true,
+      persistPinnedItemsInSession:
+        currentSchema.preferences.persistPinnedItemsInSession,
     },
   });
 }
