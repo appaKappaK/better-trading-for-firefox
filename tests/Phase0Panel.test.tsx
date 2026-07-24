@@ -787,8 +787,11 @@ describe('Phase0Panel collapse chrome', () => {
     });
 
     const alchemyPrice = container.querySelector('.btff-panel__pinned-price');
-    expect(alchemyPrice?.textContent?.trim()).toBe('1 Orb of Alchemy');
+    expect(alchemyPrice?.textContent?.trim()).toBe('1');
     expect(alchemyPrice?.textContent).not.toContain('×');
+    expect(
+      alchemyPrice?.querySelector<HTMLImageElement>('img[alt="Orb of Alchemy"]'),
+    ).not.toBeNull();
   });
 
   it('keeps legacy result ids out of expanded and collapsed pinned labels', async () => {

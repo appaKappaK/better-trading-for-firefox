@@ -275,6 +275,7 @@ function normalizeHistoryEntryTitle(
   }
 
   const fallbackCandidates = new Set([
+    [entry.type, entry.slug].join('/'),
     formatTradeLocationLabel(entry),
     formatTradeLocationLabel({
       ...entry,

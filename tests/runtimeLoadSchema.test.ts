@@ -77,7 +77,7 @@ describe('loadStoredSchema', () => {
 
     expect(firstLoad.history.entries[0]).toMatchObject({
       league: 'HC LANDMINED GSF (PL80003)',
-      title: 'search/EB04ajr4S5',
+      title: 'Empty search',
     });
     expect(firstLoad.preferences.lastSeenLeagues['1']).toBe(
       'HC LANDMINED GSF (PL80003)',
@@ -93,7 +93,7 @@ describe('loadStoredSchema', () => {
 
     expect(secondLoad.history.entries[0]).toMatchObject({
       league: 'HC LANDMINED GSF (PL80003)',
-      title: 'search/EB04ajr4S5',
+      title: 'Empty search',
     });
     expect(setMock).not.toHaveBeenCalled();
   });

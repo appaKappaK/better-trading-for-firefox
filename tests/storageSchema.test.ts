@@ -74,6 +74,16 @@ describe('storage schema scaffolding', () => {
             slug: 'xyz987',
             isLive: true,
           },
+          {
+            id: 'history-3',
+            title: 'search/currentFallback',
+            createdAt: '2026-04-10T00:00:00.000Z',
+            version: '1',
+            type: 'search',
+            league: 'Standard',
+            slug: 'currentFallback',
+            isLive: false,
+          },
         ],
       },
       preferences: {
@@ -90,11 +100,15 @@ describe('storage schema scaffolding', () => {
     expect(normalized.schema.metadata.updatedAt).toBe('2026-04-10T00:00:00.000Z');
     expect(normalized.schema.history.entries[0]).toMatchObject({
       league: 'HC LANDMINED GSF (PL80003)',
-      title: 'search/EB04ajr4S5',
+      title: 'Empty search',
     });
     expect(normalized.schema.history.entries[1]).toMatchObject({
       league: 'poe2/HC Mirage',
       title: 'Real Custom Title',
+    });
+    expect(normalized.schema.history.entries[2]).toMatchObject({
+      league: 'Standard',
+      title: 'Empty search',
     });
     expect(normalized.schema.preferences.lastSeenLeagues).toEqual({
       '1': 'HC LANDMINED GSF (PL80003)',

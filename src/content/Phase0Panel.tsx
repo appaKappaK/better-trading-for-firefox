@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import betterTradingIcon from '/public/icon/better_tradingICO.png?url';
+import alchemyIconUrl from '/public/assets/images/bookmark-folder/alchemy.png?url';
 import chaosIconUrl from '/public/assets/images/bookmark-folder/chaos.png?url';
 import divineIconUrl from '/public/assets/images/bookmark-folder/divine.png?url';
 
@@ -1062,6 +1063,7 @@ function PinnedItemsView({
 }
 
 const CURRENCY_ICONS: Record<string, string> = {
+  'orb of alchemy': alchemyIconUrl,
   'divine orb': divineIconUrl,
   'chaos orb': chaosIconUrl,
 };

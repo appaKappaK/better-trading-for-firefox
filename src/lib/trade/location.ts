@@ -86,6 +86,8 @@ export function formatTradeLocationLabel(
 export function formatTradeHistoryFallbackLabel(
   location: Pick<ParsedTradeLocation, 'type' | 'slug'>,
 ) {
+  if (location.type === 'search') return 'Empty search';
+
   return [location.type, location.slug].join('/');
 }
 

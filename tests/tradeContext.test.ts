@@ -66,7 +66,7 @@ describe('trade context storage helpers', () => {
     expect(updated.history.entries[0].id).toBe('history-1');
   });
 
-  it('stores compact fallback titles when the page does not provide one', () => {
+  it('stores a readable fallback title when a search has no name', () => {
     const schema = createEmptyStorageSchema('phase0-instance');
     const updated = applyTradePageContext(
       schema,
@@ -83,7 +83,7 @@ describe('trade context storage helpers', () => {
 
     expect(updated.history.entries[0]).toMatchObject({
       id: 'history-1',
-      title: 'search/EB04ajr4S5',
+      title: 'Empty search',
       league: 'HC LANDMINED GSF (PL80003)',
     });
   });
