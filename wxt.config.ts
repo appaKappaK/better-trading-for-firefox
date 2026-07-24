@@ -58,6 +58,15 @@ export default defineConfig({
     homepage_url: 'https://github.com/appaKappaK/better-trading-for-firefox',
     description: 'Bookmark trade searches, track history, and apply live enhancers on the Path of Exile trade site. Firefox-only MV3 extension.',
     permissions: ['storage'],
+    web_accessible_resources: [
+      {
+        resources: ['assets/images/bookmark-folder/*.png'],
+        matches: [
+          '*://pathofexile.com/*',
+          '*://www.pathofexile.com/*',
+        ],
+      },
+    ],
     host_permissions: [
       '*://pathofexile.com/trade*',
       '*://www.pathofexile.com/trade*',

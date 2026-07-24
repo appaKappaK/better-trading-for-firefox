@@ -39,6 +39,19 @@ describe('legacy bookmark export generation', () => {
     expect(parsed?.trades[0].title).toBe('Crossbow 💥');
   });
 
+  it('normalizes Firefox class aliases to original Better Trading icon slugs', () => {
+    const serialized = serializeLegacyFolderExport(
+      {
+        icon: 'shadow',
+        title: 'Shadow searches',
+        version: '1',
+      },
+      [],
+    );
+
+    expect(parseLegacyFolderExport(serialized)?.icon).toBe('assassin');
+  });
+
   it('generates backup text that preserves active and archived sections', () => {
     const backup = generateLegacyBackupDataString(
       [

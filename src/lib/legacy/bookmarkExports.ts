@@ -3,6 +3,7 @@ import type {
   BookmarkTrade,
   TradeSiteVersion,
 } from '@/src/features/bookmarks/types';
+import { normalizeFolderIconSlug } from '@/src/lib/bookmarks/folderIcons';
 import { encodeUtf8Base64 } from '@/src/lib/legacy/base64';
 import { LEGACY_BACKUP_SECTION_DELIMITER } from '@/src/lib/legacy/bookmarkImports';
 
@@ -23,7 +24,7 @@ export function serializeLegacyFolderExport(
   trades: Array<BookmarkTrade | Pick<BookmarkTrade, 'title' | 'location'>>,
 ) {
   const payload: ExportedFolderStructV3 = {
-    icn: folder.icon ?? null,
+    icn: normalizeFolderIconSlug(folder.icon),
     tit: folder.title,
     ver: folder.version,
     trs: trades.map((trade) => ({

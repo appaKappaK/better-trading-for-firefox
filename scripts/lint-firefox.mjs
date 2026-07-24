@@ -38,6 +38,8 @@ if (!fs.existsSync(manifestPath)) {
   }
 }
 
+validateFolderIconWebAccess();
+
 const result = spawnSync(
   process.execPath,
   [
@@ -124,6 +126,35 @@ if (result.stderr) {
 }
 
 process.exit(errors.length > 0 ? 1 : 0);
+
+function validateFolderIconWebAccess() {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const resourcePath = 'assets/images/bookmark-folder/*.png';
+  const expectedMatches = [
+    '*://pathofexile.com/*',
+    '*://www.pathofexile.com/*',
+  ];
+  const matchingRules = (manifest.web_accessible_resources ?? []).filter(
+    (rule) => Array.isArray(rule.resources) && rule.resources.includes(resourcePath),
+  );
+
+  if (matchingRules.length !== 1) {
+    console.error(
+      `Expected one narrowly scoped web-accessible resource rule for ${resourcePath}; found ${matchingRules.length}.`,
+    );
+    process.exit(1);
+  }
+
+  const actualMatches = [...(matchingRules[0].matches ?? [])].sort();
+  const sortedExpectedMatches = [...expectedMatches].sort();
+
+  if (JSON.stringify(actualMatches) !== JSON.stringify(sortedExpectedMatches)) {
+    console.error(
+      `Folder icons must only be web-accessible on the Path of Exile origins. Found: ${actualMatches.join(', ') || 'none'}.`,
+    );
+    process.exit(1);
+  }
+}
 
 function authoredSourceUsesUnsafeHtml() {
   return authoredSourceRoots.some((rootPath) => scanForUnsafeHtml(rootPath));
