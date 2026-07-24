@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Changed
 - Standardized primary, utility, neutral, destructive, disabled, hover, pressed, and keyboard-focus states across popup and in-page controls
 - Reduced the size of history, pinned-item, bookmark-folder, and collapsed-launcher entries while retaining their useful metadata
+- Increased pinned-item artwork slightly for better visibility
 - Left-aligned history metadata groups, centered the text within each pill, and made full-height sidebar mode square and flush with the viewport
 - Replaced opaque Quick Save examples with descriptive folder and bookmark labels
 - Renamed `Reset to fresh` to `Clear saved data`; the action clears bookmarks, history, and pricing caches while preserving user preferences
@@ -27,6 +28,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Fixed
 - Restored the Firefox toolbar popup to its intended 420×600 size
+- Kept pinned-item relative timestamps current while the pinned view remains open
 - Distinguished unavailable backup actions from exports that are actively running
 - Extracted readable pinned-item names from legacy and current trade-result headers, repaired late-loading placeholders, retained item and seller metadata, and prevented internal result IDs from appearing as titles
 - Prioritized seller names over repeated base-type metadata in compact pinned-item cards

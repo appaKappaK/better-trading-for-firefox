@@ -885,8 +885,8 @@
 .btff-panel__pinned-thumb {
   display: block;
   flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 7px;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -989,7 +989,7 @@
   justify-content: space-between;
   gap: 8px;
   min-height: 26px;
-  margin-top: 5px;
+  margin-top: 3px;
 }
 
 .btff-panel__pinned-actions {

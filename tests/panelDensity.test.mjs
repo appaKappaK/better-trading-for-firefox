@@ -25,6 +25,12 @@ describe('in-page panel density styles', () => {
     );
   });
 
+  it('gives pinned item artwork a modest size increase', () => {
+    expect(panelCss).toMatch(
+      /\.btff-panel__pinned-thumb\s*\{[^}]*width:\s*34px;[^}]*height:\s*34px;/s,
+    );
+  });
+
   it('anchors history pill rows left while centering each label internally', () => {
     expect(panelCss).toMatch(
       /\.btff-history-pills\s*\{[^}]*justify-content:\s*flex-start;[^}]*\}\s*\.btff-history-pill\s*\{[^}]*display:\s*inline-flex;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*text-align:\s*center;/s,

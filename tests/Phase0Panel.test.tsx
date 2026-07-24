@@ -23,6 +23,7 @@ describe('Phase0Panel collapse chrome', () => {
     flushSync(() => {
       root.unmount();
     });
+    vi.useRealTimers();
     container.remove();
     document.body.innerHTML = '';
   });
@@ -594,6 +595,33 @@ describe('Phase0Panel collapse chrome', () => {
       'thelonejedi#7724',
     );
     expect(container.textContent).not.toContain('Heavy Belt');
+  });
+
+  it('updates pinned relative time without requiring a tab change', async () => {
+    const pinnedAt = new Date(Date.now() - 21_000).toISOString();
+
+    await renderPanel({
+      currentPage: 'pinned',
+      pinnedItems: [
+        {
+          id: 'spirit-emblem-result',
+          pinnedAt,
+          price: '10×Orb of Alchemy',
+          sourcePath: '/trade/search/Standard/spirit-emblem-search',
+          subtitle: 'Item Level: 67 | anthill1953#1228',
+          title: 'Spirit Emblem',
+        },
+      ],
+    });
+
+    const getPinnedTime = () =>
+      container.querySelector('.btff-panel__pinned-time')?.textContent;
+    expect(getPinnedTime()).toBe('21 seconds ago');
+
+    await vi.waitFor(() => expect(getPinnedTime()).toBe('22 seconds ago'), {
+      interval: 50,
+      timeout: 2_000,
+    });
   });
 
   it('renders pinned prices without a multiplication marker', async () => {

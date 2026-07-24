@@ -947,6 +947,22 @@ function PinnedItemsView({
   onActivateItem,
   onUnpinItem,
 }: PinnedItemsViewProps) {
+  const hasItems = items.length > 0;
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!hasItems) {
+      return undefined;
+    }
+
+    setCurrentTime(Date.now());
+    const timerId = window.setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1_000);
+
+    return () => window.clearInterval(timerId);
+  }, [hasItems]);
+
   if (isSchemaLoading) {
     return <p className="btff-panel__empty">Loading the current panel state...</p>;
   }
@@ -1006,7 +1022,7 @@ function PinnedItemsView({
                   </small>
                 ) : null}
                 <small className="btff-panel__pinned-time">
-                  {formatRelativeTimestamp(item.pinnedAt)}
+                  {formatRelativeTimestamp(item.pinnedAt, currentTime)}
                 </small>
               </div>
               <div className="btff-panel__pinned-actions">

@@ -315,6 +315,12 @@ try {
     );
   }
 
+  if (pinnedItem.thumbnailWidth !== 36 || pinnedItem.thumbnailHeight !== 36) {
+    throw new Error(
+      `Pinned item artwork has the wrong size: ${pinnedItem.thumbnailWidth}×${pinnedItem.thumbnailHeight}px`,
+    );
+  }
+
   const pinnedPanelScreenshot = await driver.takeScreenshot();
   await writeFile(
     PINNED_PANEL_SCREENSHOT_PATH,
@@ -1267,22 +1273,40 @@ async function pinResultAndMeasure(driver) {
   await pinnedTab.click();
 
   await waitForElements(driver, shadowRoot, '.btff-panel__pinned-item');
+  const pinnedTime = await shadowRoot.findElement(
+    By.css('.btff-panel__pinned-time'),
+  );
+  const initialTimestamp = await pinnedTime.getText();
+  const updatedTimestamp = await driver.wait(async () => {
+    const timestamp = await pinnedTime.getText();
+    return timestamp !== initialTimestamp ? timestamp : false;
+  }, 3_000, 'Pinned item relative time did not update while the tab remained open.');
 
-  return driver.executeScript(() => {
+  const metrics = await driver.executeScript(() => {
     const hostElement = document.querySelector('[data-btff-phase0-host="true"]');
     const root = hostElement?.shadowRoot;
     const card = root?.querySelector('.btff-panel__pinned-item');
     const title = root?.querySelector('.btff-panel__pinned-info strong');
     const subtitle = root?.querySelector('.btff-panel__pinned-subtitle');
     const actions = root?.querySelector('.btff-panel__pinned-actions');
+    const thumbnail = root?.querySelector('.btff-panel__pinned-thumb');
+    const thumbnailRect = thumbnail?.getBoundingClientRect();
 
     return {
       actions: actions?.textContent?.replace(/\s+/g, ' ').trim() ?? null,
       cardHeight: card?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
       subtitle: subtitle?.textContent?.trim() ?? null,
+      thumbnailHeight: thumbnailRect?.height ?? 0,
+      thumbnailWidth: thumbnailRect?.width ?? 0,
       title: title?.textContent?.trim() ?? null,
     };
   });
+
+  return {
+    ...metrics,
+    initialTimestamp,
+    updatedTimestamp,
+  };
 }
 
 async function measureInPageHistory(driver) {
