@@ -400,9 +400,11 @@ describe('Phase0Panel collapse chrome', () => {
 
   it('describes first-run setup without telling the user to start fresh', async () => {
     const schema = createEmptyStorageSchema('phase0-instance');
+    const onCompleteOnboarding = vi.fn();
 
     await renderPanel({
       currentPage: 'pinned',
+      onCompleteOnboarding,
       schema,
     });
 
@@ -410,6 +412,15 @@ describe('Phase0Panel collapse chrome', () => {
       'Open the extension popup to import a legacy backup or continue with an empty bookmark library.',
     );
     expect(container.textContent?.toLowerCase()).not.toContain('start fresh');
+    const continueButton = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('button'),
+    ).find((button) => button.textContent === 'Continue without import');
+    expect(continueButton?.classList.contains('btff-panel__callout-action')).toBe(
+      true,
+    );
+
+    continueButton?.click();
+    expect(onCompleteOnboarding).toHaveBeenCalledOnce();
   });
 
   it('does not render in-page history clear controls in sidebar mode', async () => {
@@ -770,6 +781,7 @@ describe('Phase0Panel collapse chrome', () => {
           isSchemaLoading={false}
           onClearHistory={async () => {}}
           onClearPinnedItems={() => {}}
+          onCompleteOnboarding={() => {}}
           onCopyFolderExport={async () => {}}
           //onPoeNinjaPing={() => {}}
           //onRefresh={() => {}}

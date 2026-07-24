@@ -73,6 +73,8 @@
 }
 
 .popup-status {
+  display: grid;
+  gap: 10px;
   margin-top: 14px;
   padding: 12px 14px;
 }
@@ -105,6 +107,10 @@
   margin-top: 4px;
   font-size: 12px;
   color: #8a97a5;
+}
+
+.popup-status__action {
+  justify-self: start;
 }
 
 .popup-update-notice {
@@ -1059,6 +1065,13 @@
   border: 1px solid rgba(196, 149, 42, 0.34);
   background: rgba(184, 110, 39, 0.14);
   color: #f0d090;
+  box-shadow: none;
+}
+
+.popup-button--continue {
+  border: 1px solid rgba(91, 153, 134, 0.5);
+  color: #d9eee7;
+  background: linear-gradient(180deg, #376b5e, #244b42);
   box-shadow: none;
 }
 

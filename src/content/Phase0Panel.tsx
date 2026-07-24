@@ -39,6 +39,7 @@ interface Props {
   isSchemaLoading: boolean;
   onClearHistory: () => Promise<void> | void;
   onClearPinnedItems: () => void;
+  onCompleteOnboarding: () => Promise<void> | void;
   onReorderFolders: (fromIndex: number, toIndex: number) => Promise<void> | void;
   onRenameTrade: (
     folderId: string,
@@ -74,6 +75,7 @@ export function Phase0Panel({
   isCollapsed,
   isSchemaLoading,
   onClearPinnedItems,
+  onCompleteOnboarding,
   onRenameTrade,
   onReorderFolders,
   onCopyFolderExport,
@@ -97,6 +99,7 @@ export function Phase0Panel({
   const historyEntries = schema?.history.entries ?? [];
   const bookmarkFolderCount = folders.length;
   const needsOnboarding = !schema?.preferences.hasCompletedOnboarding;
+  const [isCompletingOnboarding, setIsCompletingOnboarding] = useState(false);
 
   if (isCollapsed) {
     return (
@@ -228,9 +231,25 @@ export function Phase0Panel({
       <div className="btff-panel__scroll-area">
         {needsOnboarding ? (
           <section className="btff-panel__callout">
-            Open the extension popup to import a legacy backup or continue with an
-            empty bookmark library. Saved folders and history will appear here
-            automatically.
+            <p>
+              Open the extension popup to import a legacy backup or continue with
+              an empty bookmark library. Saved folders and history will appear here
+              automatically.
+            </p>
+            <button
+              className="btff-panel__callout-action"
+              disabled={isCompletingOnboarding}
+              onClick={() => {
+                setIsCompletingOnboarding(true);
+                void Promise.resolve(onCompleteOnboarding()).finally(() => {
+                  setIsCompletingOnboarding(false);
+                });
+              }}
+              type="button">
+              {isCompletingOnboarding
+                ? 'Continuing...'
+                : 'Continue without import'}
+            </button>
           </section>
         ) : null}
 

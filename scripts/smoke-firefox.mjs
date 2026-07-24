@@ -510,16 +510,24 @@ async function initializeFreshProfile(driver, extensionId) {
     'Extension popup did not load for smoke-profile initialization.',
   );
 
-  const startFresh = await driver.wait(async () => {
-    const buttons = await driver.findElements(By.css('.popup-actions button'));
+  const continueWithoutImport = await driver.wait(async () => {
+    const buttons = await driver.findElements(By.css('.popup-status__action'));
+    const button = buttons[0];
+    if (!button) return false;
 
-    for (const button of buttons) {
-      if ((await button.getText()).trim() === 'Start fresh') return button;
-    }
+    return (await button.getText()).trim() === 'Continue without import'
+      ? button
+      : false;
+  }, 20_000, 'Fresh smoke profile did not expose its onboarding action.');
 
-    return false;
-  }, 20_000, 'Fresh smoke profile did not expose its Start fresh action.');
-  await startFresh.click();
+  const legacyButtons = await driver.findElements(
+    By.xpath("//button[normalize-space(.)='Start fresh']"),
+  );
+  if (legacyButtons.length > 0) {
+    throw new Error('Fresh smoke profile still exposed the destructive Start fresh action.');
+  }
+
+  await continueWithoutImport.click();
 
   await driver.wait(async () => {
     const tabs = await driver.findElements(By.css('.popup-tab'));

@@ -14,5 +14,10 @@ describe('first-run guidance', () => {
     expect(popupSource).not.toContain(
       'Import a legacy backup or start fresh to begin.',
     );
+    expect(popupSource).not.toContain("'Start fresh'");
+    expect(popupSource).toContain("'Continue without import'");
+    expect(popupSource).toMatch(
+      /popup-status__action[\s\S]*onClick=\{\(\) => void handleContinueWithoutImport\(\)\}[\s\S]*Continue without import/,
+    );
   });
 });

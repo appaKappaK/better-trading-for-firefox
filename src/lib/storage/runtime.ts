@@ -74,6 +74,16 @@ export async function updateStoredSchema(
   return saveStoredSchema(updater(currentSchema));
 }
 
+export async function completeStoredOnboarding(): Promise<StorageSchemaV1> {
+  return updateStoredSchema((schema) => ({
+    ...schema,
+    preferences: {
+      ...schema.preferences,
+      hasCompletedOnboarding: true,
+    },
+  }));
+}
+
 export async function startFreshSchema(): Promise<StorageSchemaV1> {
   const currentSchema = await loadStoredSchema();
   const schema = createEmptyStorageSchema();

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  completeStoredOnboarding,
   startFreshSchema,
   STORAGE_SCHEMA_KEY,
 } from '../src/lib/storage/runtime';
@@ -126,6 +127,26 @@ describe('startFreshSchema', () => {
       pendingUpdateNotice: null,
     });
     expect(currentSchema).toEqual(result);
+  });
+
+  it('completes onboarding without clearing saved data or settings', async () => {
+    currentSchema.preferences.hasCompletedOnboarding = false;
+    const schemaBeforeOnboarding = structuredClone(currentSchema);
+
+    const result = await completeStoredOnboarding();
+
+    expect(result.metadata.instanceId).toBe(
+      schemaBeforeOnboarding.metadata.instanceId,
+    );
+    expect(result.bookmarks).toEqual(schemaBeforeOnboarding.bookmarks);
+    expect(result.history).toEqual(schemaBeforeOnboarding.history);
+    expect(result.pinnedItems).toEqual(schemaBeforeOnboarding.pinnedItems);
+    expect(result.caches).toEqual(schemaBeforeOnboarding.caches);
+    expect(result.preferences).toEqual({
+      ...schemaBeforeOnboarding.preferences,
+      hasCompletedOnboarding: true,
+    });
+    expect(removeMock).not.toHaveBeenCalled();
   });
 
   it('removes pricing caches without deleting unrelated local storage', async () => {

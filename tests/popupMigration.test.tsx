@@ -24,8 +24,11 @@ describe('popup fresh-start controls', () => {
   });
 
   it('requires an accessible modal before clearing initialized extension data', async () => {
-    const onStartFresh = vi.fn();
-    renderMigrationPanel(MigrationPanel, { needsOnboarding: false, onStartFresh });
+    const onClearSavedData = vi.fn();
+    renderMigrationPanel(MigrationPanel, {
+      needsOnboarding: false,
+      onClearSavedData,
+    });
 
     const resetButton = findButton('Clear saved data');
     expect(resetButton?.classList.contains('popup-button--danger')).toBe(true);
@@ -33,7 +36,7 @@ describe('popup fresh-start controls', () => {
     flushSync(() => resetButton?.click());
     await Promise.resolve();
 
-    expect(onStartFresh).not.toHaveBeenCalled();
+    expect(onClearSavedData).not.toHaveBeenCalled();
     expect(container.textContent).toContain('Clear Better Trading data?');
     expect(container.textContent).toContain('Your settings will stay the same.');
     expect(container.textContent).not.toContain('resets your settings');
@@ -50,7 +53,7 @@ describe('popup fresh-start controls', () => {
       dialog?.dispatchEvent(new Event('cancel', { cancelable: true }));
     });
     expect(container.querySelector('.popup-confirmation-dialog')).toBeNull();
-    expect(onStartFresh).not.toHaveBeenCalled();
+    expect(onClearSavedData).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(resetButton);
 
     flushSync(() => resetButton?.click());
@@ -62,17 +65,20 @@ describe('popup fresh-start controls', () => {
     ).find(
       (button) => button.textContent === 'Clear saved data',
     )?.click();
-    expect(onStartFresh).toHaveBeenCalledOnce();
+    expect(onClearSavedData).toHaveBeenCalledOnce();
   });
 
-  it('keeps the first-run Start fresh action direct', () => {
-    const onStartFresh = vi.fn();
-    renderMigrationPanel(MigrationPanel, { needsOnboarding: true, onStartFresh });
+  it('keeps destructive data clearing out of the first-run import panel', () => {
+    const onClearSavedData = vi.fn();
+    renderMigrationPanel(MigrationPanel, {
+      needsOnboarding: true,
+      onClearSavedData,
+    });
 
-    const startFreshButton = findButton('Start fresh');
-    expect(startFreshButton?.classList.contains('popup-button--danger')).toBe(false);
-    startFreshButton?.click();
-    expect(onStartFresh).toHaveBeenCalledOnce();
+    expect(findButton('Start fresh')).toBeUndefined();
+    expect(findButton('Continue without import')).toBeUndefined();
+    expect(findButton('Clear saved data')).toBeUndefined();
+    expect(onClearSavedData).not.toHaveBeenCalled();
     expect(container.textContent).not.toContain('Clear Better Trading data?');
   });
 
@@ -99,7 +105,7 @@ describe('popup fresh-start controls', () => {
           onImportFileChange={() => {}}
           onImportInputChange={() => {}}
           onImportSubmit={() => {}}
-          onStartFresh={() => {}}
+          onClearSavedData={() => {}}
           {...overrides}
         />,
       );

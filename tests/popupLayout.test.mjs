@@ -44,6 +44,12 @@ describe('popup interaction layout styles', () => {
     );
   });
 
+  it('uses a restrained lake-green palette for continuing without an import', () => {
+    expect(popupCss).toMatch(
+      /\.popup-button--continue\s*\{[^}]*border:\s*1px solid rgba\(91, 153, 134, 0\.5\);[^}]*color:\s*#d9eee7;[^}]*background:\s*linear-gradient\(180deg, #376b5e, #244b42\);/s,
+    );
+  });
+
   it('gives popup actions consistent focus, press, and motion-safe feedback', () => {
     expect(popupCss).toMatch(
       /\.popup-shell button:focus-visible,[^{]*\.popup-link-button:focus-visible\s*\{[^}]*outline:\s*2px solid/s,

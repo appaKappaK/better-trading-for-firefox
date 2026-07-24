@@ -13,6 +13,7 @@ import { previewLegacyImport } from '@/src/lib/legacy/importPreview';
 import type { HistoryEntry, StorageSchemaV1 } from '@/src/lib/storage/schema';
 import {
   clearStoredHistory,
+  completeStoredOnboarding,
   deleteStoredBookmarkFolder,
   deleteStoredBookmarkTrade,
   exportStoredBookmarkFolder,
@@ -238,7 +239,36 @@ function App() {
     }
   }
 
-  async function handleStartFresh() {
+  async function handleContinueWithoutImport() {
+    setIsSubmitting(true);
+
+    try {
+      const nextSchema = await completeStoredOnboarding();
+
+      startTransition(() => {
+        setSchema(nextSchema);
+        setImportInput('');
+        setActivePage('bookmarks');
+      });
+
+      setFeedback({
+        tone: 'success',
+        title: 'Setup complete',
+        message:
+          'Your existing data and settings were kept. Use the in-page panel to save a trade search whenever you are ready.',
+      });
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        title: 'Could not complete setup',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleClearSavedData() {
     setIsSubmitting(true);
 
     try {
@@ -252,13 +282,14 @@ function App() {
 
       setFeedback({
         tone: 'success',
-        title: 'Started fresh',
-        message: 'Storage is cleared and ready. Use the in-page panel to save your first trade search.',
+        title: 'Saved data cleared',
+        message:
+          'Bookmarks, history, and cached pricing data were cleared. Your settings were kept.',
       });
     } catch (error) {
       setFeedback({
         tone: 'error',
-        title: 'Could not initialize fresh storage',
+        title: 'Could not clear saved data',
         message: error instanceof Error ? error.message : String(error),
       });
     } finally {
@@ -559,8 +590,20 @@ function App() {
         </section>
       ) : feedback ? (
         <section className="popup-status" data-tone={feedback.tone}>
-          <p className="popup-status-title">{feedback.title}</p>
-          <p className="popup-status-message">{feedback.message}</p>
+          <div>
+            <p className="popup-status-title">{feedback.title}</p>
+            <p className="popup-status-message">{feedback.message}</p>
+          </div>
+          {feedback === ONBOARDING_FEEDBACK ? (
+            <button
+              aria-busy={isSubmitting}
+              className="popup-button popup-button--continue popup-button--small popup-status__action"
+              disabled={isSubmitting}
+              onClick={() => void handleContinueWithoutImport()}
+              type="button">
+              {isSubmitting ? 'Continuing...' : 'Continue without import'}
+            </button>
+          ) : null}
         </section>
       ) : null}
 
@@ -607,7 +650,7 @@ function App() {
             onImportFileChange={handleImportFileChange}
             onImportInputChange={setImportInput}
             onImportSubmit={handleImportSubmit}
-            onStartFresh={handleStartFresh}
+            onClearSavedData={handleClearSavedData}
           />
         ) : null}
 
@@ -658,10 +701,10 @@ interface MigrationPanelProps {
   isSchemaLoading: boolean;
   isSubmitting: boolean;
   needsOnboarding: boolean;
+  onClearSavedData: () => void;
   onImportFileChange: (file: File | null) => void | Promise<void>;
   onImportInputChange: (value: string) => void;
   onImportSubmit: () => void;
-  onStartFresh: () => void;
 }
 
 export function MigrationPanel({
@@ -671,10 +714,10 @@ export function MigrationPanel({
   isSchemaLoading,
   isSubmitting,
   needsOnboarding,
+  onClearSavedData,
   onImportFileChange,
   onImportInputChange,
   onImportSubmit,
-  onStartFresh,
 }: MigrationPanelProps) {
   const [dragCounter, setDragCounter] = useState(0);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
@@ -781,22 +824,15 @@ export function MigrationPanel({
           type="button">
           {isSubmitting ? 'Working...' : 'Import legacy data'}
         </button>
-        <button
-          className={`popup-button popup-button--secondary${
-            needsOnboarding ? '' : ' popup-button--danger'
-          }`}
-          disabled={isSubmitting || isReadingImportFile || isSchemaLoading}
-          onClick={() => {
-            if (needsOnboarding) {
-              onStartFresh();
-              return;
-            }
-
-            setIsConfirmingReset(true);
-          }}
-          type="button">
-          {needsOnboarding ? 'Start fresh' : 'Clear saved data'}
-        </button>
+        {!needsOnboarding ? (
+          <button
+            className="popup-button popup-button--secondary popup-button--danger"
+            disabled={isSubmitting || isReadingImportFile || isSchemaLoading}
+            onClick={() => setIsConfirmingReset(true)}
+            type="button">
+            Clear saved data
+          </button>
+        ) : null}
       </div>
       {!needsOnboarding && isConfirmingReset ? (
         <ConfirmationDialog
@@ -807,7 +843,7 @@ export function MigrationPanel({
           onCancel={() => setIsConfirmingReset(false)}
           onConfirm={() => {
             setIsConfirmingReset(false);
-            onStartFresh();
+            onClearSavedData();
           }}
           title="Clear Better Trading data?"
         />

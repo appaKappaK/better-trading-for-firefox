@@ -330,6 +330,34 @@
   font-size: 12px;
 }
 
+.btff-panel__callout {
+  display: grid;
+  gap: 10px;
+}
+
+.btff-panel__callout p {
+  margin: 0;
+}
+
+.btff-panel__callout-action {
+  justify-self: start;
+  min-height: 30px;
+  border: 1px solid rgba(91, 153, 134, 0.5);
+  border-radius: 999px;
+  padding: 7px 11px;
+  color: #d9eee7;
+  background: linear-gradient(180deg, #376b5e, #244b42);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btff-panel__callout-action:disabled {
+  cursor: progress;
+  opacity: 0.65;
+}
+
 .btff-panel__section-actions {
   display: flex;
   justify-content: flex-end;
