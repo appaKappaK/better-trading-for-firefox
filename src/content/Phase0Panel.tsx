@@ -25,6 +25,8 @@ import type { TradePageSnapshot } from './tradePage';
 
 type PanelPage = 'bookmarks' | 'history' | 'pinned';
 
+const SUCCESS_FEEDBACK_DURATION_MS = 3_000;
+
 interface SaveTradeDraft {
   folderId: string | null;
   folderTitle: string | null;
@@ -371,6 +373,18 @@ function BookmarksView({
     }
   }, [eligibleFolders, saveMode, selectedFolderId]);
 
+  useEffect(() => {
+    if (feedback?.kind !== 'success') return;
+
+    const timeoutId = window.setTimeout(() => {
+      setFeedback((currentFeedback) =>
+        currentFeedback === feedback ? null : currentFeedback,
+      );
+    }, SUCCESS_FEEDBACK_DURATION_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [feedback]);
+
   if (isSchemaLoading) {
     return <p className="btff-panel__empty">Loading saved bookmark folders...</p>;
   }
@@ -431,6 +445,7 @@ function BookmarksView({
           ? 'Saved the current trade into a new folder.'
           : 'Saved the current trade into the selected folder.',
       });
+      setDraftTitle('');
       setNewFolderTitle('');
       setNewFolderIcon(null);
       setSaveMode('existing');

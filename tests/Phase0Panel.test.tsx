@@ -3,6 +3,7 @@
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
+import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Phase0Panel } from '../src/content/Phase0Panel';
@@ -283,6 +284,109 @@ describe('Phase0Panel collapse chrome', () => {
       'e.g. Headhunter under 20 Divine',
     );
     expect(bookmarkInput?.placeholder).not.toContain('d8kyqjooUJ');
+  });
+
+  it('clears the saved bookmark name while retaining the selected folder', async () => {
+    const schema = createSchemaWithBookmarkFolder();
+    const onSaveTrade = vi.fn().mockResolvedValue(undefined);
+
+    await renderPanel({
+      onSaveTrade,
+      schema,
+      snapshot: createSaveableSnapshot('next-search'),
+    });
+
+    openQuickSave(container);
+    const bookmarkInput = findQuickSaveBookmarkInput(container);
+    const folderSelect = container.querySelector<HTMLSelectElement>(
+      '.btff-panel__field select',
+    );
+    if (!folderSelect) throw new Error('Quick Save folder select did not render.');
+    flushSync(() => {
+      folderSelect.value = 'folder-2';
+      folderSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    changeInput(bookmarkInput, 'Gear');
+
+    await act(async () => {
+      findButton(container, 'Save current search')?.click();
+      await Promise.resolve();
+    });
+
+    expect(onSaveTrade).toHaveBeenCalledWith({
+      folderIcon: null,
+      folderId: 'folder-2',
+      folderTitle: null,
+      title: 'Gear',
+    });
+    expect(findQuickSaveBookmarkInput(container).value).toBe('');
+    expect(
+      container.querySelector<HTMLSelectElement>('.btff-panel__field select')?.value,
+    ).toBe('folder-2');
+    expect(container.querySelector('.btff-panel__composer-copy')).not.toBeNull();
+  });
+
+  it('dismisses successful Quick Save feedback after three seconds', async () => {
+    vi.useFakeTimers();
+    const schema = createSchemaWithBookmarkFolder();
+
+    await renderPanel({
+      onSaveTrade: vi.fn().mockResolvedValue(undefined),
+      schema,
+      snapshot: createSaveableSnapshot('timed-feedback'),
+    });
+
+    openQuickSave(container);
+    changeInput(findQuickSaveBookmarkInput(container), 'Timed search');
+
+    await act(async () => {
+      findButton(container, 'Save current search')?.click();
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain(
+      'Saved the current trade into the selected folder.',
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_999);
+    });
+    expect(container.textContent).toContain(
+      'Saved the current trade into the selected folder.',
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(container.textContent).not.toContain(
+      'Saved the current trade into the selected folder.',
+    );
+  });
+
+  it('keeps failed-save feedback and the entered bookmark name visible', async () => {
+    vi.useFakeTimers();
+    const schema = createSchemaWithBookmarkFolder();
+
+    await renderPanel({
+      onSaveTrade: vi.fn().mockRejectedValue(new Error('Could not save this search.')),
+      schema,
+      snapshot: createSaveableSnapshot('failed-save'),
+    });
+
+    openQuickSave(container);
+    changeInput(findQuickSaveBookmarkInput(container), 'Keep this name');
+
+    await act(async () => {
+      findButton(container, 'Save current search')?.click();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+
+    expect(container.textContent).toContain('Could not save this search.');
+    expect(findQuickSaveBookmarkInput(container).value).toBe('Keep this name');
   });
 
   it('explains how to make Quick Save available when no trade is open', async () => {
@@ -815,4 +919,72 @@ function createSnapshot(): TradePageSnapshot {
     tradeLocation: null,
     lastRefreshedAt: '3:00 PM',
   };
+}
+
+function createSchemaWithBookmarkFolder() {
+  const schema = createEmptyStorageSchema('phase0-instance');
+  schema.preferences.hasCompletedOnboarding = true;
+  schema.bookmarks.folders = [
+    {
+      archivedAt: null,
+      icon: null,
+      id: 'folder-1',
+      title: 'RFCHIEF',
+      version: '1',
+    },
+    {
+      archivedAt: null,
+      icon: 'marauder',
+      id: 'folder-2',
+      title: 'Second folder',
+      version: '1',
+    },
+  ];
+  schema.bookmarks.tradesByFolderId = { 'folder-1': [], 'folder-2': [] };
+  return schema;
+}
+
+function createSaveableSnapshot(slug: string): TradePageSnapshot {
+  return {
+    ...createSnapshot(),
+    currentPath: `/trade/search/Standard/${slug}`,
+    tradeLocation: {
+      isLive: false,
+      league: 'Standard',
+      slug,
+      type: 'search',
+      version: '1',
+    },
+  };
+}
+
+function openQuickSave(container: HTMLElement) {
+  flushSync(() => {
+    container
+      .querySelector<HTMLButtonElement>('.btff-panel__composer-toggle')
+      ?.click();
+  });
+}
+
+function findQuickSaveBookmarkInput(container: HTMLElement) {
+  const field = Array.from(
+    container.querySelectorAll<HTMLLabelElement>('.btff-panel__field'),
+  ).find((candidate) => candidate.textContent?.includes('Bookmark name'));
+  const input = field?.querySelector<HTMLInputElement>('input');
+  if (!input) throw new Error('Quick Save bookmark-name input did not render.');
+  return input;
+}
+
+function changeInput(input: HTMLInputElement, value: string) {
+  flushSync(() => {
+    input.value = value;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+
+function findButton(container: HTMLElement, label: string) {
+  return Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(
+    (button) => button.textContent === label,
+  );
 }

@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Raised the development requirement to Node.js 22.13, pinned Node.js 22.22.2 through `.nvmrc`, and aligned CI with the `dev` and `master` branch model
 
 ### Fixed
+- Cleared the Quick Save bookmark name after successful saves and dismissed success feedback after three seconds without resetting the selected folder
 - Restored the Firefox toolbar popup to its intended 420×600 size
 - Kept pinned-item relative timestamps current while the pinned view remains open
 - Distinguished unavailable backup actions from exports that are actively running
