@@ -12,8 +12,15 @@ import {
 } from '@/src/content/highlightStatFilters';
 import {
   createPinnedItemsStore,
+  PINNED_ITEMS_HOST_PAGE_STYLES,
   type PinnedItemRecord,
 } from '@/src/content/pinnedItems';
+import {
+  clampPanelPosition,
+  hasExceededDragThreshold,
+  resolvePanelDragSurface,
+  type PanelDragSurface,
+} from '@/src/content/panelDrag';
 import {
   clearPendingPinnedJump,
   isSessionPinsActive,
@@ -25,7 +32,10 @@ import {
   type PendingPinnedJump,
 } from '@/src/content/pinnedSession';
 import { createPageTitleController } from '@/src/content/pageTitle';
-import { createRegroupSimilarsController } from '@/src/content/regroupSimilars';
+import {
+  createRegroupSimilarsController,
+  REGROUP_SIMILARS_HOST_PAGE_STYLES,
+} from '@/src/content/regroupSimilars';
 import {
   applyMaximumSocketWarnings,
   collectTradePageSnapshot,
@@ -169,10 +179,17 @@ export default defineContentScript({
     let dragHeaderCleanup: (() => void) | null = null;
     let dragState:
       | {
+          dragged: boolean;
           offsetX: number;
           offsetY: number;
+          startX: number;
+          startY: number;
+          startedOnLauncher: boolean;
+          surface: PanelDragSurface;
         }
       | null = null;
+    let suppressLauncherClick = false;
+    let suppressLauncherClickTimeoutId: number | null = null;
     let overlayPosition:
       | {
           left: number;
@@ -194,6 +211,29 @@ export default defineContentScript({
       shadowHostRef.style.setProperty('--btff-panel-right', 'auto');
     }
 
+    function reclampOverlayPositionAfterRender() {
+      if (!overlayPosition) return;
+
+      window.requestAnimationFrame(() => {
+        if (!overlayPosition || !shadowHostRef) return;
+
+        const panel = shadowHostRef.shadowRoot?.querySelector<HTMLElement>(
+          '.btff-panel',
+        );
+        if (!panel) return;
+
+        overlayPosition = clampPanelPosition(
+          overlayPosition,
+          { height: window.innerHeight, width: window.innerWidth },
+          {
+            height: panel.offsetHeight || panel.getBoundingClientRect().height,
+            width: panel.offsetWidth || panel.getBoundingClientRect().width,
+          },
+        );
+        applyOverlayPosition();
+      });
+    }
+
     function attachDragHandlers(shadow: ShadowRoot) {
       if (!shadowHostRef) return;
 
@@ -209,36 +249,27 @@ export default defineContentScript({
         const event = rawEvent as MouseEvent;
         if (event.button !== 0) return;
 
-        // composedPath() gives the full internal path even from the shadow root listener.
         const path = event.composedPath();
-        const inHeader = path.some(
-          (el) => el instanceof Element && el.classList.contains('btff-panel__header'),
-        );
-        const inDockHandle = path.some(
-          (el) => el instanceof Element && el.classList.contains('btff-panel-dock__drag-handle'),
-        );
-        if (!inHeader && !inDockHandle) return;
+        const surface = resolvePanelDragSurface(path);
+        if (!surface) return;
         if (!schema?.preferences.sidePanelDraggable) return;
         if (schema?.preferences.sidePanelSidebar) return;
-        event.preventDefault();
-
-        // Interactive-element guard only applies to the header (the dock handle
-        // is a plain div specifically for dragging, so no guard needed there).
-        if (inHeader) {
-          const inInteractive = path.some(
-            (el) =>
-              el instanceof Element &&
-              (el.matches('button, a, input, select, textarea, label') ||
-                el.closest('button, a, input, select, textarea, label') !== null),
-          );
-          if (inInteractive) return;
-        }
+        if (surface === 'expanded-header') event.preventDefault();
 
         const panelEl = getDraggableElement();
         const rect = panelEl ? panelEl.getBoundingClientRect() : shadowHostRef!.getBoundingClientRect();
         dragState = {
+          dragged: false,
           offsetX: event.clientX - rect.left,
           offsetY: event.clientY - rect.top,
+          startX: event.clientX,
+          startY: event.clientY,
+          startedOnLauncher: path.some(
+            (target) =>
+              target instanceof Element &&
+              target.classList.contains('btff-panel-dock__button'),
+          ),
+          surface,
         };
       }) as EventListener;
 
@@ -246,31 +277,88 @@ export default defineContentScript({
         if (!dragState || !shadowHostRef) return;
         if (schema?.preferences.sidePanelSidebar) return;
         if (!schema?.preferences.sidePanelDraggable) return;
+        if (
+          !dragState.dragged &&
+          !hasExceededDragThreshold(
+            { x: dragState.startX, y: dragState.startY },
+            { x: event.clientX, y: event.clientY },
+          )
+        ) {
+          return;
+        }
+
+        dragState.dragged = true;
+        shadowHostRef.setAttribute('data-dragging', 'true');
+        event.preventDefault();
 
         const panelEl = getDraggableElement();
         const panelWidth = panelEl?.offsetWidth || 320;
         const panelHeight = panelEl?.offsetHeight || 300;
-        const maxLeft = Math.max(window.innerWidth - panelWidth, 0);
-        const maxTop = Math.max(window.innerHeight - panelHeight, 0);
-        const left = clamp(event.clientX - dragState.offsetX, 0, maxLeft);
-        const top = clamp(event.clientY - dragState.offsetY, 0, maxTop);
-
-        overlayPosition = { left, top };
+        overlayPosition = clampPanelPosition(
+          {
+            left: event.clientX - dragState.offsetX,
+            top: event.clientY - dragState.offsetY,
+          },
+          { height: window.innerHeight, width: window.innerWidth },
+          { height: panelHeight, width: panelWidth },
+        );
         applyOverlayPosition();
       };
 
       const stopDrag = () => {
+        if (dragState?.dragged && dragState.startedOnLauncher) {
+          suppressLauncherClick = true;
+          if (suppressLauncherClickTimeoutId !== null) {
+            window.clearTimeout(suppressLauncherClickTimeoutId);
+          }
+          suppressLauncherClickTimeoutId = window.setTimeout(() => {
+            suppressLauncherClick = false;
+            suppressLauncherClickTimeoutId = null;
+          }, 0);
+        }
+
         dragState = null;
+        shadowHostRef?.removeAttribute('data-dragging');
+      };
+
+      const suppressDraggedLauncherClick = ((rawEvent: Event) => {
+        if (!suppressLauncherClick) return;
+
+        const event = rawEvent as MouseEvent;
+        const inLauncher = event.composedPath().some(
+          (target) =>
+            target instanceof Element &&
+            target.classList.contains('btff-panel-dock__button'),
+        );
+        if (!inLauncher) return;
+
+        suppressLauncherClick = false;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }) as EventListener;
+
+      const cancelDrag = () => {
+        dragState = null;
+        shadowHostRef?.removeAttribute('data-dragging');
       };
 
       shadow.addEventListener('mousedown', startDrag as EventListener);
+      shadow.addEventListener('click', suppressDraggedLauncherClick, true);
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', stopDrag);
+      window.addEventListener('blur', cancelDrag);
 
       dragHeaderCleanup = () => {
         shadow.removeEventListener('mousedown', startDrag as EventListener);
+        shadow.removeEventListener('click', suppressDraggedLauncherClick, true);
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', stopDrag);
+        window.removeEventListener('blur', cancelDrag);
+        if (suppressLauncherClickTimeoutId !== null) {
+          window.clearTimeout(suppressLauncherClickTimeoutId);
+          suppressLauncherClickTimeoutId = null;
+        }
+        suppressLauncherClick = false;
         dragHeaderCleanup = null;
       };
     }
@@ -343,39 +431,10 @@ export default defineContentScript({
 
         const hostStyle = document.createElement('style');
         hostStyle.id = 'btff-host-styles';
-        hostStyle.textContent = `
-          .btff-pin-button {
-            display: inline-block;
-            min-width: 22px;
-            padding: 1px 5px;
-            font-size: 12px;
-            font-weight: 400;
-            line-height: 1.5;
-            text-align: center;
-            vertical-align: middle;
-            border-radius: 0;
-            border: 1px solid #444;
-            background-color: #222;
-            background-image: none;
-            color: #e9cf9f;
-            cursor: pointer;
-            white-space: nowrap;
-            touch-action: manipulation;
-            user-select: none;
-          }
-          .btff-pin-button[aria-pressed='true'] {
-            background-color: #5a3a10;
-            border-color: #a06820;
-            color: #f5d98a;
-          }
-          .btff-pin-button:hover {
-            background-color: #2e2e2e;
-            border-color: #666;
-          }
-          .row[data-btff-pinned='true'] {
-            box-shadow: inset 0 0 0 2px rgba(184,110,39,0.32);
-          }
-        `;
+        hostStyle.textContent = [
+          PINNED_ITEMS_HOST_PAGE_STYLES,
+          REGROUP_SIMILARS_HOST_PAGE_STYLES,
+        ].join('\n');
         document.head.appendChild(hostStyle);
 
         void syncSchema();
@@ -672,6 +731,7 @@ export default defineContentScript({
     }
 
     function applySchema(nextSchema: StorageSchemaV1) {
+      const wasCollapsed = Boolean(schema?.preferences.sidePanelCollapsed);
       const wasSessionPinsActive = sessionPinsActive;
       schema = nextSchema;
       sessionPinsActive = syncSessionPinActivation(nextSchema);
@@ -688,6 +748,9 @@ export default defineContentScript({
         resumePendingPinnedJump();
       }
       render();
+      if (wasCollapsed && !nextSchema.preferences.sidePanelCollapsed) {
+        reclampOverlayPositionAfterRender();
+      }
     }
 
     function attachPageLifecycleListeners() {
@@ -796,10 +859,6 @@ function debounce(callback: () => void, delayMs: number) {
     if (timeoutId !== null) window.clearTimeout(timeoutId);
     timeoutId = window.setTimeout(callback, delayMs);
   };
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
 }
 
 function normalizeContentPage(currentPage: string | null): ContentPage {

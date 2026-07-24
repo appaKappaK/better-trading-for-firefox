@@ -7,12 +7,8 @@ import type {
   BookmarkFolder,
   BookmarkTrade,
 } from '@/src/features/bookmarks/types';
-import {
-  FOLDER_ICON_OPTIONS,
-  getFolderIconImageUrl,
-  getFolderIconLabel,
-  getFolderIconSymbol,
-} from '@/src/lib/bookmarks/folderIcons';
+import { FolderIcon, FolderIconPicker } from '@/src/components/FolderIcon';
+import { getFolderIconLabel } from '@/src/lib/bookmarks/folderIcons';
 import type { StorageSchemaV1 } from '@/src/lib/storage/schema';
 import {
   formatTradeLeagueLabel,
@@ -21,7 +17,10 @@ import {
   type ParsedTradeLocation,
 } from '@/src/lib/trade/location';
 
-import type { PinnedItemRecord } from './pinnedItems';
+import {
+  getPinnedItemDisplayTitle,
+  type PinnedItemRecord,
+} from './pinnedItems';
 import type { TradePageSnapshot } from './tradePage';
 
 type PanelPage = 'bookmarks' | 'history' | 'pinned';
@@ -96,21 +95,17 @@ export function Phase0Panel({
   const isSidebar = schema?.preferences.sidePanelSidebar ?? false;
   const folders = schema?.bookmarks.folders ?? [];
   const historyEntries = schema?.history.entries ?? [];
-  const bookmarkTradeCount = folders.reduce(
-    (count, folder) =>
-      count + (schema?.bookmarks.tradesByFolderId[folder.id]?.length ?? 0),
-    0,
-  );
+  const bookmarkFolderCount = folders.length;
   const needsOnboarding = !schema?.preferences.hasCompletedOnboarding;
 
   if (isCollapsed) {
     return (
       <section className="btff-panel-dock">
-        <div aria-hidden="true" className="btff-panel-dock__drag-handle" />
         <button
           aria-label="Expand Better Trading for Firefox"
           className="btff-panel-dock__button"
           onClick={() => onSetCollapsed(false)}
+          title="Drag to move; click to expand"
           type="button">
           <strong>Better Trading</strong>
           <span>
@@ -118,29 +113,60 @@ export function Phase0Panel({
           </span>
         </button>
         {pinnedItems.length > 0 ? (
-          <ul className="btff-panel-dock__pinned-list">
-            {pinnedItems.slice(0, 5).map((item) => (
-              <li key={item.id} className="btff-panel-dock__pinned-item">
-                <span className="btff-panel-dock__pinned-title">{item.title}</span>
-                <button
-                  className="btff-panel-dock__pinned-jump"
-                  onClick={() => onActivatePinnedItem(item.id)}
-                  aria-label={
-                    isPinnedItemOnCurrentPage(item.id)
-                      ? `Jump to ${item.title}`
-                      : `Open saved search for ${item.title}`
-                  }
-                  title={
-                    isPinnedItemOnCurrentPage(item.id)
-                      ? 'Jump to pinned item'
-                      : 'Open saved search for pinned item'
-                  }
-                  type="button">
-                  {isPinnedItemOnCurrentPage(item.id) ? 'Jump' : 'Open'}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="btff-panel-dock__pinned-list">
+              {pinnedItems.slice(0, 3).map((item) => {
+                const displayTitle = getPinnedItemDisplayTitle(item.title);
+                const isOnCurrentPage = isPinnedItemOnCurrentPage(item.id);
+
+                return (
+                  <li key={item.id} className="btff-panel-dock__pinned-item">
+                    {item.imageUrl ? (
+                      <img
+                        alt=""
+                        aria-hidden="true"
+                        className="btff-panel-dock__pinned-thumb"
+                        draggable={false}
+                        src={item.imageUrl}
+                      />
+                    ) : null}
+                    <span
+                      className="btff-panel-dock__pinned-title"
+                      title={displayTitle}>
+                      {displayTitle}
+                    </span>
+                    <button
+                      className="btff-panel-dock__pinned-jump"
+                      onClick={() => onActivatePinnedItem(item.id)}
+                      aria-label={
+                        isOnCurrentPage
+                          ? `Jump to ${displayTitle}`
+                          : `Open saved search for ${displayTitle}`
+                      }
+                      title={
+                        isOnCurrentPage
+                          ? 'Jump to pinned item'
+                          : 'Open saved search for pinned item'
+                      }
+                      type="button">
+                      {isOnCurrentPage ? 'Jump' : 'Open'}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            {pinnedItems.length > 3 ? (
+              <button
+                aria-label={`Show ${pinnedItems.length - 3} more pinned ${
+                  pinnedItems.length - 3 === 1 ? 'item' : 'items'
+                }`}
+                className="btff-panel-dock__more"
+                onClick={() => onSetCollapsed(false)}
+                type="button">
+                +{pinnedItems.length - 3} more
+              </button>
+            ) : null}
+          </>
         ) : null}
       </section>
     );
@@ -153,12 +179,26 @@ export function Phase0Panel({
           <h1 className="btff-panel__title">Path of Exile</h1>
           <p className="btff-panel__eyebrow">Better Trading</p>
         </div>
-        <img
-          alt=""
-          aria-hidden="true"
-          className="btff-panel__logo-image"
-          src={betterTradingIcon}
-        />
+        <button
+          aria-label="Shrink Better Trading panel"
+          className="btff-panel__logo-button"
+          disabled={isSidebar}
+          onClick={(event) => {
+            if (event.detail === 0 && !isSidebar) onSetCollapsed(true);
+          }}
+          onDoubleClick={() => {
+            if (!isSidebar) onSetCollapsed(true);
+          }}
+          title="Double-click to shrink"
+          type="button">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="btff-panel__logo-image"
+            draggable="false"
+            src={betterTradingIcon}
+          />
+        </button>
       </div>
 
       <nav className="btff-panel__tabs" aria-label="Saved data views">
@@ -233,7 +273,9 @@ export function Phase0Panel({
       </div>
 
       <section className="btff-panel__footer">
-        <span>{bookmarkTradeCount} saved trades</span>
+        <span>
+          {bookmarkFolderCount} bookmark{bookmarkFolderCount === 1 ? '' : 's'}
+        </span>
         {!isSidebar ? (
           <button
             aria-label="Collapse Better Trading for Firefox"
@@ -300,10 +342,6 @@ function BookmarksView({
           )
         : [],
     [activeVersion, folders],
-  );
-  const suggestedTradeTitle = useMemo(
-    () => buildSuggestedTradeTitle(currentTradeLocation),
-    [currentTradeLocation],
   );
   const [saveMode, setSaveMode] = useState<'existing' | 'new'>(
     eligibleFolders.length > 0 ? 'existing' : 'new',
@@ -457,7 +495,6 @@ function BookmarksView({
         onSaveModeChange={setSaveMode}
         onSelectedFolderIdChange={setSelectedFolderId}
         saveMode={saveMode}
-        suggestedTitle={suggestedTradeTitle}
         selectedFolderId={selectedFolderId}
         title={draftTitle}
         onTitleChange={setDraftTitle}
@@ -471,9 +508,7 @@ function BookmarksView({
         <div className="btff-panel__records">
           {folders.map((folder, index) => {
             const trades = tradesByFolderId[folder.id] ?? [];
-            const isExpanded =
-              expandedFolderIds.includes(folder.id) ||
-              (expandedFolderIds.length === 0 && index === 0);
+            const isExpanded = expandedFolderIds.includes(folder.id);
 
             return (
               <article
@@ -499,18 +534,24 @@ function BookmarksView({
                   setDragOverIndex(null);
                 }}>
                 <button
+                  aria-expanded={isExpanded}
                   className="btff-panel__record-toggle"
                   onClick={() => onToggleFolder(folder.id)}
                   type="button">
                   {folder.icon ? (
-                    <PanelFolderIcon
+                    <FolderIcon
+                      fallbackClassName="btff-panel__folder-icon-fallback"
+                      imageClassName="btff-panel__folder-icon"
                       label={getFolderIconLabel(folder.icon) ?? folder.icon}
                       slug={folder.icon}
                     />
                   ) : null}
                   <div className="btff-panel__record-toggle-body">
                     <strong>{folder.title}</strong>
-                    <small>PoE {folder.version}</small>
+                    <small>
+                      PoE {folder.version}
+                      {folder.icon ? ` · ${getFolderIconLabel(folder.icon)}` : ''}
+                    </small>
                   </div>
                   <span>
                     {trades.length} trade{trades.length === 1 ? '' : 's'}
@@ -574,7 +615,6 @@ interface QuickSavePanelProps {
   onSelectedFolderIdChange: (value: string) => void;
   onTitleChange: (value: string) => void;
   saveMode: 'existing' | 'new';
-  suggestedTitle: string;
   selectedFolderId: string;
   title: string;
 }
@@ -593,7 +633,6 @@ function QuickSavePanel({
   onSelectedFolderIdChange,
   onTitleChange,
   saveMode,
-  suggestedTitle,
   selectedFolderId,
   title,
 }: QuickSavePanelProps) {
@@ -603,7 +642,7 @@ function QuickSavePanel({
     ? `${currentTradeLocation.type} | ${formatTradeLeagueLabel(
         currentTradeLocation.league,
       )} | ${shortenSlug(currentTradeLocation.slug)}`
-    : 'Open a trade search to save the current page.';
+    : 'Open a Path of Exile trade search to save it as a bookmark.';
 
   return (
     <section className="btff-panel__composer">
@@ -621,18 +660,16 @@ function QuickSavePanel({
 
       <div className="btff-panel__inline-actions">
         <button
-          className={`btff-panel__mini-button${
-            saveMode === 'existing' ? '' : ' btff-panel__mini-button--ghost'
-          }`}
+          aria-pressed={saveMode === 'existing'}
+          className="btff-panel__mini-button btff-panel__mini-button--choice"
           disabled={eligibleFolders.length === 0}
           onClick={() => onSaveModeChange('existing')}
           type="button">
           Existing folder
         </button>
         <button
-          className={`btff-panel__mini-button${
-            saveMode === 'new' ? '' : ' btff-panel__mini-button--ghost'
-          }`}
+          aria-pressed={saveMode === 'new'}
+          className="btff-panel__mini-button btff-panel__mini-button--choice"
           onClick={() => onSaveModeChange('new')}
           type="button">
           New folder
@@ -659,38 +696,31 @@ function QuickSavePanel({
       ) : (
         <>
           <label className="btff-panel__field">
-            <span>New Folder</span>
+            <span>Folder name</span>
             <input
               onChange={(event) => onNewFolderTitleChange(event.target.value)}
-              placeholder="Starter Bow Searches"
+              placeholder="e.g. Belt upgrades"
               value={newFolderTitle}
             />
           </label>
           {newFolderTitle.trim().length > 0 ? (
-            <label className="btff-panel__field">
+            <div className="btff-panel__field">
               <span>Folder Icon</span>
-              <select
-                onChange={(event) =>
-                  onNewFolderIconChange(event.target.value || null)
-                }
-                value={newFolderIcon ?? ''}>
-                <option value="">None</option>
-                {FOLDER_ICON_OPTIONS.map((opt) => (
-                  <option key={opt.slug} value={opt.slug}>
-                    {opt.group} — {opt.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <FolderIconPicker
+                disabled={isSaving}
+                onChange={onNewFolderIconChange}
+                value={newFolderIcon}
+              />
+            </div>
           ) : null}
         </>
       )}
 
       <label className="btff-panel__field">
-        <span>Trade Title</span>
+        <span>Bookmark name</span>
         <input
           onChange={(event) => onTitleChange(event.target.value)}
-          placeholder={suggestedTitle || 'Starter Bow Search'}
+          placeholder="e.g. Headhunter under 20 Divine"
           value={title}
         />
       </label>
@@ -789,7 +819,7 @@ function TradeRow({
 
       <div className="btff-panel__trade-actions">
         <button
-          className="btff-panel__mini-button"
+          className="btff-panel__mini-button btff-panel__mini-button--ghost"
           onClick={() => {
             void onToggleTradeCompletion(folderId, trade.id);
           }}
@@ -930,47 +960,78 @@ function PinnedItemsView({
   }
 
   return (
-    <ul className="btff-panel__history-list">
+    <ul className="btff-panel__pinned-list">
       {items.map((item) => {
         const { itemLevel, secondaryText } = splitPinnedSubtitle(item.subtitle);
+        const displayTitle = getPinnedItemDisplayTitle(item.title);
+        const isOnCurrentPage = isPinnedItemOnCurrentPage(item.id);
 
         return (
-          <li key={item.id} className="btff-panel__history-item">
+          <li key={item.id} className="btff-panel__pinned-item">
             <div className="btff-panel__pinned-header">
               {item.imageUrl ? (
-                <img alt="" className="btff-panel__pinned-thumb" src={item.imageUrl} />
-            ) : null}
-            <div className="btff-panel__pinned-info">
-              <strong>{item.title}</strong>
-              {item.price ? (
-                <PinnedPrice chaosEquivalent={item.chaosEquivalent} price={item.price} />
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  className="btff-panel__pinned-thumb"
+                  src={item.imageUrl}
+                />
               ) : null}
-              {itemLevel ? (
-                <small className="btff-panel__pinned-item-level">{itemLevel}</small>
-              ) : null}
-              {secondaryText ? (
-                <small className="btff-panel__pinned-subtitle">{secondaryText}</small>
-              ) : null}
+              <div className="btff-panel__pinned-info">
+                <strong title={displayTitle}>{displayTitle}</strong>
+                {item.price || itemLevel ? (
+                  <div className="btff-panel__pinned-meta">
+                    {item.price ? (
+                      <PinnedPrice
+                        chaosEquivalent={item.chaosEquivalent}
+                        price={item.price}
+                      />
+                    ) : null}
+                    {itemLevel ? (
+                      <small className="btff-panel__pinned-item-level">
+                        {itemLevel}
+                      </small>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
-          <small className="btff-panel__pinned-time">
-            {formatRelativeTimestamp(item.pinnedAt)}
-          </small>
-          <div className="btff-panel__trade-actions">
-            <button
-              className="btff-panel__mini-button"
-              onClick={() => onActivateItem(item.id)}
-              type="button">
-              {isPinnedItemOnCurrentPage(item.id) ? 'Scroll to item' : 'Open saved search'}
-            </button>
-            <button
-              className="btff-panel__mini-button btff-panel__mini-button--ghost"
-              onClick={() => onUnpinItem(item.id)}
-              type="button">
-              Unpin
-            </button>
-          </div>
-        </li>
+            <div className="btff-panel__pinned-footer">
+              <div className="btff-panel__pinned-context">
+                {secondaryText ? (
+                  <small
+                    className="btff-panel__pinned-subtitle"
+                    title={secondaryText}>
+                    {secondaryText}
+                  </small>
+                ) : null}
+                <small className="btff-panel__pinned-time">
+                  {formatRelativeTimestamp(item.pinnedAt)}
+                </small>
+              </div>
+              <div className="btff-panel__pinned-actions">
+                <button
+                  aria-label={
+                    isOnCurrentPage
+                      ? `Jump to ${displayTitle}`
+                      : `Open saved search for ${displayTitle}`
+                  }
+                  className="btff-panel__mini-button"
+                  onClick={() => onActivateItem(item.id)}
+                  title={isOnCurrentPage ? 'Jump to item' : 'Open saved search'}
+                  type="button">
+                  {isOnCurrentPage ? 'Jump' : 'Open'}
+                </button>
+                <button
+                  aria-label={`Unpin ${displayTitle}`}
+                  className="btff-panel__mini-button btff-panel__mini-button--ghost"
+                  onClick={() => onUnpinItem(item.id)}
+                  type="button">
+                  Unpin
+                </button>
+              </div>
+            </div>
+          </li>
         );
       })}
     </ul>
@@ -991,7 +1052,7 @@ function PinnedPrice({
 }) {
   const className = 'btff-panel__pinned-price';
 
-  // Try to parse "NNN×Currency Name" → show icon in place of name
+  // Parse the internal "NNN×Currency Name" form and omit its delimiter in the UI.
   const match = price.match(/^([\d.]+)×(.+)$/);
   const currencyLower = match?.[2].toLowerCase().trim() ?? '';
   const currencyIcon = CURRENCY_ICONS[currencyLower] ?? null;
@@ -1000,7 +1061,7 @@ function PinnedPrice({
     <span className={className}>
       {match ? (
         <>
-          {match[1]}×
+          {match[1]}{' '}
           {currencyIcon ? (
             <img alt={match[2]} className="btff-price-icon" src={currencyIcon} />
           ) : (
@@ -1020,37 +1081,18 @@ function PinnedPrice({
   );
 }
 
-function PanelFolderIcon({ slug, label }: { slug: string; label: string }) {
-  const imageUrl = getFolderIconImageUrl(slug);
-  if (imageUrl) {
-    return <img alt={label} className="btff-panel__folder-icon" src={imageUrl} />;
-  }
-  return (
-    <span aria-label={label} className="btff-panel__folder-icon-fallback" title={label}>
-      {getFolderIconSymbol(slug) ?? '📁'}
-    </span>
-  );
-}
-
-function buildSuggestedTradeTitle(tradeLocation: ParsedTradeLocation | null) {
-  if (!tradeLocation) {
-    return '';
-  }
-
-  const typeLabel = tradeLocation.type.replaceAll('-', ' ');
-  return `${capitalize(typeLabel)} ${shortenSlug(tradeLocation.slug, 20)}`.trim();
-}
-
-function capitalize(value: string) {
-  if (!value) return value;
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 function shortenSlug(slug: string, maxLength = 24) {
   return slug.length > maxLength ? `${slug.slice(0, maxLength)}...` : slug;
 }
 
 function splitPinnedSubtitle(subtitle: string) {
+  if (subtitle.trim() === 'Pinned from the current trade results.') {
+    return {
+      itemLevel: null,
+      secondaryText: null,
+    };
+  }
+
   const parts = subtitle
     .split('|')
     .map((part) => part.trim())
@@ -1065,9 +1107,11 @@ function splitPinnedSubtitle(subtitle: string) {
 
   const itemLevelIndex = parts.findIndex((part) => /^Item Level:/i.test(part));
   const itemLevel = itemLevelIndex >= 0 ? parts[itemLevelIndex] : null;
-  const secondaryText = parts
-    .filter((_, index) => index !== itemLevelIndex)
-    .join(' | ');
+  const secondaryParts = parts.filter((_, index) => index !== itemLevelIndex);
+  const secondaryText =
+    itemLevel && secondaryParts.length > 1
+      ? secondaryParts.at(-1) ?? ''
+      : secondaryParts.join(' | ');
 
   return {
     itemLevel,
