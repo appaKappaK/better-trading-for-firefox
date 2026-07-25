@@ -35,6 +35,15 @@ describe('in-page panel density styles', () => {
     );
   });
 
+  it('sizes pinned prices near seller text with a clearer currency icon', () => {
+    expect(panelCss).toMatch(
+      /\.btff-panel__pinned-price\s*\{[^}]*font-size:\s*13px;[^}]*line-height:\s*16px;/s,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-price-icon\s*\{[^}]*width:\s*16px;[^}]*height:\s*16px;/s,
+    );
+  });
+
   it('moves the scrollbar past the aligned in-page list surfaces', () => {
     expect(panelCss).toMatch(
       /\.btff-panel__scroll-area\s*\{[^}]*padding-right:\s*8px;[^}]*margin-right:\s*-8px;/s,

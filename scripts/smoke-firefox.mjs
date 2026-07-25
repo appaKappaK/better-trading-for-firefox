@@ -348,6 +348,18 @@ try {
     );
   }
 
+  if (Math.abs(pinnedItem.priceFontSize - pinnedItem.subtitleFontSize) > 1) {
+    throw new Error(
+      `Pinned price text does not match seller context sizing: ${pinnedItem.priceFontSize}px vs ${pinnedItem.subtitleFontSize}px`,
+    );
+  }
+
+  if (pinnedItem.currencyIconWidth !== 16 || pinnedItem.currencyIconHeight !== 16) {
+    throw new Error(
+      `Pinned currency icon has the wrong size: ${pinnedItem.currencyIconWidth}×${pinnedItem.currencyIconHeight}px`,
+    );
+  }
+
   if (Math.abs(pinnedItem.contentRightGap) > 1) {
     throw new Error(
       `Pinned list does not align with the tab row: ${pinnedItem.contentRightGap}px`,
@@ -1782,9 +1794,12 @@ async function pinResultAndMeasure(driver) {
     const card = root?.querySelector('.btff-panel__pinned-item');
     const title = root?.querySelector('.btff-panel__pinned-info strong');
     const subtitle = root?.querySelector('.btff-panel__pinned-subtitle');
+    const price = root?.querySelector('.btff-panel__pinned-price');
+    const currencyIcon = price?.querySelector('.btff-price-icon');
     const actions = root?.querySelector('.btff-panel__pinned-actions');
     const thumbnail = root?.querySelector('.btff-panel__pinned-thumb');
     const thumbnailRect = thumbnail?.getBoundingClientRect();
+    const currencyIconRect = currencyIcon?.getBoundingClientRect();
     const tabsRect = root?.querySelector('.btff-panel__tabs')?.getBoundingClientRect();
     const cardRect = card?.getBoundingClientRect();
 
@@ -1795,7 +1810,13 @@ async function pinResultAndMeasure(driver) {
         tabsRect && cardRect
           ? Math.round((tabsRect.right - cardRect.right) * 100) / 100
           : Number.POSITIVE_INFINITY,
+      currencyIconHeight: currencyIconRect?.height ?? 0,
+      currencyIconWidth: currencyIconRect?.width ?? 0,
+      priceFontSize: price ? Number.parseFloat(getComputedStyle(price).fontSize) : 0,
       subtitle: subtitle?.textContent?.trim() ?? null,
+      subtitleFontSize: subtitle
+        ? Number.parseFloat(getComputedStyle(subtitle).fontSize)
+        : 0,
       thumbnailHeight: thumbnailRect?.height ?? 0,
       thumbnailWidth: thumbnailRect?.width ?? 0,
       title: title?.textContent?.trim() ?? null,
