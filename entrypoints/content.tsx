@@ -91,7 +91,7 @@ export default defineContentScript({
     let chaosRatios: PoeNinjaChaosRatios | null = null;
     let chaosRatiosLeague: string | null = null;
     let equivalentPricingRequestId = 0;
-    let lastSyncedContextKey: string | null = null;
+    let lastSyncedPath: string | null = null;
     let pinnedItems: PinnedItemRecord[] = pinnedItemsStore.getItems();
     let currentPage: ContentPage = normalizeContentPage(null);
     let pageHideCleanup: (() => void) | null = null;
@@ -160,13 +160,11 @@ export default defineContentScript({
 
       snapshot.socketWarnings = applyTradePageEnhancers();
 
-      const historySourceTitle = pageTitleController.getHistorySourceTitle();
-      const contextKey = `${snapshot.currentPath}\n${historySourceTitle}`;
-      if (snapshot.tradeLocation && contextKey !== lastSyncedContextKey) {
-        lastSyncedContextKey = contextKey;
+      if (snapshot.tradeLocation && snapshot.currentPath !== lastSyncedPath) {
+        lastSyncedPath = snapshot.currentPath;
         void syncTradePageContext(
           snapshot.tradeLocation,
-          historySourceTitle,
+          pageTitleController.getHistorySourceTitle(),
         ).then(applySchema);
       }
       if (sessionPinsActive) {

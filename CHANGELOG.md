@@ -36,9 +36,10 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Fixed
 - Kept in-page History timestamps ticking while the History view remains open
-- Prevented matching bookmark names from overriding History labels while filters are edited on an existing search URL
+- Recorded History only when a new search result URL loads, so editing a search cannot rewrite or add entries and separate submitted searches can retain repeated readable names
+- Prevented matching bookmark names from overriding History labels
 - Allowed text to be drag-selected in bookmark rename fields without starting folder reordering
-- Ignored retained values from disabled trade filters and corrected the newest same-search history title when filter state settles
+- Ignored retained values from disabled trade filters when naming submitted searches
 - Replaced generated `search/<slug>` history titles with `Empty search` and repaired existing fallback entries on load
 - Rendered pinned Orb of Alchemy prices with their currency icon instead of repeating the currency name
 - Cleared the Quick Save bookmark name after successful saves and dismissed success feedback after three seconds without resetting the selected folder

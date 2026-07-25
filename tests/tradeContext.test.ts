@@ -66,35 +66,85 @@ describe('trade context storage helpers', () => {
     expect(updated.history.entries[0].id).toBe('history-1');
   });
 
-  it('corrects the newest same-search title when active filters change', () => {
-    const location = {
+  it('records a changed title only after a different search location loads', () => {
+    const wereclawLocation = {
       version: '1' as const,
       type: 'search',
       league: 'Allflame',
-      slug: 'boots-search',
+      slug: 'wereclaw-search',
       isLive: false,
     };
     const schema = applyTradePageContext(
       createEmptyStorageSchema('phase0-instance'),
-      location,
-      'Boots (Normal)',
+      wereclawLocation,
+      'Wereclaw Talisman',
       () => 'history-1',
     );
-    const createdAt = schema.history.entries[0].createdAt;
 
-    const updated = applyTradePageContext(
+    const draftUpdate = applyTradePageContext(
       schema,
-      location,
-      '',
+      wereclawLocation,
+      'Shadowed Ring',
       () => 'history-2',
     );
 
-    expect(updated.history.entries).toHaveLength(1);
-    expect(updated.history.entries[0]).toMatchObject({
-      id: 'history-1',
-      title: 'Empty search',
-      createdAt,
-    });
+    expect(draftUpdate).toBe(schema);
+    expect(draftUpdate.history.entries.map(({ title }) => title)).toEqual([
+      'Wereclaw Talisman',
+    ]);
+
+    const submittedSearch = applyTradePageContext(
+      draftUpdate,
+      {
+        ...wereclawLocation,
+        slug: 'shadowed-ring-search',
+      },
+      'Shadowed Ring',
+      () => 'history-2',
+    );
+
+    expect(submittedSearch.history.entries).toHaveLength(2);
+    expect(
+      submittedSearch.history.entries.map(({ id, title }) => ({ id, title })),
+    ).toEqual([
+      { id: 'history-2', title: 'Shadowed Ring' },
+      { id: 'history-1', title: 'Wereclaw Talisman' },
+    ]);
+  });
+
+  it('keeps repeated readable titles for distinct submitted searches', () => {
+    const schema = applyTradePageContext(
+      createEmptyStorageSchema('phase0-instance'),
+      {
+        version: '1',
+        type: 'search',
+        league: 'Allflame',
+        slug: 'wereclaw-filter-set-1',
+        isLive: false,
+      },
+      'Wereclaw Talisman',
+      () => 'history-1',
+    );
+
+    const updated = applyTradePageContext(
+      schema,
+      {
+        version: '1',
+        type: 'search',
+        league: 'Allflame',
+        slug: 'wereclaw-filter-set-2',
+        isLive: false,
+      },
+      'Wereclaw Talisman',
+      () => 'history-2',
+    );
+
+    expect(updated.history.entries.map(({ id, title }) => ({ id, title }))).toEqual(
+      [
+        { id: 'history-2', title: 'Wereclaw Talisman' },
+        { id: 'history-1', title: 'Wereclaw Talisman' },
+      ],
+    );
   });
 
   it('stores a readable fallback title when a search has no name', () => {
