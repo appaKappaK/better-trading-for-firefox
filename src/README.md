@@ -96,6 +96,7 @@ Run commands from the repository root.
 | `npm test` | Run the Vitest suite once |
 | `npm run lint:firefox` | Lint the production extension, building it first only when the output is missing |
 | `npm run smoke:firefox` | Package and exercise the extension in headless Firefox with Selenium |
+| `npm run smoke:firefox:upgrade` | Replace a previous packaged release with the current package and verify the update notice with preserved storage |
 | `npm run release:prepare -- --tag vX.Y.Z` | Validate release metadata and extract notes for an already packaged version |
 
 For a focused test file, pass its path through npm:
@@ -126,6 +127,19 @@ Diagnostics and screenshots are written under `.output/smoke/`. The script locat
 FIREFOX_BINARY=/path/to/firefox npm run smoke:firefox
 BTFF_START_URL=https://www.pathofexile.com/trade/search/Standard/example npm run smoke:firefox
 ```
+
+Before a release, verify the packaged upgrade path against the previous Firefox
+archive. Run `npm run zip` first, then provide the previous package explicitly:
+
+```bash
+BTFF_PREVIOUS_EXTENSION_ARCHIVE=.output/bettertradingforfirefox-1.1.0-firefox.zip npm run smoke:firefox:upgrade
+```
+
+The upgrade smoke test confirms that Firefox retains the extension ID and
+storage, queues the current version's notice, shows it on the first popup load,
+renders the curated highlights, and clears the notice after dismissal. Set
+`BTFF_CURRENT_EXTENSION_ARCHIVE` only when the current package is stored at a
+nonstandard path.
 
 ## CI and branches
 

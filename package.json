@@ -19,6 +19,7 @@
     "release:prepare": "node ./scripts/release-metadata.mjs",
     "compile": "tsc --noEmit",
     "smoke:firefox": "npm run zip && node ./scripts/smoke-firefox.mjs",
+    "smoke:firefox:upgrade": "node ./scripts/smoke-firefox-upgrade.mjs",
     "test": "vitest run",
     "postinstall": "wxt prepare"
   },
