@@ -1,6 +1,11 @@
 import { useId, useState } from 'react';
 
 const RELEASE_HIGHLIGHTS: Record<string, string[]> = {
+  '1.3.0': [
+    'Reorder bookmark folders and pinned items with smooth dragging, including wheel scrolling through long lists.',
+    'See saved leagues on bookmark folders and compact price and league details in the collapsed launcher.',
+    'Browse long saved-data lists with tighter cards, contained names, preserved positions, and transient scrollbars.',
+  ],
   '1.2.0': [
     'Personalize folders and bookmarks with color-coded names and a streamlined icon picker.',
     'Manage saved data safely with confirmation dialogs and clearing that preserves your extension settings.',

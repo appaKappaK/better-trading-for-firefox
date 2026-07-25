@@ -10,6 +10,27 @@ the [Development Changelog].
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-25
+
+### Added
+- Pinned items can now be reordered by dragging their cards, including while wheel-scrolling through long lists
+- Bookmark-folder headers now summarize the distinct leagues contained in their saved searches
+
+### Changed
+- Reworked bookmark-folder ordering with dedicated grips, smooth live card movement, visible destinations, and wheel scrolling while a folder is held
+- Extended the header visibility shortcut to the in-page panel: right-click its header to hide it or the tab row to restore it
+- Added pinned-item prices and current or persisted-pin league summaries to the compact launcher
+- Renamed bookmark-folder item counts from trades to searches across the in-page panel and toolbar popup
+- Made the full Quick Save header clickable, reduced its collapsed height, and separated it from the compact scrollable bookmark list
+- Moved full-backup actions to Import, shortened the Bookmarks guidance, and enlarged folder portraits without increasing card height
+- Standardized separators above saved-data lists and the panel footer
+
+### Fixed
+- Made transient scrollbars visible only during scrolling, moved them clear of content, and kept lifted bookmark and pinned cards within the panel
+- Kept wheel scrolling inside the in-page panel and toolbar popup so the trade page does not move underneath
+- Preserved the bookmark-list position while opening or closing folders
+- Prevented long folder, bookmark, and history names from widening cards or escaping the in-page panel and toolbar popup
+
 ## [1.2.0] - 2026-07-25
 
 ### Added
@@ -163,6 +184,7 @@ Initial release.
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
 [Development Changelog]: src/DEVELOPMENT_CHANGELOG.md
-[Unreleased]: https://github.com/appaKappaK/better-trading-for-firefox/compare/v1.2.0...dev
+[Unreleased]: https://github.com/appaKappaK/better-trading-for-firefox/compare/v1.3.0...dev
+[1.3.0]: https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.3.0
 [1.2.0]: https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.2.0
 [1.1.0]: https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.1.0

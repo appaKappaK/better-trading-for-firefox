@@ -132,7 +132,7 @@ Before a release, verify the packaged upgrade path against the previous Firefox
 archive. Run `npm run zip` first, then provide the previous package explicitly:
 
 ```bash
-BTFF_PREVIOUS_EXTENSION_ARCHIVE=.output/bettertradingforfirefox-1.1.0-firefox.zip npm run smoke:firefox:upgrade
+BTFF_PREVIOUS_EXTENSION_ARCHIVE=.output/bettertradingforfirefox-1.2.0-firefox.zip npm run smoke:firefox:upgrade
 ```
 
 The upgrade smoke test confirms that Firefox retains the extension ID and

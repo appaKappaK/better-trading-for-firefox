@@ -122,9 +122,9 @@ try {
   );
   const previewText = (await preview.getText()).trim();
   const expectedHighlights = [
-    'Personalize folders and bookmarks with color-coded names and a streamlined icon picker.',
-    'Manage saved data safely with confirmation dialogs and clearing that preserves your extension settings.',
-    'Quickly hide or restore the popup header, drag the collapsed panel, and double-click the logo to shrink it.',
+    'Reorder bookmark folders and pinned items with smooth dragging, including wheel scrolling through long lists.',
+    'See saved leagues on bookmark folders and compact price and league details in the collapsed launcher.',
+    'Browse long saved-data lists with tighter cards, contained names, preserved positions, and transient scrollbars.',
   ];
 
   for (const highlight of expectedHighlights) {

@@ -20,11 +20,11 @@ describe('popup update notice', () => {
     root = createRoot(container);
     currentSchema = createEmptyStorageSchema('popup-update-test');
     currentSchema.preferences.hasCompletedOnboarding = true;
-    currentSchema.preferences.pendingUpdateNotice = '1.2.0';
+    currentSchema.preferences.pendingUpdateNotice = '1.3.0';
 
     vi.stubGlobal('browser', {
       runtime: {
-        getManifest: () => ({ version: '1.2.0' }),
+        getManifest: () => ({ version: '1.3.0' }),
       },
       storage: {
         local: {
@@ -67,14 +67,14 @@ describe('popup update notice', () => {
     expect(dialog?.getAttribute('role')).toBe('dialog');
     expect(dialog?.getAttribute('data-tone')).toBe('notice');
     expect(dialog?.hasAttribute('open')).toBe(true);
-    expect(dialog?.textContent).toContain('Updated to v1.2.0');
+    expect(dialog?.textContent).toContain('Updated to v1.3.0');
     expect(dialog?.textContent).toContain('Check the changelog for what is new.');
     const changelogLink = dialog?.querySelector<HTMLAnchorElement>(
       '.popup-release-notes__link',
     );
     expect(changelogLink?.textContent).toBe('changelog');
     expect(changelogLink?.href).toBe(
-      'https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.2.0',
+      'https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.3.0',
     );
     expect(changelogLink?.target).toBe('_blank');
     expect(dialog?.querySelector('.popup-release-notes__preview')).toBeNull();
@@ -92,13 +92,13 @@ describe('popup update notice', () => {
         ?.querySelector('.popup-update-notice-content')
         ?.getAttribute('data-preview-visible'),
     ).toBe('true');
-    expect(preview?.textContent).toContain("What's new in v1.2.0");
+    expect(preview?.textContent).toContain("What's new in v1.3.0");
     expect(
       Array.from(preview?.querySelectorAll('li') ?? [], (item) => item.textContent),
     ).toEqual([
-      'Personalize folders and bookmarks with color-coded names and a streamlined icon picker.',
-      'Manage saved data safely with confirmation dialogs and clearing that preserves your extension settings.',
-      'Quickly hide or restore the popup header, drag the collapsed panel, and double-click the logo to shrink it.',
+      'Reorder bookmark folders and pinned items with smooth dragging, including wheel scrolling through long lists.',
+      'See saved leagues on bookmark folders and compact price and league details in the collapsed launcher.',
+      'Browse long saved-data lists with tighter cards, contained names, preserved positions, and transient scrollbars.',
     ]);
     expect(buttons).toHaveLength(1);
     expect(buttons?.[0].textContent).toBe('Dismiss');

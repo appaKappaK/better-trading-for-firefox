@@ -8,8 +8,8 @@ A Firefox-only extension for the Path of Exile trade site. It adds bookmarks, se
 
 ## Features
 
-- Pin individual trade results, jump back to them, and optionally keep pins across searches in the current tab
-- Save searches into named folders with custom icons and colors
+- Pin and reorder individual trade results, jump back to them, and optionally keep pins across searches in the current tab
+- Organize and reorder saved searches in named folders with custom icons, colors, and league summaries
 - Mark saved searches complete, update them to the current league or search, and archive folders
 - Reopen automatically recorded PoE 1 and PoE 2 search history
 - Show chaos and divine price equivalents using poe.ninja data
@@ -31,12 +31,12 @@ To bring over data from the original Better Trading add-on:
 
 1. Open the extension popup and select **Import**.
 2. Paste a folder export string (`3:eyJ...`) or a full backup into the import box, or click/drag a `.txt` backup into the file picker.
-3. Review the detected folder and trade counts.
+3. Review the detected folder and saved-search counts.
 4. Select **Import legacy data**.
 
 The importer supports the v1, v2, and v3 legacy formats and does not delete data from the original extension.
 
-To back up this extension's data, open **Bookmarks** in the popup and select **Download backup** or **Copy full backup**. Individual folders can also be copied in the legacy export format.
+To back up this extension's data, open **Import** in the popup and select **Download backup** or **Copy full backup**. Individual folders can also be copied from **Bookmarks** in the legacy export format.
 
 ## Data and permissions
 
