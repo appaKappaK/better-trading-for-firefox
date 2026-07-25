@@ -5,73 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning].
 
+Repository, build, and release-process changes are documented separately in
+the [Development Changelog].
+
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-25
+
 ### Added
-- Added a keyboard-accessible hover preview of the current release highlights to the post-update changelog link
-- Added optional seven-color ROYGBIV palettes for folder and bookmark names in Quick Save, with colors preserved through backup export and import
-- Added a persistent compact-popup preference: right-click the header to hide it, right-click the tab row to restore it, or use the Settings toggle
-- Added accessible, fixed confirmation dialogs for destructive actions so clearing saved data or history and deleting folders or saved searches never requires scrolling to inline controls
-- Added a double-click shortcut on the in-page logo for shrinking the overlay panel
-- Added changelog-driven GitHub release automation with metadata validation, Firefox verification, Firefox and source archives, and manual rebuilding of existing release tags
+- Optional seven-color palettes for folder and bookmark names, preserved through backup export and import
+- A persistent `Show header` setting, with right-click shortcuts for hiding or restoring the compact popup header
+- Accessible confirmation dialogs for clearing saved data or history and deleting bookmark folders or saved searches
+- A fixed post-update dialog with a stable release-highlights preview
+- A double-click shortcut on the in-page logo for shrinking the overlay panel
 
 ### Changed
-- Excluded ignored screenshots, private notes, icon source files, and local reference artwork from Firefox source archives
-- Increased pinned-item price text and currency icons to better match the seller-name scale in compact cards
-- Renamed the header visibility setting to `Show header` and updated its right-click hints to use the same terminology
-- Floated the post-update release-note preview below its notice so opening or closing it no longer moves the Dismiss action
-- Hid the mouse pointer while the post-update release-note preview is expanded so it does not cover the text
-- Split contributor documentation into a source developer guide and refreshed the root README for current features, requirements, and installation guidance
-- Moved the post-update notice from an inline banner into a fixed informational dialog that does not consume popup layout space
-- Replaced completed bookmark strikethroughs with a title-sized muted-red X overlay that keeps chosen name colors visible
-- Moved folder name color choices before folder icons and clarified folder and bookmark name color labels in Quick Save
-- Standardized primary, utility, neutral, destructive, disabled, hover, pressed, and keyboard-focus states across popup and in-page controls
-- Reduced the size of history, pinned-item, bookmark-folder, and collapsed-launcher entries while retaining their useful metadata
-- Increased pinned-item artwork slightly for better visibility
-- Aligned in-page list surfaces with the tab row and clarified first-run empty-library guidance
-- Removed the redundant first-run notices and tab gating; new installs open Import once with every tab available, then use the normal empty-library views
-- Left-aligned history metadata groups, centered the text within each pill, and made full-height sidebar mode square and flush with the viewport
-- Replaced opaque Quick Save examples with descriptive folder and bookmark labels
-- Renamed `Reset to fresh` to `Clear saved data`; the action clears bookmarks, history, and pricing caches while preserving user preferences
-- Removed the multiplication marker between pinned prices and their currency icon or name
-- Limited the collapsed launcher to three pinned-item thumbnails with a summary of additional pins, and made the launcher itself draggable when overlay dragging is enabled
-- Replaced long native folder-icon menus with a compact 208px scrollable preview picker that preserves imported and legacy icon choices
-- Kept bookmark folders collapsed until opened and changed the panel footer to report bookmark-folder count
-- Capped overlay-mode Pinned and History lists at 446px while preserving the full-height list layout in sidebar mode
-- Reserved a stable popup scrollbar gutter, limited scrollbar visibility to wheel activity, and moved the history-clear action beside the History heading
-- Raised the development requirement to Node.js 22.13, pinned Node.js 22.22.2 through `.nvmrc`, and aligned CI with the `dev` and `master` branch model
+- Standardized button colors and interaction states across the popup and in-page panel
+- Made list entries more compact, improved pinned-item artwork and price readability, and aligned History metadata consistently
+- Constrained long overlay lists, retained full-height square sidebar layouts, and prevented scrollbars from shifting or covering content
+- Replaced completed-bookmark strikethroughs with a muted-red X overlay that preserves the selected name color
+- Reorganized Quick Save color and icon controls and replaced unclear examples with descriptive labels
+- Simplified first-run behavior so every tab remains available while Import opens automatically for new installations
+- Renamed `Reset to fresh` to `Clear saved data`; clearing saved content now preserves user preferences
+- Limited the collapsed launcher to three pinned-item thumbnails plus an additional-item count and made the launcher draggable
+- Replaced the long folder-icon menu with a compact scrollable picker, kept folders collapsed until opened, and changed the footer to report bookmark-folder count
+- Moved the history-clear action beside the History heading
 
 ### Fixed
-- Captured each pinned trade's native currency artwork so unbundled and newly introduced currencies retain their icon, with packaged icons remaining as legacy fallbacks
-- Expanded pinned-price currency artwork to cover 18 packaged currencies, including Vaal Orb, while retaining readable text for unknown currencies
-- Moved the in-page scrollbar beyond the aligned list edge so it no longer covers History timestamps or pinned-item content
-- Reused the saved readable title when a History entry is opened again instead of recording the revisit as `Empty search`
-- Kept in-page History timestamps ticking while the History view remains open
-- Recorded History only when a new search result URL loads, so editing a search cannot rewrite or add entries and separate submitted searches can retain repeated readable names
-- Prevented matching bookmark names from overriding History labels
-- Allowed text to be drag-selected in bookmark rename fields without starting folder reordering
-- Ignored retained values from disabled trade filters when naming submitted searches
-- Replaced generated `search/<slug>` history titles with `Empty search` and repaired existing fallback entries on load
-- Rendered pinned Orb of Alchemy prices with their currency icon instead of repeating the currency name
-- Cleared the Quick Save bookmark name after successful saves and dismissed success feedback after three seconds without resetting the selected folder
-- Restored the Firefox toolbar popup to its intended 420×600 size
-- Kept pinned-item relative timestamps current while the pinned view remains open
-- Distinguished unavailable backup actions from exports that are actively running
-- Extracted readable pinned-item names from legacy and current trade-result headers, repaired late-loading placeholders, retained item and seller metadata, and prevented internal result IDs from appearing as titles
-- Prioritized seller names over repeated base-type metadata in compact pinned-item cards
+- Recorded History only after submitted searches load and reused saved titles when reopening earlier searches
+- Generated readable History titles from active filters, prevented bookmark names from replacing them, and used `Empty search` instead of internal identifiers
+- Kept relative timestamps current while the Pinned or History view remains open
+- Extracted readable pinned-item names and preserved seller and item metadata across current, legacy, and late-loading trade results
+- Displayed native or packaged currency artwork when available, retained readable fallbacks for unknown currencies, and removed the multiplication marker from prices
+- Cleared Quick Save names after successful saves, dismissed confirmations automatically, preserved the selected folder, and allowed text selection during renames
+- Restored bookmark folder artwork, added readable fallback monograms, and retained compatible icon identifiers in exports
 - Centered Pin and Unpin controls beneath the native trade-result actions with consistent spacing
-- Restored bookmark folder artwork in the in-page panel, added named fallback monograms, and normalized exported icon identifiers for Better Trading compatibility
-- Prevented a launcher drag from also expanding the panel and re-clamped moved overlays when their expanded size exceeds the viewport
-- Prevented repeated DOM mutations from equivalent pricing, socket warnings, pin controls, and similar-result grouping
-- Excluded bulk-exchange and incomplete listings from similar-result groups while preserving each group’s expanded state
-- Kept popup button labels centered, confirmation dialogs inside the visible popup, and the in-page panel usable at narrow viewport widths
+- Prevented dragging the collapsed launcher from expanding it and kept repositioned overlays within the viewport
+- Prevented duplicate enhancer content and excluded bulk-exchange or incomplete listings from similar-result groups without collapsing existing groups
+- Kept the Firefox toolbar popup correctly sized, button labels centered, confirmation dialogs visible, and the in-page panel usable at narrow widths
+- Distinguished unavailable backup actions from exports that are actively running
 
 ### Removed
-- Removed the dedicated drag handle; the collapsed launcher serves as the drag surface
+- The dedicated drag handle; the collapsed launcher now serves as the drag surface
 
 ### Security
-- Pinned patched transitive build, test, and Firefox-tooling dependencies to resolve known npm and GitHub advisories without changing the packaged extension runtime
-- Restricted web-accessible bookmark icon assets to the official Path of Exile origins
+- Restricted web-accessible bookmark icon assets to official Path of Exile origins
 
 ## [1.1.0] - 2026-04-11
 
@@ -184,5 +162,7 @@ Initial release.
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
-[Unreleased]: https://github.com/appaKappaK/better-trading-for-firefox/compare/v1.1.0...dev
+[Development Changelog]: src/DEVELOPMENT_CHANGELOG.md
+[Unreleased]: https://github.com/appaKappaK/better-trading-for-firefox/compare/v1.2.0...dev
+[1.2.0]: https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.2.0
 [1.1.0]: https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.1.0
