@@ -98,8 +98,8 @@ describe('SettingsView session pins toggle', () => {
       schema,
     });
 
-    const setting = findSetting('Show popup header');
-    const checkbox = findSettingCheckbox('Show popup header');
+    const setting = findSetting('Show header');
+    const checkbox = findSettingCheckbox('Show header');
 
     expect(setting?.textContent).toContain(
       'Shows or hides the Better Trading header above the tabs.',

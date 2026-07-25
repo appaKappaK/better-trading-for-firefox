@@ -52,7 +52,7 @@ export function SettingsView({
           <section className="popup-settings-list">
             <label className="popup-setting-card">
               <div>
-                <strong>Show popup header</strong>
+                <strong>Show header</strong>
                 <p>Shows or hides the Better Trading header above the tabs.</p>
               </div>
               <input
