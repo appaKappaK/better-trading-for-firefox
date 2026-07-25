@@ -1201,8 +1201,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding-top: 4px;
-  padding-right: 0;
-  margin-right: 0;
+  padding-right: 8px;
+  margin-right: -8px;
 }
 
 .btff-panel__scroll-area[data-page='history'],

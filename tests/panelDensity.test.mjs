@@ -35,9 +35,9 @@ describe('in-page panel density styles', () => {
     );
   });
 
-  it('lets in-page list surfaces align with the tab row', () => {
+  it('moves the scrollbar past the aligned in-page list surfaces', () => {
     expect(panelCss).toMatch(
-      /\.btff-panel__scroll-area\s*\{[^}]*padding-right:\s*0;[^}]*margin-right:\s*0;/s,
+      /\.btff-panel__scroll-area\s*\{[^}]*padding-right:\s*8px;[^}]*margin-right:\s*-8px;/s,
     );
   });
 
