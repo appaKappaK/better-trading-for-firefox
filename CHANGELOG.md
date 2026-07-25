@@ -70,6 +70,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Removed the dedicated drag handle; the collapsed launcher serves as the drag surface
 
 ### Security
+- Pinned patched transitive build, test, and Firefox-tooling dependencies to resolve known npm and GitHub advisories without changing the packaged extension runtime
 - Restricted web-accessible bookmark icon assets to the official Path of Exile origins
 
 ## [1.1.0] - 2026-04-11

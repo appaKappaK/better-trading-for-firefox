@@ -18,6 +18,8 @@ npm ci --legacy-peer-deps
 
 `npm ci` installs the exact dependency versions in the committed lockfile and removes an existing `node_modules` directory first. If npm reports an engine mismatch, run `nvm use` and repeat the install. Deprecation and audit notices are separate dependency findings; changing Node versions does not resolve them.
 
+The `overrides` in `package.json` keep transitive build, test, and Firefox-tooling dependencies on patched versions while their parent packages remain pinned upstream. Review the parent dependency before removing an override, then run the complete verification sequence and both `npm audit` and `npm audit --omit=dev`.
+
 ## Build and load in Firefox
 
 Development and production builds use different output directories.
