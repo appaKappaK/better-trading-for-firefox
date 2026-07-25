@@ -147,6 +147,86 @@ describe('trade context storage helpers', () => {
     );
   });
 
+  it('reuses a prior readable title when its saved search is revisited', () => {
+    const enlightenLocation = {
+      version: '1' as const,
+      type: 'search',
+      league: 'Allflame',
+      slug: 'enlighten-no-level-filter',
+      isLive: false,
+    };
+    const firstVisit = applyTradePageContext(
+      createEmptyStorageSchema('phase0-instance'),
+      enlightenLocation,
+      'Enlighten Support',
+      () => 'history-1',
+    );
+    const interveningSearch = applyTradePageContext(
+      firstVisit,
+      {
+        ...enlightenLocation,
+        slug: 'enlighten-min-level-3',
+      },
+      'Enlighten Support',
+      () => 'history-2',
+    );
+
+    const revisited = applyTradePageContext(
+      interveningSearch,
+      enlightenLocation,
+      '',
+      () => 'history-3',
+    );
+
+    expect(revisited.history.entries[0]).toMatchObject({
+      id: 'history-3',
+      slug: 'enlighten-no-level-filter',
+      title: 'Enlighten Support',
+    });
+  });
+
+  it('repairs a current revisit placeholder from an older matching entry', () => {
+    const location = {
+      version: '1' as const,
+      type: 'search',
+      league: 'Allflame',
+      slug: 'enlighten-min-level-3',
+      isLive: false,
+    };
+    const readableVisit = applyTradePageContext(
+      createEmptyStorageSchema('phase0-instance'),
+      location,
+      'Enlighten Support',
+      () => 'history-1',
+    );
+    const schemaWithPlaceholder = {
+      ...readableVisit,
+      history: {
+        entries: [
+          {
+            ...readableVisit.history.entries[0],
+            id: 'history-2',
+            title: 'Empty search',
+          },
+          ...readableVisit.history.entries,
+        ],
+      },
+    };
+
+    const repaired = applyTradePageContext(
+      schemaWithPlaceholder,
+      location,
+      '',
+      () => 'history-3',
+    );
+
+    expect(repaired.history.entries).toHaveLength(2);
+    expect(repaired.history.entries[0]).toMatchObject({
+      id: 'history-2',
+      title: 'Enlighten Support',
+    });
+  });
+
   it('stores a readable fallback title when a search has no name', () => {
     const schema = createEmptyStorageSchema('phase0-instance');
     const updated = applyTradePageContext(

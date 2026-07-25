@@ -14,15 +14,19 @@ export function applyTradePageContext(
   createId: () => string = defaultCreateId,
 ): StorageSchemaV1 {
   const currentHistoryEntry = schema.history.entries[0];
-  const normalizedTitle = normalizeHistoryTitle(title, location);
+  const resolvedTitle = resolveHistoryTitle(schema, title, location);
   const shouldAppendHistory =
     !currentHistoryEntry || !compareTradeLocations(currentHistoryEntry, location);
+  const shouldRepairHistoryTitle =
+    !shouldAppendHistory &&
+    resolvedTitle.reused &&
+    currentHistoryEntry.title !== resolvedTitle.title;
 
   const nextEntries = shouldAppendHistory
     ? [
         {
           id: createId(),
-          title: normalizedTitle,
+          title: resolvedTitle.title,
           createdAt: new Date().toISOString(),
           version: location.version,
           type: location.type,
@@ -32,10 +36,19 @@ export function applyTradePageContext(
         },
         ...schema.history.entries,
       ].slice(0, MAX_HISTORY_ENTRIES)
-    : schema.history.entries;
+    : shouldRepairHistoryTitle
+      ? [
+          {
+            ...currentHistoryEntry,
+            title: resolvedTitle.title,
+          },
+          ...schema.history.entries.slice(1),
+        ]
+      : schema.history.entries;
 
   if (
     !shouldAppendHistory &&
+    !shouldRepairHistoryTitle &&
     schema.preferences.lastSeenLeagues[location.version] === location.league
   ) {
     return schema;
@@ -58,6 +71,29 @@ export function applyTradePageContext(
       },
     },
   };
+}
+
+function resolveHistoryTitle(
+  schema: StorageSchemaV1,
+  title: string,
+  location: ParsedTradeLocation,
+) {
+  const normalizedTitle = normalizeHistoryTitle(title, location);
+  const fallbackTitle = formatTradeHistoryFallbackLabel(location);
+  if (normalizedTitle !== fallbackTitle) {
+    return { reused: false, title: normalizedTitle };
+  }
+
+  for (const entry of schema.history.entries) {
+    if (!compareTradeLocations(entry, location)) continue;
+
+    const existingTitle = normalizeHistoryTitle(entry.title, location);
+    if (existingTitle !== fallbackTitle) {
+      return { reused: true, title: existingTitle };
+    }
+  }
+
+  return { reused: false, title: normalizedTitle };
 }
 
 export function applyCurrentPagePreference(
