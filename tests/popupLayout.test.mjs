@@ -37,6 +37,12 @@ describe('popup interaction layout styles', () => {
     expect(popupCss).not.toContain('.popup-update-notice {');
   });
 
+  it('hides the cursor only while the release-note preview is open', () => {
+    expect(popupCss).toMatch(
+      /\.popup-update-notice-content\[data-preview-visible='true'\]\s*\{[^}]*cursor:\s*none;/s,
+    );
+  });
+
   it('routes legacy bookmark-manager deletions through the shared modal', () => {
     expect(bookmarksManagerSource).toContain(
       "import { ConfirmationDialog } from '@/src/popup/ConfirmationDialog';",

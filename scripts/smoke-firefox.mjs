@@ -996,6 +996,19 @@ async function verifyPopupControls(driver) {
     );
   }
 
+  const updateNoticeContent = await updateNoticeDialog.findElement(
+    By.css('.popup-update-notice-content'),
+  );
+  const updateNoticeCursor = await driver.executeScript(
+    (content) => getComputedStyle(content).cursor,
+    updateNoticeContent,
+  );
+  if (updateNoticeCursor !== 'none') {
+    throw new Error(
+      `Post-update changelog preview did not hide the cursor: ${updateNoticeCursor}`,
+    );
+  }
+
   const updateNoticeScreenshot = await driver.takeScreenshot();
   await writeFile(
     POPUP_UPDATE_NOTICE_SCREENSHOT_PATH,

@@ -1143,6 +1143,10 @@
   margin: 0;
 }
 
+.popup-update-notice-content[data-preview-visible='true'] {
+  cursor: none;
+}
+
 .popup-release-notes__link {
   border-radius: 3px;
   color: #d6b15a;

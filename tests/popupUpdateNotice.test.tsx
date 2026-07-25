@@ -87,6 +87,11 @@ describe('popup update notice', () => {
       ).not.toBeNull();
     });
     const preview = dialog?.querySelector('.popup-release-notes__preview');
+    expect(
+      dialog
+        ?.querySelector('.popup-update-notice-content')
+        ?.getAttribute('data-preview-visible'),
+    ).toBe('true');
     expect(preview?.textContent).toContain("What's new in v1.1.0");
     expect(preview?.querySelectorAll('li')).toHaveLength(3);
     expect(preview?.textContent).toContain(

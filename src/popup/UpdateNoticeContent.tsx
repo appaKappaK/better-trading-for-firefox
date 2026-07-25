@@ -23,6 +23,7 @@ export function UpdateNoticeContent({ version }: UpdateNoticeContentProps) {
   return (
     <div
       className="popup-update-notice-content"
+      data-preview-visible={isPreviewVisible ? 'true' : undefined}
       onMouseLeave={() => setIsPreviewVisible(false)}>
       <p>
         Better Trading for Firefox was just updated. Check the{' '}
