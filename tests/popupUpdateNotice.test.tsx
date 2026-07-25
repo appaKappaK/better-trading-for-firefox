@@ -93,10 +93,13 @@ describe('popup update notice', () => {
         ?.getAttribute('data-preview-visible'),
     ).toBe('true');
     expect(preview?.textContent).toContain("What's new in v1.2.0");
-    expect(preview?.querySelectorAll('li')).toHaveLength(3);
-    expect(preview?.textContent).toContain(
-      'Organize folders and bookmarks with optional name colors and a compact icon picker.',
-    );
+    expect(
+      Array.from(preview?.querySelectorAll('li') ?? [], (item) => item.textContent),
+    ).toEqual([
+      'Personalize folders and bookmarks with color-coded names and a streamlined icon picker.',
+      'Manage saved data safely with confirmation dialogs and clearing that preserves your extension settings.',
+      'Quickly hide or restore the popup header, drag the collapsed panel, and double-click the logo to shrink it.',
+    ]);
     expect(buttons).toHaveLength(1);
     expect(buttons?.[0].textContent).toBe('Dismiss');
     expect(buttons?.[0].classList.contains('popup-button--danger')).toBe(false);

@@ -1014,7 +1014,7 @@ async function verifyPopupControls(driver) {
   const updateNotesText = (await updateNotesPreview.getText()).trim();
   if (
     !updateNotesText.includes("What's new in v1.2.0") ||
-    !updateNotesText.includes('Organize folders and bookmarks')
+    !updateNotesText.includes('Personalize folders and bookmarks')
   ) {
     throw new Error(
       `Post-update changelog preview did not show v1.2.0 highlights: ${updateNotesText}`,
