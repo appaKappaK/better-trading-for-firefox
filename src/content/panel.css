@@ -490,7 +490,7 @@
 .btff-folder-icon-picker__options {
   display: grid;
   gap: 2px;
-  max-height: 352px;
+  max-height: 208px;
   margin-top: 6px;
   padding: 4px;
   overflow-y: auto;

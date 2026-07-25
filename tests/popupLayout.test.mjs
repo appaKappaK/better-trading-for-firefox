@@ -64,6 +64,12 @@ describe('popup interaction layout styles', () => {
     expect(popupCss).not.toContain('.popup-status__dismiss');
   });
 
+  it('caps the folder icon list at the compact 208px viewport', () => {
+    expect(popupCss).toMatch(
+      /\.btff-folder-icon-picker__options\s*\{[^}]*max-height:\s*208px;/s,
+    );
+  });
+
   it('gives popup actions consistent focus, press, and motion-safe feedback', () => {
     expect(popupCss).toMatch(
       /\.popup-shell button:focus-visible,[^{]*\.popup-link-button:focus-visible\s*\{[^}]*outline:\s*2px solid/s,

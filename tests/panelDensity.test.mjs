@@ -85,4 +85,10 @@ describe('in-page panel density styles', () => {
       /\.btff-name-color-picker__option\s*\{[^}]*min-width:\s*24px;[^}]*min-height:\s*24px;/s,
     );
   });
+
+  it('caps the folder icon list at the compact 208px viewport', () => {
+    expect(panelCss).toMatch(
+      /\.btff-folder-icon-picker__options\s*\{[^}]*max-height:\s*208px;/s,
+    );
+  });
 });

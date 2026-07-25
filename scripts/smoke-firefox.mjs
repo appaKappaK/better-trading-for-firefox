@@ -1217,13 +1217,13 @@ function assertIconPickerIsCapped(picker, locationLabel) {
     );
   }
 
-  if (picker.visibleRows < 10 || picker.visibleRows > 12) {
+  if (picker.visibleRows < 6 || picker.visibleRows > 7) {
     throw new Error(
       `${locationLabel} icon picker shows ${picker.visibleRows} rows before scrolling.`,
     );
   }
 
-  if (picker.viewportVisibleRows < 10) {
+  if (picker.viewportVisibleRows < 6) {
     throw new Error(
       `${locationLabel} icon picker exposes only ${picker.viewportVisibleRows} rows in its panel viewport after opening.`,
     );
