@@ -52,7 +52,8 @@ export function createPageTitleController(doc: Document = document) {
       location,
       schema,
     });
-    historySourceTitle = activeTradeTitle;
+    historySourceTitle =
+      location?.type === 'search' ? recommendSearchTitle(doc) : activeTradeTitle;
     controlledTitle = buildControlledPageTitle({
       baseSiteTitle,
       location,

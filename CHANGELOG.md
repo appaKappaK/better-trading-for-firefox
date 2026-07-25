@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Raised the development requirement to Node.js 22.13, pinned Node.js 22.22.2 through `.nvmrc`, and aligned CI with the `dev` and `master` branch model
 
 ### Fixed
+- Prevented matching bookmark names from overriding History labels while filters are edited on an existing search URL
 - Allowed text to be drag-selected in bookmark rename fields without starting folder reordering
 - Ignored retained values from disabled trade filters and corrected the newest same-search history title when filter state settles
 - Replaced generated `search/<slug>` history titles with `Empty search` and repaired existing fallback entries on load

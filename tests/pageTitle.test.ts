@@ -144,6 +144,50 @@ describe('pageTitle controller', () => {
     expect(controller.getHistorySourceTitle()).toBe('Any Jewel (Rare)');
   });
 
+  it('does not reuse a matching bookmark title for empty-search history', () => {
+    document.body.innerHTML = createSearchPanelMarkup({
+      category: 'Any',
+      name: '',
+      rarity: 'Any',
+    });
+    const schema = createEmptyStorageSchema('page-title-test');
+    schema.bookmarks.folders = [
+      {
+        archivedAt: null,
+        icon: null,
+        id: 'test-folder',
+        title: 'Test folder',
+        version: '1',
+      },
+    ];
+    schema.bookmarks.tradesByFolderId = {
+      'test-folder': [
+        {
+          completedAt: null,
+          id: 'test-bookmark',
+          location: {
+            slug: 'still-current-before-search',
+            type: 'search',
+            version: '1',
+          },
+          title: 'd3ew2e2er32r324r23',
+        },
+      ],
+    };
+    const controller = createPageTitleController(document);
+
+    controller.update(schema, {
+      isLive: false,
+      league: 'Allflame',
+      slug: 'still-current-before-search',
+      type: 'search',
+      version: '1',
+    });
+
+    expect(document.title).toBe('d3ew2e2er32r324r23 - Base Site Title');
+    expect(controller.getHistorySourceTitle()).toBe('');
+  });
+
   it('preserves woop counts when the site mutates the tab title', async () => {
     vi.useFakeTimers();
     document.body.innerHTML = createSearchPanelMarkup({
