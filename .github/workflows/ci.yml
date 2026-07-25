@@ -58,3 +58,4 @@ jobs:
           name: firefox-smoke
           path: .output/smoke/firefox-smoke.png
           if-no-files-found: ignore
+          include-hidden-files: true

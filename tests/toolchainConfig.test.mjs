@@ -67,6 +67,26 @@ describe('Node toolchain configuration', () => {
       expect(workflowText).not.toMatch(/^\s*node-version:\s*/mu);
     },
   );
+
+  it.each([
+    ['ci.yml', 'Upload smoke screenshot'],
+    ['release.yml', 'Upload smoke diagnostics'],
+    ['release.yml', 'Upload release packages'],
+  ])(
+    'includes artifacts stored under .output in %s step %s',
+    async (workflowName, stepName) => {
+      const workflowText = await readFile(
+        path.join(projectRoot, '.github', 'workflows', workflowName),
+        'utf8',
+      );
+      const stepText = workflowText
+        .split(`      - name: ${stepName}\n`)[1]
+        ?.split('\n      - name: ')[0];
+
+      expect(stepText).toContain('.output/');
+      expect(stepText).toContain('include-hidden-files: true');
+    },
+  );
 });
 
 function compareVersions(left, right) {

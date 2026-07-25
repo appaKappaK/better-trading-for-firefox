@@ -75,6 +75,7 @@ jobs:
           name: firefox-smoke-${{ env.RELEASE_TAG }}
           path: .output/smoke/firefox-smoke.png
           if-no-files-found: ignore
+          include-hidden-files: true
 
       - name: Upload release packages
         uses: actions/upload-artifact@v7
@@ -85,6 +86,7 @@ jobs:
             .output/*-sources.zip
           if-no-files-found: error
           compression-level: 0
+          include-hidden-files: true
 
       - name: Create or update GitHub Release
         env:
