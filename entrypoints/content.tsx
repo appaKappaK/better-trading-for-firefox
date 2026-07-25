@@ -117,10 +117,16 @@ export default defineContentScript({
           }
           onCopyFolderExport={(folderId) => copyFolderExport(folderId)}
           onReorderFolders={(fromIndex, toIndex) => reorderFolders(fromIndex, toIndex)}
+          onReorderPinnedItems={(fromIndex, toIndex) =>
+            pinnedItemsStore.reorder(fromIndex, toIndex)
+          }
           onSaveTrade={(draft) => saveTrade(draft)}
           onActivatePinnedItem={activatePinnedItem}
           onSelectPage={(page) => {
             void selectPage(page);
+          }}
+          onSetHeaderHidden={(hidden) => {
+            void setHeaderHidden(hidden);
           }}
           onSetCollapsed={(collapsed) => {
             void setSidePanelCollapsed(collapsed);
@@ -470,15 +476,20 @@ export default defineContentScript({
     browser.storage.onChanged.addListener(handleStorageChange);
 
     async function syncSchema() {
-      isSchemaLoading = true;
-      render();
+      const shouldShowSchemaLoading = schema === null;
+      if (shouldShowSchemaLoading) {
+        isSchemaLoading = true;
+        render();
+      }
 
       try {
         const nextSchema = await loadStoredSchema();
         applySchema(nextSchema);
       } finally {
-        isSchemaLoading = false;
-        render();
+        if (shouldShowSchemaLoading) {
+          isSchemaLoading = false;
+          render();
+        }
       }
     }
 
@@ -625,6 +636,17 @@ export default defineContentScript({
       }
     }
 
+    async function setHeaderHidden(hidden: boolean) {
+      try {
+        const nextSchema = await updateStoredPreferences({
+          popupIntroHidden: hidden,
+        });
+        applySchema(nextSchema);
+      } catch (error) {
+        console.error('Failed to persist header visibility.', error);
+      }
+    }
+
     async function toggleFolder(folderId: string) {
       try {
         const nextSchema = await toggleStoredExpandedFolder(folderId);
@@ -663,6 +685,7 @@ export default defineContentScript({
         folderIcon: draft.folderIcon,
         title: draft.title,
         location: {
+          league: snapshot.tradeLocation.league,
           version: snapshot.tradeLocation.version,
           type: snapshot.tradeLocation.type,
           slug: snapshot.tradeLocation.slug,
@@ -699,6 +722,7 @@ export default defineContentScript({
         folderId,
         tradeId,
         location: {
+          league: snapshot.tradeLocation.league,
           version: snapshot.tradeLocation.version,
           type: snapshot.tradeLocation.type,
           slug: snapshot.tradeLocation.slug,

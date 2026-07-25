@@ -80,6 +80,29 @@ describe('popup fresh-start controls', () => {
     expect(container.textContent).not.toContain('Clear Better Trading data?');
   });
 
+  it('keeps full-backup actions with the import and clear controls', () => {
+    renderMigrationPanel(MigrationPanel, {
+      hasBookmarks: true,
+    });
+
+    const actions = container.querySelector('.popup-actions');
+    expect(actions?.textContent).toContain('Import legacy data');
+    expect(actions?.textContent).toContain('Copy full backup');
+    expect(actions?.textContent).toContain('Download backup');
+    expect(actions?.textContent).toContain('Clear saved data');
+    expect(findButton('Copy full backup')?.disabled).toBe(false);
+    expect(findButton('Download backup')?.disabled).toBe(false);
+  });
+
+  it('disables full-backup actions when no bookmark folders exist', () => {
+    renderMigrationPanel(MigrationPanel, {
+      hasBookmarks: false,
+    });
+
+    expect(findButton('Copy full backup')?.disabled).toBe(true);
+    expect(findButton('Download backup')?.disabled).toBe(true);
+  });
+
   function renderMigrationPanel(
     MigrationPanel: React.ComponentType<any>,
     overrides: Record<string, unknown>,
@@ -96,9 +119,12 @@ describe('popup fresh-start controls', () => {
             archivedFolderCount: 0,
             folders: [],
           }}
+          hasBookmarks={false}
           isReadingImportFile={false}
           isSchemaLoading={false}
           isSubmitting={false}
+          onCopyBackup={async () => {}}
+          onDownloadBackup={async () => {}}
           onImportFileChange={() => {}}
           onImportInputChange={() => {}}
           onImportSubmit={() => {}}

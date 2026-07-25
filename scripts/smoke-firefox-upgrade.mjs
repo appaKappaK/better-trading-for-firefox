@@ -29,8 +29,11 @@ const currentArchive = resolveArchive(
 );
 const firefoxBinary = resolveFirefoxBinary();
 const options = new firefox.Options()
-  .addArguments('-headless', '-remote-allow-system-access')
+  .addArguments('-headless')
   .windowSize({ width: 1280, height: 900 });
+const service = new firefox.ServiceBuilder().addArguments(
+  '--allow-system-access',
+);
 
 if (firefoxBinary) {
   options.setBinary(firefoxBinary);
@@ -39,6 +42,7 @@ if (firefoxBinary) {
 const driver = await new Builder()
   .forBrowser(Browser.FIREFOX)
   .setFirefoxOptions(options)
+  .setFirefoxService(service)
   .build();
 
 try {

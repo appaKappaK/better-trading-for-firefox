@@ -44,11 +44,9 @@ describe('popup bookmark controls', () => {
           folders={[folder]}
           isSchemaLoading={false}
           onChangeFolderIcon={onChangeFolderIcon}
-          onCopyBackup={async () => {}}
           onCopyFolderExport={async () => {}}
           onDeleteFolder={async () => {}}
           onDeleteTrade={async () => {}}
-          onDownloadBackup={async () => {}}
           onToggleFolderArchive={async () => {}}
           tradesByFolderId={{ 'folder-1': [] }}
         />,
@@ -72,51 +70,36 @@ describe('popup bookmark controls', () => {
     expect(onChangeFolderIcon).toHaveBeenCalledWith(folder, 'chaos');
   });
 
-  it('keeps backup actions unavailable when there are no bookmark folders', () => {
-    const onCopyBackup = vi.fn(async () => {});
-    const onDownloadBackup = vi.fn(async () => {});
-
+  it('keeps concise folder guidance and leaves full backups to Import', () => {
     flushSync(() => {
       root.render(
         <BookmarksPanel
           folders={[]}
           isSchemaLoading={false}
           onChangeFolderIcon={async () => {}}
-          onCopyBackup={onCopyBackup}
           onCopyFolderExport={async () => {}}
           onDeleteFolder={async () => {}}
           onDeleteTrade={async () => {}}
-          onDownloadBackup={onDownloadBackup}
           onToggleFolderArchive={async () => {}}
           tradesByFolderId={{}}
         />,
       );
     });
 
-    const copyButton = findButton(container, 'Copy full backup');
-    const downloadButton = findButton(container, 'Download backup');
-
-    expect(copyButton?.disabled).toBe(true);
-    expect(downloadButton?.disabled).toBe(true);
-
-    copyButton?.click();
-    downloadButton?.click();
-
-    expect(onCopyBackup).not.toHaveBeenCalled();
-    expect(onDownloadBackup).not.toHaveBeenCalled();
+    expect(container.textContent).toContain(
+      'Manage folders and export them individually.',
+    );
+    expect(findButton(container, 'Copy full backup')).toBeUndefined();
+    expect(findButton(container, 'Download backup')).toBeUndefined();
   });
 
-  it('marks only the running backup action as busy', async () => {
-    let finishCopy: (() => void) | undefined;
-    const copyPromise = new Promise<void>((resolve) => {
-      finishCopy = resolve;
-    });
+  it('labels folder contents as saved searches instead of trades', () => {
     const folder: BookmarkFolder = {
-      id: 'folder-1',
-      title: 'Headhunters',
-      version: '1',
-      icon: 'ranger',
       archivedAt: null,
+      icon: null,
+      id: 'folder-1',
+      title: 'Allflame checks',
+      version: '1',
     };
 
     flushSync(() => {
@@ -125,35 +108,34 @@ describe('popup bookmark controls', () => {
           folders={[folder]}
           isSchemaLoading={false}
           onChangeFolderIcon={async () => {}}
-          onCopyBackup={() => copyPromise}
           onCopyFolderExport={async () => {}}
           onDeleteFolder={async () => {}}
           onDeleteTrade={async () => {}}
-          onDownloadBackup={async () => {}}
           onToggleFolderArchive={async () => {}}
-          tradesByFolderId={{ 'folder-1': [] }}
+          tradesByFolderId={{
+            'folder-1': [
+              {
+                completedAt: null,
+                id: 'search-1',
+                location: { version: '1', type: 'search', slug: 'search-1' },
+                title: 'First search',
+              },
+              {
+                completedAt: null,
+                id: 'search-2',
+                location: { version: '1', type: 'search', slug: 'search-2' },
+                title: 'Second search',
+              },
+            ],
+          }}
         />,
       );
     });
 
-    flushSync(() => {
-      findButton(container, 'Copy full backup')?.click();
-    });
-    await Promise.resolve();
-
-    const busyCopyButton = findButton(container, 'Copying...');
-    const disabledDownloadButton = findButton(container, 'Download backup');
-
-    expect(busyCopyButton?.disabled).toBe(true);
-    expect(busyCopyButton?.getAttribute('aria-busy')).toBe('true');
-    expect(disabledDownloadButton?.disabled).toBe(true);
-    expect(disabledDownloadButton?.getAttribute('aria-busy')).toBe('false');
-
-    finishCopy?.();
-    await copyPromise;
-    await new Promise((resolve) => window.setTimeout(resolve, 0));
-
-    expect(findButton(container, 'Copy full backup')?.disabled).toBe(false);
+    expect(
+      container.querySelector('.popup-record-badges span')?.textContent,
+    ).toBe('2 searches');
+    expect(container.textContent).not.toContain('2 trades');
   });
 
   it('renders saved colors on folder and bookmark names only', () => {
@@ -172,11 +154,9 @@ describe('popup bookmark controls', () => {
           folders={[folder]}
           isSchemaLoading={false}
           onChangeFolderIcon={async () => {}}
-          onCopyBackup={async () => {}}
           onCopyFolderExport={async () => {}}
           onDeleteFolder={async () => {}}
           onDeleteTrade={async () => {}}
-          onDownloadBackup={async () => {}}
           onToggleFolderArchive={async () => {}}
           tradesByFolderId={{
             'folder-1': [
@@ -217,11 +197,9 @@ describe('popup bookmark controls', () => {
           folders={[folder]}
           isSchemaLoading={false}
           onChangeFolderIcon={async () => {}}
-          onCopyBackup={async () => {}}
           onCopyFolderExport={async () => {}}
           onDeleteFolder={async () => {}}
           onDeleteTrade={async () => {}}
-          onDownloadBackup={async () => {}}
           onToggleFolderArchive={async () => {}}
           tradesByFolderId={{
             'folder-1': [
@@ -339,11 +317,9 @@ describe('popup bookmark controls', () => {
           folders={[]}
           isSchemaLoading={false}
           onChangeFolderIcon={async () => {}}
-          onCopyBackup={async () => {}}
           onCopyFolderExport={async () => {}}
           onDeleteFolder={async () => {}}
           onDeleteTrade={async () => {}}
-          onDownloadBackup={async () => {}}
           onToggleFolderArchive={async () => {}}
           tradesByFolderId={{}}
           {...overrides}

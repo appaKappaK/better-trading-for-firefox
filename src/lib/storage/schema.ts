@@ -227,13 +227,24 @@ export function normalizeStoredSchema(
       return [
         folderId,
         normalizedTrades.map((trade) => {
-          if (trade.color === undefined) return trade;
-
           const color = normalizeBookmarkColor(trade.color);
-          if (color === trade.color) return trade;
+          const league = trade.location.league
+            ? normalizeTradeLeague(trade.location.league)
+            : undefined;
+          const colorChanged =
+            trade.color !== undefined && color !== trade.color;
+          const leagueChanged = league !== trade.location.league;
+
+          if (!colorChanged && !leagueChanged) return trade;
 
           changed = true;
-          return { ...trade, color };
+          return {
+            ...trade,
+            ...(colorChanged ? { color } : {}),
+            ...(leagueChanged
+              ? { location: { ...trade.location, league } }
+              : {}),
+          };
         }),
       ];
     }),

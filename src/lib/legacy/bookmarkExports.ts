@@ -17,6 +17,7 @@ interface ExportedFolderStructV3 {
   ver: TradeSiteVersion;
   trs: Array<{
     clr?: BookmarkColor;
+    lge?: string;
     tit: string;
     loc: string;
   }>;
@@ -37,6 +38,7 @@ export function serializeLegacyFolderExport(
     ver: folder.version,
     trs: trades.map((trade) => ({
       ...(trade.color ? { clr: trade.color } : {}),
+      ...(trade.location.league ? { lge: trade.location.league } : {}),
       tit: trade.title,
       loc: `${trade.location.version}:${trade.location.type}:${trade.location.slug}`,
     })),

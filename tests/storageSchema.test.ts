@@ -189,6 +189,33 @@ describe('storage schema scaffolding', () => {
     expect(normalizeStoredSchema(normalized.schema).changed).toBe(false);
   });
 
+  it('normalizes encoded league metadata stored on bookmark locations', () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+    schema.bookmarks.tradesByFolderId = {
+      'folder-1': [
+        {
+          completedAt: null,
+          id: 'trade-1',
+          location: {
+            league: 'HC%20Allflame',
+            slug: 'encoded-league',
+            type: 'search',
+            version: '1',
+          },
+          title: 'Encoded league',
+        },
+      ],
+    };
+
+    const normalized = normalizeStoredSchema(schema);
+
+    expect(normalized.changed).toBe(true);
+    expect(
+      normalized.schema.bookmarks.tradesByFolderId['folder-1'][0].location.league,
+    ).toBe('HC Allflame');
+    expect(normalizeStoredSchema(normalized.schema).changed).toBe(false);
+  });
+
   it('repairs a malformed stored bookmark trade list instead of throwing', () => {
     const schema = createEmptyStorageSchema('phase0-instance');
     schema.bookmarks.tradesByFolderId = {

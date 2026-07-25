@@ -1,5 +1,7 @@
 import { useId, useLayoutEffect, useRef, type ReactNode } from 'react';
 
+import { attachTransientScrollbar } from '@/src/lib/ui/transientScrollbar';
+
 interface ConfirmationDialogProps {
   cancelLabel?: string | null;
   confirmLabel: string;
@@ -48,9 +50,11 @@ export function ConfirmationDialog({
       }
     }
 
+    const detachTransientScrollbar = attachTransientScrollbar(dialog);
     (cancelButtonRef.current ?? confirmButtonRef.current)?.focus();
 
     return () => {
+      detachTransientScrollbar();
       if (dialog.open) {
         try {
           dialog.close();

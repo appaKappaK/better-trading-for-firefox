@@ -8,6 +8,10 @@ import path from 'node:path';
 const START_URL =
   process.env.BTFF_START_URL ??
   'https://www.pathofexile.com/trade/search/Standard/EB04ajr4S5';
+const LONG_FOLDER_NAME =
+  'SmokeFolderNameWithoutBreaks012345678901234567890123456789';
+const LONG_BOOKMARK_NAME =
+  'SmokeBookmarkNameWithoutBreaks012345678901234567890123456789';
 
 const OUTPUT_DIR = path.resolve('.output');
 const ARTIFACTS_DIR = path.resolve('.output/smoke');
@@ -230,8 +234,11 @@ const TRADE_FIXTURE_STYLES = `
 
 const firefoxBinary = resolveFirefoxBinary();
 const options = new firefox.Options()
-  .addArguments('-headless', '-remote-allow-system-access')
+  .addArguments('-headless')
   .windowSize({ width: 1600, height: 1200 });
+const service = new firefox.ServiceBuilder().addArguments(
+  '--allow-system-access',
+);
 
 if (firefoxBinary) {
   options.setBinary(firefoxBinary);
@@ -240,6 +247,7 @@ if (firefoxBinary) {
 const driver = await new Builder()
   .forBrowser(Browser.FIREFOX)
   .setFirefoxOptions(options)
+  .setFirefoxService(service)
   .build();
 
 try {
@@ -261,6 +269,8 @@ try {
   if (mounted !== 'mounted') {
     throw new Error(`Phase-0 panel did not mount correctly: ${mounted}`);
   }
+
+  const inPageHeaderShortcut = await verifyInPageHeaderShortcut(driver);
 
   await installTradeFixture(driver);
 
@@ -309,14 +319,43 @@ try {
     );
   }
 
-  if (folderIcon.collapsedCardHeight > 68) {
+  if (folderIcon.renderedWidth !== 48 || folderIcon.renderedHeight !== 37) {
+    throw new Error(
+      `Folder portrait did not use its enlarged compact dimensions: ${JSON.stringify(folderIcon)}`,
+    );
+  }
+
+  if (folderIcon.collapsedCardHeight > 63) {
     throw new Error(
       `Collapsed bookmark folder is taller than the compact layout allows: ${folderIcon.collapsedCardHeight}px`,
     );
   }
 
+  if (
+    folderIcon.metadataClipped ||
+    !folderIcon.metadataText?.includes('Standard') ||
+    folderIcon.metadataTitle !== folderIcon.metadataText
+  ) {
+    throw new Error(
+      `Collapsed bookmark metadata did not show its single saved league in full: ${JSON.stringify(folderIcon)}`,
+    );
+  }
+
   if (folderIcon.tradeListPresent) {
     throw new Error('Collapsed bookmark folder still renders its saved trades.');
+  }
+
+  if (
+    folderIcon.nameContainment.listOverflowsHorizontally ||
+    !folderIcon.nameContainment.recordWithinList ||
+    !folderIcon.nameContainment.folderTitleTruncated ||
+    !folderIcon.nameContainment.tradeRowWithinRecord ||
+    !folderIcon.nameContainment.tradeTitleTruncated ||
+    !folderIcon.nameContainment.tradeActionsWithinRow
+  ) {
+    throw new Error(
+      `Long bookmark names escaped the in-page cards: ${JSON.stringify(folderIcon.nameContainment)}`,
+    );
   }
 
   assertIconPickerIsCapped(folderIcon.picker, 'In-page');
@@ -389,6 +428,7 @@ try {
   const smokeSummary = await driver.executeScript(
     (
       loadedFolderIcon,
+      loadedInPageHeaderShortcut,
       loadedPinActionSpacing,
       loadedPinnedItem,
       loadedRegroupSimilar,
@@ -407,11 +447,14 @@ try {
           headerText: loadedFolderIcon.headerText,
           naturalHeight: loadedFolderIcon.naturalHeight,
           naturalWidth: loadedFolderIcon.naturalWidth,
+          renderedHeight: loadedFolderIcon.renderedHeight,
+          renderedWidth: loadedFolderIcon.renderedWidth,
           renameSelection: loadedFolderIcon.renameSelection,
           tradeListPresent: loadedFolderIcon.tradeListPresent,
         },
         enhancerQuiescence: loadedEnhancerQuiescence,
         inPageHistory: loadedInPageHistory,
+        inPageHeaderShortcut: loadedInPageHeaderShortcut,
         pinActionSpacing: loadedPinActionSpacing,
         pinnedItem: loadedPinnedItem,
         regroupSimilar: loadedRegroupSimilar,
@@ -420,6 +463,7 @@ try {
       };
     },
     folderIcon,
+    inPageHeaderShortcut,
     pinActionSpacing,
     pinnedItem,
     regroupSimilar,
@@ -452,6 +496,42 @@ try {
   console.log(`Screenshot: ${SCREENSHOT_PATH}`);
 } finally {
   await driver.quit();
+}
+
+async function verifyInPageHeaderShortcut(driver) {
+  const host = await driver.findElement(
+    By.css('[data-btff-phase0-host="true"]'),
+  );
+  const shadowRoot = await host.getShadowRoot();
+  const [header] = await waitForElements(
+    driver,
+    shadowRoot,
+    '.btff-panel__header',
+  );
+
+  await driver.actions().contextClick(header).perform();
+  await driver.wait(async () => {
+    const headers = await shadowRoot.findElements(By.css('.btff-panel__header'));
+    const [tabs] = await shadowRoot.findElements(By.css('.btff-panel__tabs'));
+    return headers.length === 0 &&
+      (await tabs?.getAttribute('title')) === 'Right-click to show the panel header';
+  }, 10_000, 'Right-click did not hide the in-page panel header.');
+
+  const [tabs] = await waitForElements(
+    driver,
+    shadowRoot,
+    '.btff-panel__tabs',
+  );
+  await driver.actions().contextClick(tabs).perform();
+  await driver.wait(async () => {
+    const headers = await shadowRoot.findElements(By.css('.btff-panel__header'));
+    return headers.length === 1;
+  }, 10_000, 'Right-clicking the in-page tabs did not restore the panel header.');
+
+  return {
+    hiddenFromHeader: true,
+    restoredFromTabs: true,
+  };
 }
 
 async function installTradeFixture(driver) {
@@ -871,6 +951,37 @@ async function verifyCollapsedDockDrag(driver, extensionId) {
     '.btff-panel-dock__button',
   );
 
+  const compactMetadata = await driver.executeScript(() => {
+    const root = document
+      .querySelector('[data-btff-phase0-host="true"]')
+      ?.shadowRoot;
+    const dock = root?.querySelector('.btff-panel-dock');
+    const summary = root?.querySelector('.btff-panel-dock__summary');
+    const price = root?.querySelector('.btff-panel-dock__pinned-price');
+    const priceIcon = price?.querySelector('.btff-price-icon');
+
+    return {
+      dockOverflowsHorizontally:
+        dock instanceof HTMLElement && dock.scrollWidth > dock.clientWidth + 1,
+      priceIconAlt: priceIcon?.getAttribute('alt') ?? null,
+      priceText: price?.textContent?.replace(/\s+/g, ' ').trim() ?? null,
+      summaryText: summary?.textContent?.replace(/\s+/g, ' ').trim() ?? null,
+      summaryTitle: summary?.getAttribute('title') ?? null,
+    };
+  });
+
+  if (
+    compactMetadata.dockOverflowsHorizontally ||
+    !compactMetadata.priceText ||
+    !compactMetadata.summaryText?.includes('pinned |') ||
+    !compactMetadata.summaryText.includes('results | Standard') ||
+    compactMetadata.summaryTitle !== compactMetadata.summaryText
+  ) {
+    throw new Error(
+      `Compact dock metadata is missing or escaped its fixed width: ${JSON.stringify(compactMetadata)}`,
+    );
+  }
+
   const before = await dock.getRect();
   const launcherRect = await launcher.getRect();
 
@@ -928,6 +1039,7 @@ async function verifyCollapsedDockDrag(driver, extensionId) {
 
   return {
     before: summarizeRect(before),
+    compactMetadata,
     dockAtRightEdge: summarizeRect(edgeDock),
     expanded: summarizeRect(expanded.rect),
     launcher: summarizeRect(launcherRect),
@@ -943,6 +1055,19 @@ async function verifyPopupControls(driver) {
   const shell = await driver.findElement(By.css('.popup-shell'));
   const bookmarksTab = await findElementByText(driver, '.popup-tab', 'Bookmarks');
   await bookmarksTab.click();
+
+  const bookmarkCountLabels = await driver.executeScript(() =>
+    Array.from(document.querySelectorAll('.popup-record-badges span:first-child'))
+      .map((element) => element.textContent?.trim() ?? ''),
+  );
+  if (
+    bookmarkCountLabels.length === 0 ||
+    bookmarkCountLabels.some((label) => !/^\d+ search(?:es)?$/.test(label))
+  ) {
+    throw new Error(
+      `Bookmark folder counts are not labeled as searches: ${JSON.stringify(bookmarkCountLabels)}`,
+    );
+  }
 
   const updateMarkerResult = await driver.executeAsyncScript((done) => {
     const key = 'btff-schema-v1';
@@ -1069,6 +1194,50 @@ async function verifyPopupControls(driver) {
     );
     return dialogs.length === 0;
   }, 10_000, 'Post-update informational dialog did not dismiss.');
+
+  const nameContainment = await driver.executeScript(() => {
+    const panel = document.querySelector('.popup-panel');
+    const record = document.querySelector('.popup-record-card');
+    const folderTitle = document.querySelector('.popup-record-header h3');
+    const tradeRow = document.querySelector('.popup-trade-row');
+    const tradeTitle = document.querySelector('.popup-trade-copy strong');
+    const tradeActions = document.querySelector('.popup-trade-actions');
+    const panelRect = panel?.getBoundingClientRect();
+    const recordRect = record?.getBoundingClientRect();
+    const tradeRowRect = tradeRow?.getBoundingClientRect();
+    const tradeActionsRect = tradeActions?.getBoundingClientRect();
+
+    return {
+      folderTitleTruncated:
+        folderTitle instanceof HTMLElement &&
+        folderTitle.scrollWidth > folderTitle.clientWidth + 1 &&
+        getComputedStyle(folderTitle).textOverflow === 'ellipsis',
+      recordWithinPanel:
+        !!panelRect && !!recordRect && recordRect.right <= panelRect.right + 1,
+      tradeActionsWithinRow:
+        !!tradeRowRect &&
+        !!tradeActionsRect &&
+        tradeActionsRect.right <= tradeRowRect.right + 1,
+      tradeRowWithinRecord:
+        !!recordRect && !!tradeRowRect && tradeRowRect.right <= recordRect.right + 1,
+      tradeTitleTruncated:
+        tradeTitle instanceof HTMLElement &&
+        tradeTitle.scrollWidth > tradeTitle.clientWidth + 1 &&
+        getComputedStyle(tradeTitle).textOverflow === 'ellipsis',
+    };
+  });
+
+  if (
+    !nameContainment.folderTitleTruncated ||
+    !nameContainment.recordWithinPanel ||
+    !nameContainment.tradeActionsWithinRow ||
+    !nameContainment.tradeRowWithinRecord ||
+    !nameContainment.tradeTitleTruncated
+  ) {
+    throw new Error(
+      `Long bookmark names escaped the popup cards: ${JSON.stringify(nameContainment)}`,
+    );
+  }
 
   const popupHero = await driver.wait(
     until.elementLocated(By.css('.popup-hero')),
@@ -1281,6 +1450,7 @@ async function verifyPopupControls(driver) {
     historyPillsJustification,
     historySize,
     importSize,
+    nameContainment,
     picker,
     settingsSize,
     transientScrollbarVisible,
@@ -1467,6 +1637,14 @@ async function createFolderWithIcon(driver) {
     shadowRoot,
     '.btff-panel__composer-toggle',
   );
+  const quickSaveCollapsedHeight = Math.round(
+    (await quickSaveToggle.getRect()).height,
+  );
+  if (quickSaveCollapsedHeight < 38 || quickSaveCollapsedHeight > 42) {
+    throw new Error(
+      `Collapsed Quick Save height is outside the compact range: ${quickSaveCollapsedHeight}px`,
+    );
+  }
   await quickSaveToggle.click();
 
   let inputs = await waitForElements(
@@ -1475,7 +1653,7 @@ async function createFolderWithIcon(driver) {
     '.btff-panel__field > input',
     2,
   );
-  await inputs[0].sendKeys('Smoke test folder');
+  await inputs[0].sendKeys(LONG_FOLDER_NAME);
 
   const [folderGreen] = await waitForElements(
     driver,
@@ -1509,7 +1687,7 @@ async function createFolderWithIcon(driver) {
     '.btff-panel__field > input',
     2,
   );
-  await inputs.at(-1).sendKeys('Smoke test trade');
+  await inputs.at(-1).sendKeys(LONG_BOOKMARK_NAME);
 
   const [bookmarkViolet] = await waitForElements(
     driver,
@@ -1540,9 +1718,12 @@ async function createFolderWithIcon(driver) {
 
     return driver.executeScript((folderIconImage) => {
       if (!folderIconImage.complete) return null;
+      const rect = folderIconImage.getBoundingClientRect();
       return {
         naturalHeight: folderIconImage.naturalHeight,
         naturalWidth: folderIconImage.naturalWidth,
+        renderedHeight: Math.round(rect.height),
+        renderedWidth: Math.round(rect.width),
         src: folderIconImage.src,
       };
     }, image);
@@ -1583,6 +1764,41 @@ async function createFolderWithIcon(driver) {
     throw new Error(`Bookmark name color did not persist: ${nameColors.trade}`);
   }
 
+  const nameContainment = await driver.executeScript(() => {
+    const root = document.querySelector('[data-btff-phase0-host="true"]')?.shadowRoot;
+    const list = root?.querySelector('.btff-panel__bookmark-list-scroll');
+    const record = root?.querySelector('.btff-panel__record');
+    const folderTitle = root?.querySelector('.btff-panel__record-title-row strong');
+    const tradeRow = root?.querySelector('.btff-panel__trade-row');
+    const tradeTitle = root?.querySelector('.btff-panel__trade-title');
+    const tradeActions = root?.querySelector('.btff-panel__trade-actions');
+    const listRect = list?.getBoundingClientRect();
+    const recordRect = record?.getBoundingClientRect();
+    const tradeRowRect = tradeRow?.getBoundingClientRect();
+    const tradeActionsRect = tradeActions?.getBoundingClientRect();
+
+    return {
+      folderTitleTruncated:
+        folderTitle instanceof HTMLElement &&
+        folderTitle.scrollWidth > folderTitle.clientWidth + 1 &&
+        getComputedStyle(folderTitle).textOverflow === 'ellipsis',
+      listOverflowsHorizontally:
+        list instanceof HTMLElement && list.scrollWidth > list.clientWidth + 1,
+      recordWithinList:
+        !!listRect && !!recordRect && recordRect.right <= listRect.right + 1,
+      tradeActionsWithinRow:
+        !!tradeRowRect &&
+        !!tradeActionsRect &&
+        tradeActionsRect.right <= tradeRowRect.right + 1,
+      tradeRowWithinRecord:
+        !!recordRect && !!tradeRowRect && tradeRowRect.right <= recordRect.right + 1,
+      tradeTitleTruncated:
+        tradeTitle instanceof HTMLElement &&
+        tradeTitle.scrollWidth > tradeTitle.clientWidth + 1 &&
+        getComputedStyle(tradeTitle).textOverflow === 'ellipsis',
+    };
+  });
+
   const renameButton = await findElementByText(shadowRoot, 'button', 'Rename');
   await renameButton.click();
   const [renameInput] = await waitForElements(
@@ -1594,18 +1810,23 @@ async function createFolderWithIcon(driver) {
 
   const renameSelection = await driver.executeScript((input) => {
     const record = input.closest('.btff-panel__record');
+    const reorderHandle = record?.querySelector('.btff-panel__record-reorder');
     const selectionStart = input.selectionStart ?? 0;
     const selectionEnd = input.selectionEnd ?? 0;
 
     return {
       folderDraggable: record?.draggable ?? null,
+      reorderHandleDisabled: reorderHandle?.disabled ?? null,
       selectedText: input.value.slice(selectionStart, selectionEnd),
       selectionEnd,
       selectionStart,
     };
   }, renameInput);
 
-  if (renameSelection.folderDraggable !== false) {
+  if (
+    renameSelection.folderDraggable !== false ||
+    renameSelection.reorderHandleDisabled !== true
+  ) {
     throw new Error(
       `Folder reordering remained active during bookmark rename: ${JSON.stringify(renameSelection)}`,
     );
@@ -1626,9 +1847,124 @@ async function createFolderWithIcon(driver) {
   await driver.wait(async () => {
     return driver.executeScript(() => {
       const host = document.querySelector('[data-btff-phase0-host="true"]');
-      return host?.shadowRoot?.querySelector('.btff-panel__record')?.draggable === true;
+      const record = host?.shadowRoot?.querySelector('.btff-panel__record');
+      const reorderHandle = record?.querySelector('.btff-panel__record-reorder');
+      return record?.draggable === false && reorderHandle?.disabled === false;
     });
   }, 10_000, 'Folder reordering did not resume after cancelling bookmark rename.');
+
+  const [reorderHandle] = await waitForElements(
+    driver,
+    shadowRoot,
+    '.btff-panel__record-reorder',
+  );
+  await driver.executeScript(() => {
+    const root = document.querySelector(
+      '[data-btff-phase0-host="true"]',
+    )?.shadowRoot;
+    const list = root?.querySelector('.btff-panel__bookmark-list-scroll');
+    const records = root?.querySelector('.btff-panel__records');
+    if (list instanceof HTMLElement && records instanceof HTMLElement) {
+      records.style.paddingBottom = '520px';
+      list.scrollTop = 0;
+    }
+  });
+  await driver
+    .actions({ async: true })
+    .move({ origin: reorderHandle })
+    .press()
+    .move({ origin: reorderHandle, x: 0, y: 12 })
+    .perform();
+  let reorderInteraction;
+  try {
+    await driver.executeScript(() => {
+      const handle = document
+        .querySelector('[data-btff-phase0-host="true"]')
+        ?.shadowRoot?.querySelector('.btff-panel__record-reorder');
+      handle?.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          deltaY: 140,
+        }),
+      );
+    });
+    reorderInteraction = await driver.wait(async () => {
+      const state = await driver.executeScript(() => {
+        const host = document.querySelector('[data-btff-phase0-host="true"]');
+        const root = host?.shadowRoot;
+        const record = root?.querySelector('.btff-panel__record');
+        const handle = root?.querySelector('.btff-panel__record-reorder');
+        const list = root?.querySelector('.btff-panel__bookmark-list-scroll');
+
+        if (
+          !(record instanceof HTMLElement) ||
+          !(handle instanceof HTMLElement) ||
+          !(list instanceof HTMLElement)
+        ) {
+          return null;
+        }
+
+        const listRect = list.getBoundingClientRect();
+        const recordRect = record.getBoundingClientRect();
+
+        return {
+          cursor: getComputedStyle(handle).cursor,
+          dragOffset: record.style.getPropertyValue('--btff-folder-drag-y'),
+          folderDraggable: record.draggable,
+          leftClearance: recordRect.left - listRect.left,
+          lifted: record.dataset.reorderSource,
+          rightClearance: listRect.right - recordRect.right,
+          scrollTop: list.scrollTop,
+          transform: getComputedStyle(record).transform,
+        };
+      });
+
+      return state?.scrollTop >= 140 && Number.parseFloat(state.dragOffset) >= 150
+        ? state
+        : false;
+    }, 10_000, 'Held bookmark folder did not follow wheel scrolling.');
+  } finally {
+    await driver.actions({ async: true }).release().perform();
+    await driver.executeScript(() => {
+      const root = document
+        .querySelector('[data-btff-phase0-host="true"]')
+        ?.shadowRoot;
+      const list = root?.querySelector('.btff-panel__bookmark-list-scroll');
+      const records = root?.querySelector('.btff-panel__records');
+      if (records instanceof HTMLElement) {
+        records.style.removeProperty('padding-bottom');
+      }
+      if (list instanceof HTMLElement) {
+        list.scrollTop = 0;
+        list.dispatchEvent(new Event('scroll'));
+      }
+    });
+  }
+
+  if (
+    reorderInteraction?.cursor !== 'grabbing' ||
+    Number.parseFloat(reorderInteraction.dragOffset) < 150 ||
+    reorderInteraction.folderDraggable !== false ||
+    reorderInteraction.leftClearance < 14 ||
+    reorderInteraction.lifted !== 'true' ||
+    reorderInteraction.rightClearance < 14 ||
+    reorderInteraction.scrollTop < 140 ||
+    reorderInteraction.transform === 'none'
+  ) {
+    throw new Error(
+      `Folder reorder grip did not produce a lifted drag state: ${JSON.stringify(reorderInteraction)}`,
+    );
+  }
+
+  await driver.wait(async () => {
+    return driver.executeScript(() => {
+      const host = document.querySelector('[data-btff-phase0-host="true"]');
+      return !host?.shadowRoot
+        ?.querySelector('.btff-panel__record')
+        ?.hasAttribute('data-reorder-source');
+    });
+  }, 10_000, 'Folder reorder lift did not clear after releasing the grip.');
 
   const markDoneButton = await findElementByText(
     shadowRoot,
@@ -1694,6 +2030,47 @@ async function createFolderWithIcon(driver) {
     shadowRoot,
     '.btff-panel__record-toggle',
   );
+  const bookmarkScrollInteraction = await driver.executeScript(() => {
+    const root = document.querySelector(
+      '[data-btff-phase0-host="true"]',
+    )?.shadowRoot;
+    const list = root?.querySelector('.btff-panel__bookmark-list-scroll');
+    const records = root?.querySelector('.btff-panel__records');
+    const panel = root?.querySelector('.btff-panel');
+    const scrollArea = list?.closest('.btff-panel__scroll-area');
+    if (!(list instanceof HTMLElement) || !(records instanceof HTMLElement)) {
+      return null;
+    }
+
+    records.style.paddingTop = '280px';
+    records.style.paddingBottom = '520px';
+    list.scrollTop = 180;
+    list.dispatchEvent(new Event('scroll'));
+
+    const listRect = list.getBoundingClientRect();
+    const panelRect = panel?.getBoundingClientRect();
+
+    return {
+      activeScrollbarColor: getComputedStyle(list).scrollbarColor,
+      beforeToggle: list.scrollTop,
+      listRight: listRect.right,
+      panelRight: panelRect?.right ?? Number.NEGATIVE_INFINITY,
+      parentOverflow: scrollArea ? getComputedStyle(scrollArea).overflow : null,
+      scrollingState: list.dataset.scrolling,
+    };
+  });
+
+  if (
+    bookmarkScrollInteraction?.beforeToggle !== 180 ||
+    !bookmarkScrollInteraction.activeScrollbarColor.includes('138, 151, 165') ||
+    bookmarkScrollInteraction.scrollingState !== 'true' ||
+    bookmarkScrollInteraction.parentOverflow !== 'visible' ||
+    bookmarkScrollInteraction.listRight > bookmarkScrollInteraction.panelRight
+  ) {
+    throw new Error(
+      `Bookmark list did not expose its transient scrollbar: ${JSON.stringify(bookmarkScrollInteraction)}`,
+    );
+  }
   await updatedFolderToggle.click();
 
   const collapsedFolder = await driver.wait(async () => {
@@ -1702,12 +2079,29 @@ async function createFolderWithIcon(driver) {
       const root = host?.shadowRoot;
       const record = root?.querySelector('.btff-panel__record');
       const toggle = root?.querySelector('.btff-panel__record-toggle');
+      const metadata = root?.querySelector('.btff-panel__record-toggle-body small');
+      const list = root?.querySelector('.btff-panel__bookmark-list-scroll');
+      const records = root?.querySelector('.btff-panel__records');
+
+      const bookmarkScrollTop =
+        list instanceof HTMLElement ? list.scrollTop : null;
+      if (records instanceof HTMLElement) {
+        records.style.removeProperty('padding-top');
+        records.style.removeProperty('padding-bottom');
+      }
 
       return {
+        bookmarkScrollTop,
         collapsedCardHeight:
           record?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
         expanded: toggle?.getAttribute('aria-expanded') ?? null,
         headerText: toggle?.textContent?.replace(/\s+/g, ' ').trim() ?? null,
+        metadataClipped:
+          metadata instanceof HTMLElement
+            ? metadata.scrollWidth > metadata.clientWidth + 1
+            : null,
+        metadataText: metadata?.textContent?.replace(/\s+/g, ' ').trim() ?? null,
+        metadataTitle: metadata?.getAttribute('title') ?? null,
         tradeListPresent: !!record?.querySelector('.btff-panel__trade-list'),
       };
     });
@@ -1715,13 +2109,25 @@ async function createFolderWithIcon(driver) {
     return state.expanded === 'false' ? state : false;
   }, 20_000, 'Saved bookmark folder did not collapse to its compact header.');
 
+  if (
+    collapsedFolder.bookmarkScrollTop !==
+    bookmarkScrollInteraction.beforeToggle
+  ) {
+    throw new Error(
+      `Bookmark list lost its scroll position while collapsing: ${JSON.stringify({ bookmarkScrollInteraction, collapsedFolder })}`,
+    );
+  }
+
   return {
     ...loadedFolderIcon,
     ...collapsedFolder,
     completedX,
     nameColors,
+    nameContainment,
     picker,
+    quickSaveCollapsedHeight,
     renameSelection,
+    reorderInteraction,
   };
 }
 
@@ -1732,16 +2138,27 @@ async function pinResultAndMeasure(driver) {
   }, 20_000, 'Pin button did not render for the injected trade result.');
   await pinButton.click();
 
-  const host = await driver.findElement(By.css('[data-btff-phase0-host="true"]'));
-  const shadowRoot = await host.getShadowRoot();
-  const pinnedTab = await findElementByText(
-    shadowRoot,
-    '.btff-panel__tab',
-    'Pinned',
-  );
-  await pinnedTab.click();
+  await driver.wait(async () => {
+    return driver.executeScript(() => {
+      const root = document.querySelector(
+        '[data-btff-phase0-host="true"]',
+      )?.shadowRoot;
+      const pinnedTab = Array.from(
+        root?.querySelectorAll('.btff-panel__tab') ?? [],
+      ).find((tab) => tab.textContent?.trim() === 'Pinned');
+      if (!(pinnedTab instanceof HTMLButtonElement)) return false;
+      pinnedTab.click();
+      return true;
+    });
+  }, 20_000, 'Could not switch the in-page panel to Pinned.');
 
-  await waitForElements(driver, shadowRoot, '.btff-panel__pinned-item');
+  await driver.wait(async () => {
+    return driver.executeScript(
+      () =>
+        (document.querySelector('[data-btff-phase0-host="true"]')?.shadowRoot
+          ?.querySelectorAll('.btff-panel__pinned-item').length ?? 0) > 0,
+    );
+  }, 20_000, 'Pinned item did not render after switching tabs.');
   const readPinnedTimestamp = () =>
     driver.executeScript(() => {
       const hostElement = document.querySelector('[data-btff-phase0-host="true"]');
@@ -1800,6 +2217,158 @@ async function pinResultAndMeasure(driver) {
     );
   }
 
+  const pinnedHost = await driver.findElement(
+    By.css('[data-btff-phase0-host="true"]'),
+  );
+  const pinnedShadowRoot = await pinnedHost.getShadowRoot();
+  const [pinnedCard] = await waitForElements(
+    driver,
+    pinnedShadowRoot,
+    '.btff-panel__pinned-item',
+  );
+  await driver
+    .actions({ async: true })
+    .move({ origin: pinnedCard })
+    .press()
+    .perform();
+  let pickupLayout;
+  try {
+    pickupLayout = await driver.executeScript(() => {
+      const root = document.querySelector(
+        '[data-btff-phase0-host="true"]',
+      )?.shadowRoot;
+      const card = root?.querySelector('.btff-panel__pinned-item');
+      const scrollArea = root?.querySelector(
+        '.btff-panel__scroll-area[data-page="pinned"]',
+      );
+      if (!(card instanceof HTMLElement) || !(scrollArea instanceof HTMLElement)) {
+        return null;
+      }
+
+      const cardRect = card.getBoundingClientRect();
+      const scrollAreaRect = scrollArea.getBoundingClientRect();
+      const transform = getComputedStyle(card).transform;
+      const transformMatrix = new DOMMatrixReadOnly(
+        transform === 'none' ? undefined : transform,
+      );
+
+      return {
+        bottomClearance: scrollAreaRect.bottom - cardRect.bottom,
+        lifted: card.dataset.reorderSource,
+        scaleX: transformMatrix.a,
+        scaleY: transformMatrix.d,
+      };
+    });
+  } finally {
+    await driver.actions({ async: true }).release().perform();
+  }
+
+  if (
+    pickupLayout?.lifted !== 'true' ||
+    pickupLayout.bottomClearance < -0.1 ||
+    Math.abs(pickupLayout.scaleX - 1) > 0.001 ||
+    Math.abs(pickupLayout.scaleY - 1) > 0.001
+  ) {
+    throw new Error(
+      `Pinned card pickup exceeded its scroll surface: ${JSON.stringify(pickupLayout)}`,
+    );
+  }
+
+  await driver.executeScript(() => {
+    const root = document
+      .querySelector('[data-btff-phase0-host="true"]')
+      ?.shadowRoot;
+    const list = root?.querySelector('.btff-panel__pinned-list');
+    const scrollArea = root?.querySelector(
+      '.btff-panel__scroll-area[data-page="pinned"]',
+    );
+    if (list instanceof HTMLElement) list.style.paddingBottom = '520px';
+    if (scrollArea instanceof HTMLElement) scrollArea.scrollTop = 0;
+  });
+  await driver
+    .actions({ async: true })
+    .move({ origin: pinnedCard })
+    .press()
+    .perform();
+  let wheelDragLayout;
+  let wheelDragDiagnostic;
+  try {
+    await driver.executeScript(() => {
+      const card = document
+        .querySelector('[data-btff-phase0-host="true"]')
+        ?.shadowRoot?.querySelector('.btff-panel__pinned-item');
+      card?.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          deltaY: 140,
+        }),
+      );
+    });
+    try {
+      wheelDragLayout = await driver.wait(async () => {
+        const state = await driver.executeScript(() => {
+          const root = document
+            .querySelector('[data-btff-phase0-host="true"]')
+            ?.shadowRoot;
+          const card = root?.querySelector('.btff-panel__pinned-item');
+          const list = root?.querySelector('.btff-panel__pinned-list');
+          const scrollArea = root?.querySelector(
+            '.btff-panel__scroll-area[data-page="pinned"]',
+          );
+          if (
+            !(card instanceof HTMLElement) ||
+            !(scrollArea instanceof HTMLElement)
+          ) {
+            return null;
+          }
+
+          return {
+            clientHeight: scrollArea.clientHeight,
+            dragOffset: card.style.getPropertyValue('--btff-folder-drag-y'),
+            lifted: card.dataset.reorderSource,
+            listHeight: list?.getBoundingClientRect().height ?? null,
+            scrollHeight: scrollArea.scrollHeight,
+            scrollTop: scrollArea.scrollTop,
+          };
+        });
+
+        wheelDragDiagnostic = state;
+
+        return state?.scrollTop >= 140 && Number.parseFloat(state.dragOffset) >= 140
+          ? state
+          : false;
+      }, 10_000, 'Held pinned card did not follow wheel scrolling.');
+    } catch (error) {
+      throw new Error(
+        `Held pinned card did not follow wheel scrolling: ${JSON.stringify(wheelDragDiagnostic)}`,
+        { cause: error },
+      );
+    }
+  } finally {
+    await driver.actions({ async: true }).release().perform();
+    await driver.executeScript(() => {
+      const root = document
+        .querySelector('[data-btff-phase0-host="true"]')
+        ?.shadowRoot;
+      const list = root?.querySelector('.btff-panel__pinned-list');
+      const scrollArea = root?.querySelector(
+        '.btff-panel__scroll-area[data-page="pinned"]',
+      );
+      if (list instanceof HTMLElement) list.style.removeProperty('padding-bottom');
+      if (scrollArea instanceof HTMLElement) {
+        scrollArea.scrollTop = 0;
+        scrollArea.dispatchEvent(new Event('scroll'));
+      }
+    });
+  }
+
+  if (wheelDragLayout?.lifted !== 'true') {
+    throw new Error(
+      `Pinned card lost its drag state during wheel scrolling: ${JSON.stringify(wheelDragLayout)}`,
+    );
+  }
+
   const metrics = await driver.executeScript(() => {
     const hostElement = document.querySelector('[data-btff-phase0-host="true"]');
     const root = hostElement?.shadowRoot;
@@ -1840,29 +2409,59 @@ async function pinResultAndMeasure(driver) {
   return {
     ...metrics,
     initialTimestamp,
+    pickupLayout,
     updatedTimestamp,
+    wheelDragLayout,
   };
 }
 
 async function measureInPageHistory(driver) {
-  const host = await driver.findElement(By.css('[data-btff-phase0-host="true"]'));
-  const shadowRoot = await host.getShadowRoot();
-  const historyTab = await findElementByText(
-    shadowRoot,
-    '.btff-panel__tab',
-    'History',
-  );
-  await historyTab.click();
-  const [historyItem] = await waitForElements(
-    driver,
-    shadowRoot,
-    '.btff-panel__history-item',
-  );
-  const [historyPills] = await waitForElements(
-    driver,
-    shadowRoot,
-    '.btff-history-pills',
-  );
+  await driver.wait(async () => {
+    return driver.executeScript(() => {
+      const root = document.querySelector(
+        '[data-btff-phase0-host="true"]',
+      )?.shadowRoot;
+      const historyTab = Array.from(
+        root?.querySelectorAll('.btff-panel__tab') ?? [],
+      ).find((tab) => tab.textContent?.trim() === 'History');
+      if (!(historyTab instanceof HTMLButtonElement)) return false;
+      historyTab.click();
+      return true;
+    });
+  }, 20_000, 'Could not switch the in-page panel to History.');
+  const historyState = await driver.wait(async () => {
+    try {
+      const currentHost = await driver.findElement(
+        By.css('[data-btff-phase0-host="true"]'),
+      );
+      const currentShadowRoot = await currentHost.getShadowRoot();
+      const items = await currentShadowRoot.findElements(
+        By.css('.btff-panel__history-item'),
+      );
+      const pillRows = await currentShadowRoot.findElements(
+        By.css('.btff-history-pills'),
+      );
+      if (items[0] && pillRows[0]) {
+        return { historyItem: items[0], historyPills: pillRows[0] };
+      }
+
+      const emptyStates = await currentShadowRoot.findElements(
+        By.css('.btff-panel__empty'),
+      );
+      const emptyText = emptyStates[0]
+        ? (await emptyStates[0].getText()).trim()
+        : '';
+      return emptyText ? { emptyText } : false;
+    } catch {
+      return false;
+    }
+  }, 20_000, 'In-page history did not render after switching tabs.');
+  if (!historyState.historyItem || !historyState.historyPills) {
+    throw new Error(
+      `In-page history was empty after switching tabs: ${historyState.emptyText}`,
+    );
+  }
+  const { historyItem, historyPills } = historyState;
   const historyPillsJustification = await historyPills.getCssValue(
     'justify-content',
   );

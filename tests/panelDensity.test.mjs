@@ -44,22 +44,118 @@ describe('in-page panel density styles', () => {
     );
   });
 
-  it('moves the scrollbar past the aligned in-page list surfaces', () => {
+  it('moves list scrollbars outside the aligned card surfaces and leaves drag room', () => {
     expect(panelCss).toMatch(
-      /\.btff-panel__scroll-area\s*\{[^}]*padding-right:\s*8px;[^}]*margin-right:\s*-8px;/s,
+      /\.btff-panel__bookmark-list-scroll,[^{]*\.btff-panel__scroll-area\[data-page='history'\],[^{]*\.btff-panel__scroll-area\[data-page='pinned'\]\s*\{[^}]*padding-left:\s*16px;[^}]*margin-left:\s*-16px;[^}]*padding-right:\s*10px;[^}]*margin-right:\s*-16px;/s,
     );
   });
 
-  it('caps pinned and history lists in overlay mode without limiting the sidebar', () => {
+  it('does not clip the bookmark scrollbar after moving its rail outside the cards', () => {
+    expect(panelCss).toMatch(
+      /\.btff-panel__scroll-area\[data-page='bookmarks'\]\s*\{[^}]*overflow:\s*visible;/s,
+    );
+  });
+
+  it('keeps Quick Save outside the capped bookmark list in overlay mode', () => {
     expect(panelSource).toMatch(
       /className="btff-panel__scroll-area"\s+data-page=\{currentPage\}/,
     );
-    expect(panelCss).toMatch(
-      /\.btff-panel__scroll-area\[data-page='history'\],[^{]*\.btff-panel__scroll-area\[data-page='pinned'\]\s*\{[^}]*max-height:\s*446px;/s,
+    expect(panelSource).toMatch(
+      /className="btff-panel__bookmark-list-scroll"\s+data-transient-scrollbar="true"/,
     );
     expect(panelCss).toMatch(
-      /:host\(\[data-sidebar='true'\]\)\s+\.btff-panel__scroll-area\[data-page='history'\],[^{]*:host\(\[data-sidebar='true'\]\)\s+\.btff-panel__scroll-area\[data-page='pinned'\]\s*\{[^}]*max-height:\s*none;/s,
+      /\.btff-panel__bookmark-list-scroll,[^{]*\.btff-panel__scroll-area\[data-page='history'\],[^{]*\.btff-panel__scroll-area\[data-page='pinned'\]\s*\{[^}]*max-height:\s*446px;/s,
     );
+    expect(panelCss).toMatch(
+      /:host\(\[data-sidebar='true'\]\)\s+\.btff-panel__bookmark-list-scroll,[^{]*:host\(\[data-sidebar='true'\]\)\s+\.btff-panel__scroll-area\[data-page='history'\],[^{]*:host\(\[data-sidebar='true'\]\)\s+\.btff-panel__scroll-area\[data-page='pinned'\]\s*\{[^}]*max-height:\s*none;/s,
+    );
+  });
+
+  it('separates Quick Save from the bookmark-only scroll surface', () => {
+    expect(panelSource).toMatch(
+      /<div\s+aria-hidden="true"\s+className="btff-panel__bookmark-divider"/,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__bookmark-divider,[^{]*\.btff-panel__section-divider\s*\{[^}]*height:\s*1px;[^}]*linear-gradient/s,
+    );
+  });
+
+  it('uses the bookmark separator treatment above pinned, history, and the footer', () => {
+    expect(panelSource).toMatch(
+      /currentPage !== 'bookmarks'[\s\S]*className="btff-panel__section-divider btff-panel__section-divider--list"/,
+    );
+    expect(panelSource).toMatch(
+      /className="btff-panel__section-divider btff-panel__section-divider--footer"[\s\S]*<section className="btff-panel__footer">/,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__bookmark-divider,[^{]*\.btff-panel__section-divider\s*\{[^}]*height:\s*1px;[^}]*linear-gradient/s,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__footer\s*\{[^}]*border-top:\s*0;/s,
+    );
+  });
+
+  it('reveals every in-page scrollbar only while its surface is scrolling', () => {
+    expect(panelCss).toMatch(
+      /\.btff-panel__scroll-area,[^{]*\.btff-panel \[data-transient-scrollbar='true'\]\s*\{[^}]*scrollbar-color:\s*transparent transparent;/s,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__scroll-area\[data-scrolling='true'\],[^{]*\.btff-panel \[data-transient-scrollbar='true'\]\[data-scrolling='true'\]\s*\{[^}]*scrollbar-color:\s*rgba\(/s,
+    );
+  });
+
+  it('fills the available compact header height with larger folder portraits', () => {
+    expect(panelCss).toMatch(
+      /\.btff-panel__folder-icon\s*\{[^}]*width:\s*48px;[^}]*height:\s*37px;/s,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__folder-icon-fallback\s*\{[^}]*width:\s*48px;[^}]*height:\s*37px;/s,
+    );
+  });
+
+  it('keeps long unbroken folder and bookmark names inside their cards', () => {
+    expect(panelCss).toMatch(
+      /\.btff-panel__records,[^{]*\.btff-panel__record,[^{]*\.btff-panel__record-header,[^{]*\.btff-panel__record-toggle,[^{]*\.btff-panel__trade-list,[^{]*\.btff-panel__trade-row,[^{]*\.btff-panel__trade-link\s*\{[^}]*min-width:\s*0;[^}]*max-width:\s*100%;[^}]*box-sizing:\s*border-box;/s,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__record-title-row strong\s*\{[^}]*flex:\s*1 1 auto;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__trade-title\s*\{[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s,
+    );
+  });
+
+  it('caps long in-page history names at two wrapped lines', () => {
+    expect(panelCss).toMatch(
+      /\.btff-history-entry-header strong\s*\{[^}]*min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*overflow-wrap:\s*anywhere;[^}]*-webkit-box-orient:\s*vertical;[^}]*-webkit-line-clamp:\s*2;/s,
+    );
+  });
+
+  it('makes the full Quick Save header card part of its toggle hit area', () => {
+    expect(panelSource).toMatch(
+      /className="btff-panel__composer-body"/,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__composer\s*\{[^}]*padding:\s*0;[^}]*overflow:\s*hidden;/s,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__composer-toggle\s*\{[^}]*min-height:\s*40px;[^}]*padding:\s*8px 12px;/s,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__composer-body\s*\{[^}]*padding:\s*0 12px 12px;/s,
+    );
+  });
+
+  it('lifts reordered bookmark cards without growing them into the clipped edges', () => {
+    const liftedCardRule = panelCss.match(
+      /\.btff-panel__record\[data-reorder-source='true'\]\s*\{[^}]*\}/s,
+    )?.[0];
+
+    expect(liftedCardRule).toContain(
+      'transform: translate3d(0, var(--btff-folder-drag-y, 0), 0);',
+    );
+    expect(liftedCardRule).not.toContain('scale(');
+    expect(liftedCardRule).toContain('0 10px 18px -8px rgba(0, 0, 0, 0.34)');
   });
 
   it('anchors history pill rows left while centering each label internally', () => {
@@ -114,6 +210,41 @@ describe('in-page panel density styles', () => {
   it('caps the folder icon list at the compact 208px viewport', () => {
     expect(panelCss).toMatch(
       /\.btff-folder-icon-picker__options\s*\{[^}]*max-height:\s*208px;/s,
+    );
+  });
+
+  it('draws the folder reorder destination inside the scrollable list bounds', () => {
+    expect(panelCss).toMatch(
+      /\.btff-panel__reorder-slot\s*\{[^}]*position:\s*absolute;[^}]*inset-inline:\s*0;[^}]*box-sizing:\s*border-box;/s,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__reorder-slot\s*\{[^}]*transform:\s*translate3d\(0,\s*var\(--btff-folder-slot-y\),\s*0\);/s,
+    );
+    expect(panelCss).not.toMatch(
+      /\.btff-panel__record\[data-reorder-edge='(?:before|after)'\][^{]*\{[^}]*(?:top|bottom):\s*-\d+px;/s,
+    );
+  });
+
+  it('uses the pinned card surface as its reorder affordance', () => {
+    expect(panelCss).toMatch(
+      /\.btff-panel__pinned-item\s*\{[^}]*cursor:\s*grab;[^}]*touch-action:\s*none;/s,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__pinned-item\[data-reorder-source='true'\]\s*\{[^}]*cursor:\s*grabbing;/s,
+    );
+  });
+
+  it('lifts reordered pinned cards without enlarging their clipped layout box', () => {
+    const liftedPinnedRule = panelCss.match(
+      /\.btff-panel__pinned-item\[data-reorder-source='true'\]\s*\{[^}]*\}/s,
+    )?.[0];
+
+    expect(liftedPinnedRule).toContain(
+      'transform: translate3d(0, var(--btff-folder-drag-y, 0), 0);',
+    );
+    expect(liftedPinnedRule).not.toContain('scale(');
+    expect(liftedPinnedRule).toContain(
+      '0 10px 18px -8px rgba(0, 0, 0, 0.34)',
     );
   });
 });

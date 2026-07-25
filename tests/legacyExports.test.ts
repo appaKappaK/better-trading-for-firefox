@@ -56,6 +56,33 @@ describe('legacy bookmark export generation', () => {
     expect(parseLegacyFolderExport(serialized)?.icon).toBe('assassin');
   });
 
+  it('preserves optional league metadata when this extension reimports a backup', () => {
+    const serialized = serializeLegacyFolderExport(
+      {
+        icon: 'duelist',
+        title: 'Mixed league searches',
+        version: '1',
+      },
+      [
+        {
+          id: 'trade-allflame',
+          title: 'Allflame search',
+          completedAt: null,
+          location: {
+            league: 'Allflame',
+            version: '1',
+            type: 'search',
+            slug: 'allflame-search',
+          },
+        },
+      ],
+    );
+
+    expect(parseLegacyFolderExport(serialized)?.trades[0].location.league).toBe(
+      'Allflame',
+    );
+  });
+
   it('generates backup text that preserves active and archived sections', () => {
     const backup = generateLegacyBackupDataString(
       [

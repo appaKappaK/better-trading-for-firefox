@@ -70,6 +70,7 @@ export const PINNED_ITEMS_HOST_PAGE_STYLES = `
 export function createPinnedItemsStore(doc: Document = document) {
   const listeners = new Set<Listener>();
   const pinnedItems = new Map<string, PinnedItemRecord>();
+  let orderedPinnedItemIds: string[] = [];
   let currentSourcePath = doc.defaultView?.location?.pathname ?? '';
 
   function subscribe(listener: Listener) {
@@ -81,9 +82,10 @@ export function createPinnedItemsStore(doc: Document = document) {
   }
 
   function getItems() {
-    return [...pinnedItems.values()].sort((left, right) =>
-      right.pinnedAt.localeCompare(left.pinnedAt),
-    );
+    return orderedPinnedItemIds.flatMap((itemId) => {
+      const item = pinnedItems.get(itemId);
+      return item ? [item] : [];
+    });
   }
 
   function emit() {
@@ -115,8 +117,15 @@ export function createPinnedItemsStore(doc: Document = document) {
 
     if (pinnedItems.has(itemId)) {
       pinnedItems.delete(itemId);
+      orderedPinnedItemIds = orderedPinnedItemIds.filter(
+        (candidateId) => candidateId !== itemId,
+      );
     } else {
       pinnedItems.set(itemId, extractPinnedItem(row, currentSourcePath));
+      orderedPinnedItemIds = [
+        itemId,
+        ...orderedPinnedItemIds.filter((candidateId) => candidateId !== itemId),
+      ];
     }
 
     syncPinnedRowState();
@@ -127,6 +136,9 @@ export function createPinnedItemsStore(doc: Document = document) {
   function unpin(itemId: string) {
     if (!pinnedItems.delete(itemId)) return false;
 
+    orderedPinnedItemIds = orderedPinnedItemIds.filter(
+      (candidateId) => candidateId !== itemId,
+    );
     syncPinnedRowState();
     emit();
     return true;
@@ -136,6 +148,7 @@ export function createPinnedItemsStore(doc: Document = document) {
     if (pinnedItems.size === 0) return false;
 
     pinnedItems.clear();
+    orderedPinnedItemIds = [];
     syncPinnedRowState();
     emit();
     return true;
@@ -150,8 +163,30 @@ export function createPinnedItemsStore(doc: Document = document) {
     items.forEach((item) => {
       pinnedItems.set(item.id, item);
     });
+    orderedPinnedItemIds = [...new Set(items.map((item) => item.id))];
     syncPinnedRowState();
     emit();
+  }
+
+  function reorder(fromIndex: number, toIndex: number) {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= orderedPinnedItemIds.length ||
+      toIndex >= orderedPinnedItemIds.length
+    ) {
+      return false;
+    }
+
+    const nextOrder = [...orderedPinnedItemIds];
+    const [movedItemId] = nextOrder.splice(fromIndex, 1);
+    if (!movedItemId) return false;
+
+    nextOrder.splice(toIndex, 0, movedItemId);
+    orderedPinnedItemIds = nextOrder;
+    emit();
+    return true;
   }
 
   function scrollToItem(itemId: string) {
@@ -287,6 +322,7 @@ export function createPinnedItemsStore(doc: Document = document) {
     getItem,
     getItems,
     hasRow,
+    reorder,
     replaceItems,
     scrollToItem,
     setSourcePath,

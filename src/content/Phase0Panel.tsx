@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import betterTradingIcon from '/public/icon/better_tradingICO.png?url';
 import ancientOrbIconUrl from '/public/assets/images/bookmark-folder/Ancient_Orb_inventory_icon.png?url';
 import alchemyIconUrl from '/public/assets/images/bookmark-folder/alchemy.png?url';
@@ -33,8 +42,10 @@ import {
   formatTradeLeagueLabel,
   formatRelativeTimestamp,
   getTradeUrl,
+  parseTradeLocationFromPathname,
   type ParsedTradeLocation,
 } from '@/src/lib/trade/location';
+import { attachTransientScrollbar } from '@/src/lib/ui/transientScrollbar';
 
 import {
   getPinnedItemDisplayTitle,
@@ -43,6 +54,36 @@ import {
 import type { TradePageSnapshot } from './tradePage';
 
 type PanelPage = 'bookmarks' | 'history' | 'pinned';
+type FolderReorderEdge = 'after' | 'before';
+
+interface FolderReorderDragState {
+  bounds: FolderReorderBounds[];
+  currentY: number;
+  edge: FolderReorderEdge;
+  fromIndex: number;
+  isCommitting: boolean;
+  overIndex: number;
+  pointerId: number;
+  scrollOffset: number;
+  shiftDistance: number;
+  sourceHeight: number;
+  startScrollTop: number;
+  startY: number;
+  toIndex: number;
+}
+
+interface FolderReorderBounds {
+  bottom: number;
+  height: number;
+  top: number;
+}
+
+type FolderReorderStyle = CSSProperties & {
+  '--btff-folder-drag-y'?: string;
+  '--btff-folder-shift-y'?: string;
+  '--btff-folder-slot-height'?: string;
+  '--btff-folder-slot-y'?: string;
+};
 
 const SUCCESS_FEEDBACK_DURATION_MS = 3_000;
 
@@ -63,6 +104,7 @@ interface Props {
   onClearHistory: () => Promise<void> | void;
   onClearPinnedItems: () => void;
   onReorderFolders: (fromIndex: number, toIndex: number) => Promise<void> | void;
+  onReorderPinnedItems: (fromIndex: number, toIndex: number) => void;
   onRenameTrade: (
     folderId: string,
     tradeId: string,
@@ -71,6 +113,7 @@ interface Props {
   onCopyFolderExport: (folderId: string) => Promise<void> | void;
   onSaveTrade: (draft: SaveTradeDraft) => Promise<void> | void;
   onSelectPage: (page: PanelPage) => void;
+  onSetHeaderHidden: (hidden: boolean) => void;
   onSetCollapsed: (collapsed: boolean) => void;
   onActivatePinnedItem: (itemId: string) => void;
   onToggleFolder: (folderId: string) => void;
@@ -99,9 +142,11 @@ export function Phase0Panel({
   onClearPinnedItems,
   onRenameTrade,
   onReorderFolders,
+  onReorderPinnedItems,
   onCopyFolderExport,
   onSaveTrade,
   onSelectPage,
+  onSetHeaderHidden,
   onSetCollapsed,
   onActivatePinnedItem,
   onToggleFolder,
@@ -119,6 +164,65 @@ export function Phase0Panel({
   const folders = schema?.bookmarks.folders ?? [];
   const historyEntries = schema?.history.entries ?? [];
   const bookmarkFolderCount = folders.length;
+  const dockLeagueSummary = resolveDockLeagueSummary(
+    snapshot.tradeLocation,
+    pinnedItems,
+  );
+  const dockSummary = [
+    `${pinnedItems.length} pinned`,
+    `${snapshot.resultsFound} results`,
+    dockLeagueSummary,
+  ]
+    .filter(Boolean)
+    .join(' | ');
+  const panelRef = useRef<HTMLElement | null>(null);
+  const panelScrollAreaRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    const scrollArea = panelScrollAreaRef.current;
+    if (!panel || !scrollArea || isCollapsed) return;
+
+    const detachTransientScrollbar = attachTransientScrollbar(scrollArea);
+    const handleContainedWheel = (event: WheelEvent) => {
+      const eventTarget = event.target;
+      const nestedSurface =
+        eventTarget instanceof Element
+          ? eventTarget.closest<HTMLElement>(
+              '[data-transient-scrollbar="true"]',
+            )
+          : null;
+      const scrollSurface =
+        nestedSurface && panel.contains(nestedSurface)
+          ? nestedSurface
+          : currentPage === 'bookmarks'
+            ? panel.querySelector<HTMLElement>(
+                '.btff-panel__bookmark-list-scroll',
+              )
+            : scrollArea;
+
+      event.preventDefault();
+      event.stopPropagation();
+      if (!scrollSurface) return;
+
+      const deltaMultiplier =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? Math.max(scrollSurface.clientHeight, 1)
+            : 1;
+      scrollSurface.scrollTop += event.deltaY * deltaMultiplier;
+      scrollSurface.scrollLeft += event.deltaX * deltaMultiplier;
+      scrollSurface.dispatchEvent(new Event('scroll'));
+    };
+
+    panel.addEventListener('wheel', handleContainedWheel, { passive: false });
+
+    return () => {
+      panel.removeEventListener('wheel', handleContainedWheel);
+      detachTransientScrollbar();
+    };
+  }, [currentPage, isCollapsed]);
 
   if (isCollapsed) {
     return (
@@ -130,8 +234,8 @@ export function Phase0Panel({
           title="Drag to move; click to expand"
           type="button">
           <strong>Better Trading</strong>
-          <span>
-            {pinnedItems.length} pinned | {snapshot.resultsFound} results
+          <span className="btff-panel-dock__summary" title={dockSummary}>
+            {dockSummary}
           </span>
         </button>
         {pinnedItems.length > 0 ? (
@@ -152,10 +256,19 @@ export function Phase0Panel({
                         src={item.imageUrl}
                       />
                     ) : null}
-                    <span
-                      className="btff-panel-dock__pinned-title"
-                      title={displayTitle}>
-                      {displayTitle}
+                    <span className="btff-panel-dock__pinned-copy">
+                      <span
+                        className="btff-panel-dock__pinned-title"
+                        title={displayTitle}>
+                        {displayTitle}
+                      </span>
+                      {item.price ? (
+                        <PinnedPrice
+                          className="btff-panel-dock__pinned-price"
+                          currencyIconUrl={item.currencyIconUrl}
+                          price={item.price}
+                        />
+                      ) : null}
                     </span>
                     <button
                       className="btff-panel-dock__pinned-jump"
@@ -195,35 +308,56 @@ export function Phase0Panel({
   }
 
   return (
-    <section className="btff-panel">
-      <div className="btff-panel__header">
-        <div className="btff-panel__header-copy">
-          <h1 className="btff-panel__title">Path of Exile</h1>
-          <p className="btff-panel__eyebrow">Better Trading</p>
+    <section className="btff-panel" ref={panelRef}>
+      {!schema?.preferences.popupIntroHidden ? (
+        <div
+          className="btff-panel__header"
+          onContextMenu={(event) => {
+            event.preventDefault();
+            onSetHeaderHidden(true);
+          }}
+          title="Right-click to hide the panel header">
+          <div className="btff-panel__header-copy">
+            <h1 className="btff-panel__title">Path of Exile</h1>
+            <p className="btff-panel__eyebrow">Better Trading</p>
+          </div>
+          <button
+            aria-label="Shrink Better Trading panel"
+            className="btff-panel__logo-button"
+            disabled={isSidebar}
+            onClick={(event) => {
+              if (event.detail === 0 && !isSidebar) onSetCollapsed(true);
+            }}
+            onDoubleClick={() => {
+              if (!isSidebar) onSetCollapsed(true);
+            }}
+            title="Double-click to shrink"
+            type="button">
+            <img
+              alt=""
+              aria-hidden="true"
+              className="btff-panel__logo-image"
+              draggable="false"
+              src={betterTradingIcon}
+            />
+          </button>
         </div>
-        <button
-          aria-label="Shrink Better Trading panel"
-          className="btff-panel__logo-button"
-          disabled={isSidebar}
-          onClick={(event) => {
-            if (event.detail === 0 && !isSidebar) onSetCollapsed(true);
-          }}
-          onDoubleClick={() => {
-            if (!isSidebar) onSetCollapsed(true);
-          }}
-          title="Double-click to shrink"
-          type="button">
-          <img
-            alt=""
-            aria-hidden="true"
-            className="btff-panel__logo-image"
-            draggable="false"
-            src={betterTradingIcon}
-          />
-        </button>
-      </div>
+      ) : null}
 
-      <nav className="btff-panel__tabs" aria-label="Saved data views">
+      <nav
+        className="btff-panel__tabs"
+        aria-label="Saved data views"
+        onContextMenu={(event) => {
+          if (!schema?.preferences.popupIntroHidden) return;
+
+          event.preventDefault();
+          onSetHeaderHidden(false);
+        }}
+        title={
+          schema?.preferences.popupIntroHidden
+            ? 'Right-click to show the panel header'
+            : undefined
+        }>
         <button
           className="btff-panel__tab"
           data-active={currentPage === 'pinned'}
@@ -247,11 +381,22 @@ export function Phase0Panel({
         </button>
       </nav>
 
-      <div className="btff-panel__scroll-area" data-page={currentPage}>
+      {currentPage !== 'bookmarks' ? (
+        <div
+          aria-hidden="true"
+          className="btff-panel__section-divider btff-panel__section-divider--list"
+        />
+      ) : null}
+
+      <div
+        className="btff-panel__scroll-area"
+        data-page={currentPage}
+        ref={panelScrollAreaRef}>
         {currentPage === 'bookmarks' ? (
           <BookmarksView
             expandedFolderIds={schema?.preferences.expandedFolderIds ?? []}
             folders={folders}
+            historyEntries={historyEntries}
             isSchemaLoading={isSchemaLoading}
             lastSeenLeagues={
               schema?.preferences.lastSeenLeagues ?? { '1': null, '2': null }
@@ -282,10 +427,16 @@ export function Phase0Panel({
             isSchemaLoading={isSchemaLoading}
             items={pinnedItems}
             onActivateItem={onActivatePinnedItem}
+            onReorderItems={onReorderPinnedItems}
             onUnpinItem={onUnpinItem}
           />
         ) : null}
       </div>
+
+      <div
+        aria-hidden="true"
+        className="btff-panel__section-divider btff-panel__section-divider--footer"
+      />
 
       <section className="btff-panel__footer">
         <span>
@@ -309,6 +460,7 @@ export function Phase0Panel({
 interface BookmarksViewProps {
   expandedFolderIds: string[];
   folders: BookmarkFolder[];
+  historyEntries: StorageSchemaV1['history']['entries'];
   isSchemaLoading: boolean;
   lastSeenLeagues: StorageSchemaV1['preferences']['lastSeenLeagues'];
   onCopyFolderExport: (folderId: string) => Promise<void> | void;
@@ -336,6 +488,7 @@ interface BookmarksViewProps {
 function BookmarksView({
   expandedFolderIds,
   folders,
+  historyEntries,
   isSchemaLoading,
   lastSeenLeagues,
   onRenameTrade,
@@ -379,8 +532,17 @@ function BookmarksView({
     message: string;
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const bookmarkListRef = useRef<HTMLDivElement | null>(null);
+  const pendingBookmarkScrollRef = useRef<{
+    folderId: string;
+    scrollTop: number;
+    shouldExpand: boolean;
+  } | null>(null);
+  const folderRecordRefs = useRef<Array<HTMLElement | null>>([]);
+  const folderReorderDragRef = useRef<FolderReorderDragState | null>(null);
+  const [folderReorderDrag, setFolderReorderDrag] =
+    useState<FolderReorderDragState | null>(null);
+  const [reorderAnnouncement, setReorderAnnouncement] = useState('');
 
   useEffect(() => {
     if (saveMode === 'existing' && eligibleFolders.length === 0) {
@@ -407,6 +569,21 @@ function BookmarksView({
 
     return () => window.clearTimeout(timeoutId);
   }, [feedback]);
+
+  useLayoutEffect(() => {
+    const pendingScroll = pendingBookmarkScrollRef.current;
+    if (!pendingScroll) return;
+
+    const didReachRequestedState =
+      expandedFolderIds.includes(pendingScroll.folderId) ===
+      pendingScroll.shouldExpand;
+    if (!didReachRequestedState) return;
+
+    if (bookmarkListRef.current) {
+      bookmarkListRef.current.scrollTop = pendingScroll.scrollTop;
+    }
+    pendingBookmarkScrollRef.current = null;
+  }, [expandedFolderIds]);
 
   if (isSchemaLoading) {
     return <p className="btff-panel__empty">Loading saved bookmark folders...</p>;
@@ -514,8 +691,174 @@ function BookmarksView({
     }
   }
 
+  function updateFolderReorderDrag(nextState: FolderReorderDragState | null) {
+    folderReorderDragRef.current = nextState;
+    setFolderReorderDrag(nextState);
+  }
+
+  function handleToggleFolder(folderId: string) {
+    const bookmarkList = bookmarkListRef.current;
+    if (bookmarkList) {
+      pendingBookmarkScrollRef.current = {
+        folderId,
+        scrollTop: bookmarkList.scrollTop,
+        shouldExpand: !expandedFolderIds.includes(folderId),
+      };
+    }
+
+    onToggleFolder(folderId);
+  }
+
+  function handleFolderPointerDown(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    fromIndex: number,
+  ) {
+    if (event.button !== 0) return;
+
+    event.preventDefault();
+    event.currentTarget.focus();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+
+    const bounds = folderRecordRefs.current
+      .slice(0, folders.length)
+      .flatMap((record) => {
+        if (!record) return [];
+        const rect = record.getBoundingClientRect();
+        return [{ bottom: rect.bottom, height: rect.height, top: rect.top }];
+      });
+    const sourceBounds = bounds[fromIndex];
+    if (!sourceBounds || bounds.length !== folders.length) return;
+
+    const initialTarget = resolveFolderReorderTarget(
+      bounds,
+      event.clientY,
+      fromIndex,
+    ) ?? {
+      edge: 'before' as const,
+      overIndex: fromIndex,
+      toIndex: fromIndex,
+    };
+
+    updateFolderReorderDrag({
+      ...initialTarget,
+      bounds,
+      currentY: event.clientY,
+      fromIndex,
+      isCommitting: false,
+      pointerId: event.pointerId,
+      scrollOffset: 0,
+      shiftDistance: resolveFolderShiftDistance(bounds, fromIndex),
+      sourceHeight: sourceBounds.height,
+      startScrollTop: bookmarkListRef.current?.scrollTop ?? 0,
+      startY: event.clientY,
+    });
+  }
+
+  function handleFolderPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    const activeDrag = folderReorderDragRef.current;
+    if (
+      !activeDrag ||
+      activeDrag.isCommitting ||
+      activeDrag.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    const nextTarget = resolveFolderReorderTarget(
+      resolveReorderViewportBounds(activeDrag),
+      event.clientY,
+      activeDrag.fromIndex,
+    );
+    if (!nextTarget) return;
+
+    updateFolderReorderDrag({
+      ...activeDrag,
+      ...nextTarget,
+      currentY: event.clientY,
+    });
+  }
+
+  function handleFolderListScroll() {
+    const activeDrag = folderReorderDragRef.current;
+    const bookmarkList = bookmarkListRef.current;
+    if (!activeDrag || activeDrag.isCommitting || !bookmarkList) return;
+
+    updateFolderReorderDrag(
+      resolveScrolledReorderDrag(activeDrag, bookmarkList.scrollTop),
+    );
+  }
+
+  function handleFolderPointerEnd(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    shouldCommit: boolean,
+  ) {
+    const activeDrag = folderReorderDragRef.current;
+    if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+
+    if (activeDrag.isCommitting) return;
+
+    const shouldMove =
+      shouldCommit && activeDrag.toIndex !== activeDrag.fromIndex;
+
+    if (!shouldMove) {
+      updateFolderReorderDrag(null);
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      return;
+    }
+
+    updateFolderReorderDrag({ ...activeDrag, isCommitting: true });
+
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    const folderTitle = folders[activeDrag.fromIndex]?.title ?? 'Bookmark folder';
+    const finishReorder = () => {
+      updateFolderReorderDrag(null);
+      setReorderAnnouncement(
+        `${folderTitle} moved to position ${activeDrag.toIndex + 1}.`,
+      );
+    };
+    const reorderResult = onReorderFolders(
+      activeDrag.fromIndex,
+      activeDrag.toIndex,
+    );
+
+    if (reorderResult) {
+      void reorderResult.then(finishReorder, () => updateFolderReorderDrag(null));
+    } else {
+      finishReorder();
+    }
+  }
+
+  function handleFolderReorderKeyDown(
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    fromIndex: number,
+  ) {
+    let toIndex = fromIndex;
+
+    if (event.key === 'ArrowUp') toIndex = Math.max(0, fromIndex - 1);
+    if (event.key === 'ArrowDown') {
+      toIndex = Math.min(folders.length - 1, fromIndex + 1);
+    }
+    if (event.key === 'Home') toIndex = 0;
+    if (event.key === 'End') toIndex = folders.length - 1;
+    if (toIndex === fromIndex) return;
+
+    event.preventDefault();
+    void onReorderFolders(fromIndex, toIndex);
+    setReorderAnnouncement(
+      `${folders[fromIndex]?.title ?? 'Bookmark folder'} moved to position ${
+        toIndex + 1
+      }.`,
+    );
+  }
+
   return (
-    <>
+    <div className="btff-panel__bookmarks-view">
       <QuickSavePanel
         currentTradeLocation={currentTradeLocation}
         eligibleFolders={eligibleFolders}
@@ -538,80 +881,149 @@ function BookmarksView({
         onTitleChange={setDraftTitle}
       />
 
-      {folders.length === 0 ? (
-        <p className="btff-panel__empty">
-          No bookmark folders yet. 
-        </p>
-      ) : (
-        <div className="btff-panel__records">
+      <div
+        aria-hidden="true"
+        className="btff-panel__bookmark-divider"
+      />
+
+      <div
+        className="btff-panel__bookmark-list-scroll"
+        data-transient-scrollbar="true"
+        onScroll={handleFolderListScroll}
+        ref={bookmarkListRef}>
+        {folders.length === 0 ? (
+          <p className="btff-panel__empty">No bookmark folders yet.</p>
+        ) : (
+          <div className="btff-panel__records">
+          <p
+            aria-live="polite"
+            className="btff-panel__visually-hidden">
+            {reorderAnnouncement}
+          </p>
+          {folderReorderDrag &&
+          folderReorderDrag.toIndex !== folderReorderDrag.fromIndex ? (
+            <div
+              aria-hidden="true"
+              className="btff-panel__reorder-slot"
+              data-slot-index={folderReorderDrag.toIndex}
+              style={resolveFolderSlotStyle(folderReorderDrag)}
+            />
+          ) : null}
           {folders.map((folder, index) => {
             const trades = tradesByFolderId[folder.id] ?? [];
             const isExpanded = expandedFolderIds.includes(folder.id);
             const isRenamingTradeInFolder = editingTrade?.folderId === folder.id;
+            const folderLeagueSummary = resolveBookmarkFolderLeagueSummary(
+              trades,
+              currentTradeLocation,
+              historyEntries,
+              lastSeenLeagues,
+            );
+            const folderIconLabel = folder.icon
+              ? getFolderIconLabel(folder.icon)
+              : null;
+            const folderMetadataLabel = [
+              `PoE ${folder.version}`,
+              folderIconLabel,
+              folderLeagueSummary,
+            ]
+              .filter(Boolean)
+              .join(' · ');
+            const reorderShift = resolveFolderReorderShift(
+              index,
+              folderReorderDrag,
+            );
 
             return (
               <article
                 key={folder.id}
                 className="btff-panel__record"
-                data-drag-over={dragOverIndex === index}
-                draggable={!isRenamingTradeInFolder}
-                onDragEnd={() => {
-                  setDragFromIndex(null);
-                  setDragOverIndex(null);
+                data-reorder-source={
+                  folderReorderDrag?.fromIndex === index ? 'true' : undefined
+                }
+                data-reorder-shift={reorderShift.direction}
+                ref={(element) => {
+                  folderRecordRefs.current[index] = element;
                 }}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setDragOverIndex(index);
-                }}
-                onDragStart={() => setDragFromIndex(index)}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  if (dragFromIndex !== null && dragFromIndex !== index) {
-                    void onReorderFolders(dragFromIndex, index);
-                  }
-                  setDragFromIndex(null);
-                  setDragOverIndex(null);
-                }}>
-                <button
-                  aria-expanded={isExpanded}
-                  className="btff-panel__record-toggle"
-                  onClick={() => onToggleFolder(folder.id)}
-                  type="button">
-                  {folder.icon ? (
-                    <FolderIcon
-                      fallbackClassName="btff-panel__folder-icon-fallback"
-                      imageClassName="btff-panel__folder-icon"
-                      label={getFolderIconLabel(folder.icon) ?? folder.icon}
-                      slug={folder.icon}
+                style={reorderShift.style}>
+                <div
+                  className="btff-panel__record-header">
+                  <button
+                    aria-expanded={isExpanded}
+                    className="btff-panel__record-toggle"
+                    onClick={() => handleToggleFolder(folder.id)}
+                    type="button">
+                    {folder.icon ? (
+                      <FolderIcon
+                        fallbackClassName="btff-panel__folder-icon-fallback"
+                        imageClassName="btff-panel__folder-icon"
+                        label={getFolderIconLabel(folder.icon) ?? folder.icon}
+                        slug={folder.icon}
+                      />
+                    ) : null}
+                    <div className="btff-panel__record-toggle-body">
+                      <div className="btff-panel__record-title-row">
+                        <strong
+                          data-name-color={folder.color ?? undefined}
+                          style={
+                            folder.color
+                              ? { color: getBookmarkColorHex(folder.color) }
+                              : undefined
+                          }>
+                          {folder.title}
+                        </strong>
+                        <span className="btff-panel__record-count">
+                          {trades.length} search
+                          {trades.length === 1 ? '' : 'es'}
+                        </span>
+                      </div>
+                      <small title={folderMetadataLabel}>
+                        {folderMetadataLabel}
+                      </small>
+                    </div>
+                  </button>
+                  <button
+                    aria-label={`Reorder ${folder.title}. Current position ${
+                      index + 1
+                    } of ${folders.length}.`}
+                    className="btff-panel__record-reorder"
+                    data-reordering={
+                      folderReorderDrag?.fromIndex === index ? 'true' : undefined
+                    }
+                    disabled={isRenamingTradeInFolder}
+                    onKeyDown={(event) =>
+                      handleFolderReorderKeyDown(event, index)
+                    }
+                    onLostPointerCapture={(event) =>
+                      handleFolderPointerEnd(event, false)
+                    }
+                    onPointerCancel={(event) =>
+                      handleFolderPointerEnd(event, false)
+                    }
+                    onPointerDown={(event) =>
+                      handleFolderPointerDown(event, index)
+                    }
+                    onPointerMove={handleFolderPointerMove}
+                    onPointerUp={(event) =>
+                      handleFolderPointerEnd(event, true)
+                    }
+                    title="Drag to reorder"
+                    type="button">
+                    <span
+                      aria-hidden="true"
+                      className="btff-panel__record-reorder-grip"
                     />
-                  ) : null}
-                  <div className="btff-panel__record-toggle-body">
-                    <strong
-                      data-name-color={folder.color ?? undefined}
-                      style={
-                        folder.color
-                          ? { color: getBookmarkColorHex(folder.color) }
-                          : undefined
-                      }>
-                      {folder.title}
-                    </strong>
-                    <small>
-                      PoE {folder.version}
-                      {folder.icon ? ` · ${getFolderIconLabel(folder.icon)}` : ''}
-                    </small>
-                  </div>
-                  <span>
-                    {trades.length} trade{trades.length === 1 ? '' : 's'}
-                  </span>
-                </button>
+                  </button>
+                </div>
 
                 {isExpanded ? (
                   trades.length > 0 ? (
                     <ul className="btff-panel__trade-list">
                       {trades.map((trade) => {
                         const league = resolveBookmarkTradeLeague(
-                          trade.location.version,
+                          trade,
                           currentTradeLocation,
+                          historyEntries,
                           lastSeenLeagues,
                         );
 
@@ -632,17 +1044,138 @@ function BookmarksView({
                     </ul>
                   ) : (
                     <p className="btff-panel__inline-empty">
-                      This folder does not have any saved trades yet.
+                      This folder does not have any saved searches yet.
                     </p>
                   )
                 ) : null}
               </article>
             );
           })}
-        </div>
-      )}
-    </>
+          </div>
+        )}
+      </div>
+    </div>
   );
+}
+
+function resolveFolderReorderTarget(
+  bounds: FolderReorderBounds[],
+  pointerY: number,
+  fromIndex: number,
+): Pick<FolderReorderDragState, 'edge' | 'overIndex' | 'toIndex'> | null {
+  if (bounds.length === 0) return null;
+
+  let overIndex = bounds.length - 1;
+  let edge: FolderReorderEdge = 'after';
+
+  for (const [index, recordBounds] of bounds.entries()) {
+    if (pointerY >= recordBounds.bottom) continue;
+
+    overIndex = index;
+    edge =
+      pointerY < recordBounds.top + recordBounds.height / 2
+        ? 'before'
+        : 'after';
+    break;
+  }
+
+  const insertionIndex = overIndex + (edge === 'after' ? 1 : 0);
+  const toIndex = insertionIndex > fromIndex ? insertionIndex - 1 : insertionIndex;
+
+  return { edge, overIndex, toIndex };
+}
+
+function resolveReorderViewportBounds(drag: FolderReorderDragState) {
+  return drag.bounds.map((bounds) => ({
+    ...bounds,
+    bottom: bounds.bottom - drag.scrollOffset,
+    top: bounds.top - drag.scrollOffset,
+  }));
+}
+
+function resolveScrolledReorderDrag(
+  drag: FolderReorderDragState,
+  scrollTop: number,
+): FolderReorderDragState {
+  const scrollOffset = scrollTop - drag.startScrollTop;
+  const nextDrag = { ...drag, scrollOffset };
+  const nextTarget = resolveFolderReorderTarget(
+    resolveReorderViewportBounds(nextDrag),
+    drag.currentY,
+    drag.fromIndex,
+  );
+
+  return nextTarget ? { ...nextDrag, ...nextTarget } : nextDrag;
+}
+
+function resolveFolderShiftDistance(
+  bounds: FolderReorderBounds[],
+  fromIndex: number,
+) {
+  const sourceBounds = bounds[fromIndex];
+  if (!sourceBounds) return 0;
+
+  const followingBounds = bounds[fromIndex + 1];
+  const precedingBounds = bounds[fromIndex - 1];
+  const gap = followingBounds
+    ? followingBounds.top - sourceBounds.bottom
+    : precedingBounds
+      ? sourceBounds.top - precedingBounds.bottom
+      : 0;
+
+  return sourceBounds.height + Math.max(0, gap);
+}
+
+function resolveFolderReorderShift(
+  index: number,
+  drag: FolderReorderDragState | null,
+): { direction?: 'down' | 'up'; style?: FolderReorderStyle } {
+  if (!drag) return {};
+
+  if (index === drag.fromIndex) {
+    return {
+      style: {
+        '--btff-folder-drag-y': `${
+          drag.currentY - drag.startY + drag.scrollOffset
+        }px`,
+      },
+    };
+  }
+
+  if (drag.toIndex > drag.fromIndex && index > drag.fromIndex && index <= drag.toIndex) {
+    return {
+      direction: 'up',
+      style: { '--btff-folder-shift-y': `${-drag.shiftDistance}px` },
+    };
+  }
+
+  if (drag.toIndex < drag.fromIndex && index >= drag.toIndex && index < drag.fromIndex) {
+    return {
+      direction: 'down',
+      style: { '--btff-folder-shift-y': `${drag.shiftDistance}px` },
+    };
+  }
+
+  return {};
+}
+
+function resolveFolderSlotStyle(drag: FolderReorderDragState): FolderReorderStyle {
+  const firstBounds = drag.bounds[0];
+  const destinationBounds = drag.bounds[drag.toIndex];
+  const sourceBounds = drag.bounds[drag.fromIndex];
+  if (!firstBounds || !destinationBounds || !sourceBounds) return {};
+
+  const slotTop =
+    drag.toIndex < drag.fromIndex
+      ? destinationBounds.top
+      : drag.toIndex > drag.fromIndex
+        ? destinationBounds.bottom - drag.sourceHeight
+        : sourceBounds.top;
+
+  return {
+    '--btff-folder-slot-height': `${drag.sourceHeight}px`,
+    '--btff-folder-slot-y': `${slotTop - firstBounds.top}px`,
+  };
 }
 
 interface QuickSavePanelProps {
@@ -710,122 +1243,124 @@ function QuickSavePanel({
       </button>
 
       {!isOpen ? null : (
-        <>
-      <p className="btff-panel__composer-copy">{currentTradeLabel}</p>
+        <div className="btff-panel__composer-body">
+          <p className="btff-panel__composer-copy">{currentTradeLabel}</p>
 
-      <div className="btff-panel__inline-actions">
-        <button
-          aria-pressed={saveMode === 'existing'}
-          className="btff-panel__mini-button btff-panel__mini-button--choice"
-          disabled={eligibleFolders.length === 0}
-          onClick={() => onSaveModeChange('existing')}
-          type="button">
-          Existing folder
-        </button>
-        <button
-          aria-pressed={saveMode === 'new'}
-          className="btff-panel__mini-button btff-panel__mini-button--choice"
-          onClick={() => onSaveModeChange('new')}
-          type="button">
-          New folder
-        </button>
-      </div>
+          <div className="btff-panel__inline-actions">
+            <button
+              aria-pressed={saveMode === 'existing'}
+              className="btff-panel__mini-button btff-panel__mini-button--choice"
+              disabled={eligibleFolders.length === 0}
+              onClick={() => onSaveModeChange('existing')}
+              type="button">
+              Existing folder
+            </button>
+            <button
+              aria-pressed={saveMode === 'new'}
+              className="btff-panel__mini-button btff-panel__mini-button--choice"
+              onClick={() => onSaveModeChange('new')}
+              type="button">
+              New folder
+            </button>
+          </div>
 
-      {saveMode === 'existing' ? (
-        <label className="btff-panel__field">
-          <span>Folder</span>
-          <select
-            disabled={eligibleFolders.length === 0}
-            onChange={(event) => onSelectedFolderIdChange(event.target.value)}
-            value={selectedFolderId}>
-            {eligibleFolders.length === 0 ? (
-              <option value="">No matching folder for this trade version yet</option>
-            ) : null}
-            {eligibleFolders.map((folder) => (
-              <option key={folder.id} value={folder.id}>
-                {folder.title}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : (
-        <>
+          {saveMode === 'existing' ? (
+            <label className="btff-panel__field">
+              <span>Folder</span>
+              <select
+                disabled={eligibleFolders.length === 0}
+                onChange={(event) => onSelectedFolderIdChange(event.target.value)}
+                value={selectedFolderId}>
+                {eligibleFolders.length === 0 ? (
+                  <option value="">
+                    No matching folder for this trade version yet
+                  </option>
+                ) : null}
+                {eligibleFolders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <>
+              <label className="btff-panel__field">
+                <span>Folder name</span>
+                <input
+                  onChange={(event) => onNewFolderTitleChange(event.target.value)}
+                  placeholder="e.g. Belt upgrades"
+                  style={
+                    newFolderColor
+                      ? { color: getBookmarkColorHex(newFolderColor) }
+                      : undefined
+                  }
+                  value={newFolderTitle}
+                />
+              </label>
+              {newFolderTitle.trim().length > 0 ? (
+                <>
+                  <NameColorPicker
+                    disabled={isSaving}
+                    label="Folder name color"
+                    onChange={onNewFolderColorChange}
+                    value={newFolderColor}
+                  />
+                  <div className="btff-panel__field">
+                    <span>Folder icon</span>
+                    <FolderIconPicker
+                      disabled={isSaving}
+                      onChange={onNewFolderIconChange}
+                      value={newFolderIcon}
+                    />
+                  </div>
+                </>
+              ) : null}
+            </>
+          )}
+
           <label className="btff-panel__field">
-            <span>Folder name</span>
+            <span>Bookmark name</span>
             <input
-              onChange={(event) => onNewFolderTitleChange(event.target.value)}
-              placeholder="e.g. Belt upgrades"
+              onChange={(event) => onTitleChange(event.target.value)}
+              placeholder="e.g. Headhunter under 20 Divine"
               style={
-                newFolderColor
-                  ? { color: getBookmarkColorHex(newFolderColor) }
+                bookmarkColor
+                  ? { color: getBookmarkColorHex(bookmarkColor) }
                   : undefined
               }
-              value={newFolderTitle}
+              value={title}
             />
           </label>
-          {newFolderTitle.trim().length > 0 ? (
-            <>
-              <NameColorPicker
-                disabled={isSaving}
-                label="Folder name color"
-                onChange={onNewFolderColorChange}
-                value={newFolderColor}
-              />
-              <div className="btff-panel__field">
-                <span>Folder icon</span>
-                <FolderIconPicker
-                  disabled={isSaving}
-                  onChange={onNewFolderIconChange}
-                  value={newFolderIcon}
-                />
-              </div>
-            </>
+
+          {title.trim().length > 0 ? (
+            <NameColorPicker
+              disabled={isSaving}
+              label="Bookmark name color"
+              onChange={onBookmarkColorChange}
+              value={bookmarkColor}
+            />
           ) : null}
-        </>
-      )}
 
-      <label className="btff-panel__field">
-        <span>Bookmark name</span>
-        <input
-          onChange={(event) => onTitleChange(event.target.value)}
-          placeholder="e.g. Headhunter under 20 Divine"
-          style={
-            bookmarkColor
-              ? { color: getBookmarkColorHex(bookmarkColor) }
-              : undefined
-          }
-          value={title}
-        />
-      </label>
+          <div className="btff-panel__inline-actions">
+            <button
+              className="btff-panel__mini-button"
+              disabled={!canSaveCurrentTrade || isSaving}
+              onClick={onSave}
+              type="button">
+              {isSaving ? 'Saving...' : 'Save current search'}
+            </button>
+          </div>
 
-      {title.trim().length > 0 ? (
-        <NameColorPicker
-          disabled={isSaving}
-          label="Bookmark name color"
-          onChange={onBookmarkColorChange}
-          value={bookmarkColor}
-        />
-      ) : null}
-
-      <div className="btff-panel__inline-actions">
-        <button
-          className="btff-panel__mini-button"
-          disabled={!canSaveCurrentTrade || isSaving}
-          onClick={onSave}
-          type="button">
-          {isSaving ? 'Saving...' : 'Save current search'}
-        </button>
-      </div>
-
-      {feedback ? (
-        <p
-          className={`btff-panel__feedback${
-            feedback.kind === 'error' ? ' btff-panel__feedback--error' : ''
-          }`}>
-          {feedback.message}
-        </p>
-      ) : null}
-        </>
+          {feedback ? (
+            <p
+              className={`btff-panel__feedback${
+                feedback.kind === 'error' ? ' btff-panel__feedback--error' : ''
+              }`}>
+              {feedback.message}
+            </p>
+          ) : null}
+        </div>
       )}
     </section>
   );
@@ -1050,6 +1585,7 @@ interface PinnedItemsViewProps {
   isSchemaLoading: boolean;
   items: PinnedItemRecord[];
   onActivateItem: (itemId: string) => void;
+  onReorderItems: (fromIndex: number, toIndex: number) => void;
   onUnpinItem: (itemId: string) => void;
 }
 
@@ -1058,10 +1594,17 @@ function PinnedItemsView({
   isSchemaLoading,
   items,
   onActivateItem,
+  onReorderItems,
   onUnpinItem,
 }: PinnedItemsViewProps) {
   const hasItems = items.length > 0;
   const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const pinnedItemRefs = useRef<Array<HTMLLIElement | null>>([]);
+  const pinnedListRef = useRef<HTMLUListElement | null>(null);
+  const pinnedReorderDragRef = useRef<FolderReorderDragState | null>(null);
+  const [pinnedReorderDrag, setPinnedReorderDrag] =
+    useState<FolderReorderDragState | null>(null);
+  const [pinnedReorderAnnouncement, setPinnedReorderAnnouncement] = useState('');
 
   useEffect(() => {
     if (!hasItems) {
@@ -1076,6 +1619,139 @@ function PinnedItemsView({
     return () => window.clearInterval(timerId);
   }, [hasItems]);
 
+  useLayoutEffect(() => {
+    const scrollArea = pinnedListRef.current?.closest<HTMLElement>(
+      '.btff-panel__scroll-area',
+    );
+    if (!scrollArea) return;
+
+    const handleScroll = () => {
+      const activeDrag = pinnedReorderDragRef.current;
+      if (!activeDrag || activeDrag.isCommitting) return;
+
+      updatePinnedReorderDrag(
+        resolveScrolledReorderDrag(activeDrag, scrollArea.scrollTop),
+      );
+    };
+
+    scrollArea.addEventListener('scroll', handleScroll);
+    return () => scrollArea.removeEventListener('scroll', handleScroll);
+  }, [hasItems, isSchemaLoading]);
+
+  function updatePinnedReorderDrag(nextState: FolderReorderDragState | null) {
+    pinnedReorderDragRef.current = nextState;
+    setPinnedReorderDrag(nextState);
+  }
+
+  function handlePinnedPointerDown(
+    event: ReactPointerEvent<HTMLLIElement>,
+    fromIndex: number,
+  ) {
+    if (event.button !== 0 || isPinnedReorderAction(event.target)) return;
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+
+    const bounds = pinnedItemRefs.current
+      .slice(0, items.length)
+      .flatMap((item) => {
+        if (!item) return [];
+        const rect = item.getBoundingClientRect();
+        return [{ bottom: rect.bottom, height: rect.height, top: rect.top }];
+      });
+    const sourceBounds = bounds[fromIndex];
+    if (!sourceBounds || bounds.length !== items.length) return;
+
+    const initialTarget = resolveFolderReorderTarget(
+      bounds,
+      event.clientY,
+      fromIndex,
+    ) ?? {
+      edge: 'before' as const,
+      overIndex: fromIndex,
+      toIndex: fromIndex,
+    };
+
+    updatePinnedReorderDrag({
+      ...initialTarget,
+      bounds,
+      currentY: event.clientY,
+      fromIndex,
+      isCommitting: false,
+      pointerId: event.pointerId,
+      scrollOffset: 0,
+      shiftDistance: resolveFolderShiftDistance(bounds, fromIndex),
+      sourceHeight: sourceBounds.height,
+      startScrollTop:
+        event.currentTarget.closest<HTMLElement>('.btff-panel__scroll-area')
+          ?.scrollTop ?? 0,
+      startY: event.clientY,
+    });
+  }
+
+  function handlePinnedPointerMove(event: ReactPointerEvent<HTMLLIElement>) {
+    const activeDrag = pinnedReorderDragRef.current;
+    if (
+      !activeDrag ||
+      activeDrag.isCommitting ||
+      activeDrag.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    const nextTarget = resolveFolderReorderTarget(
+      resolveReorderViewportBounds(activeDrag),
+      event.clientY,
+      activeDrag.fromIndex,
+    );
+    if (!nextTarget) return;
+
+    updatePinnedReorderDrag({
+      ...activeDrag,
+      ...nextTarget,
+      currentY: event.clientY,
+    });
+  }
+
+  function handlePinnedPointerEnd(
+    event: ReactPointerEvent<HTMLLIElement>,
+    shouldCommit: boolean,
+  ) {
+    const activeDrag = pinnedReorderDragRef.current;
+    if (
+      !activeDrag ||
+      activeDrag.isCommitting ||
+      activeDrag.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    const shouldMove =
+      shouldCommit && activeDrag.toIndex !== activeDrag.fromIndex;
+    if (!shouldMove) {
+      updatePinnedReorderDrag(null);
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      return;
+    }
+
+    updatePinnedReorderDrag({ ...activeDrag, isCommitting: true });
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    const itemTitle = getPinnedItemDisplayTitle(
+      items[activeDrag.fromIndex]?.title ?? 'Pinned item',
+    );
+    onReorderItems(activeDrag.fromIndex, activeDrag.toIndex);
+    updatePinnedReorderDrag(null);
+    setPinnedReorderAnnouncement(
+      `${itemTitle} moved to position ${activeDrag.toIndex + 1}.`,
+    );
+  }
+
   if (isSchemaLoading) {
     return <p className="btff-panel__empty">Loading the current panel state...</p>;
   }
@@ -1089,20 +1765,54 @@ function PinnedItemsView({
   }
 
   return (
-    <ul className="btff-panel__pinned-list">
-      {items.map((item) => {
+    <ul className="btff-panel__pinned-list" ref={pinnedListRef}>
+      <li aria-live="polite" className="btff-panel__visually-hidden">
+        {pinnedReorderAnnouncement}
+      </li>
+      {pinnedReorderDrag &&
+      pinnedReorderDrag.toIndex !== pinnedReorderDrag.fromIndex ? (
+        <li
+          aria-hidden="true"
+          className="btff-panel__reorder-slot btff-panel__pinned-reorder-slot"
+          data-slot-index={pinnedReorderDrag.toIndex}
+          style={resolveFolderSlotStyle(pinnedReorderDrag)}
+        />
+      ) : null}
+      {items.map((item, index) => {
         const { itemLevel, secondaryText } = splitPinnedSubtitle(item.subtitle);
         const displayTitle = getPinnedItemDisplayTitle(item.title);
         const isOnCurrentPage = isPinnedItemOnCurrentPage(item.id);
+        const reorderShift = resolveFolderReorderShift(
+          index,
+          pinnedReorderDrag,
+        );
 
         return (
-          <li key={item.id} className="btff-panel__pinned-item">
+          <li
+            key={item.id}
+            className="btff-panel__pinned-item"
+            data-reorder-source={
+              pinnedReorderDrag?.fromIndex === index ? 'true' : undefined
+            }
+            data-reorder-shift={reorderShift.direction}
+            onLostPointerCapture={(event) =>
+              handlePinnedPointerEnd(event, false)
+            }
+            onPointerCancel={(event) => handlePinnedPointerEnd(event, false)}
+            onPointerDown={(event) => handlePinnedPointerDown(event, index)}
+            onPointerMove={handlePinnedPointerMove}
+            onPointerUp={(event) => handlePinnedPointerEnd(event, true)}
+            ref={(element) => {
+              pinnedItemRefs.current[index] = element;
+            }}
+            style={reorderShift.style}>
             <div className="btff-panel__pinned-header">
               {item.imageUrl ? (
                 <img
                   alt=""
                   aria-hidden="true"
                   className="btff-panel__pinned-thumb"
+                  draggable={false}
                   src={item.imageUrl}
                 />
               ) : null}
@@ -1168,6 +1878,13 @@ function PinnedItemsView({
   );
 }
 
+function isPinnedReorderAction(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    Boolean(target.closest('button, a, input, select, textarea'))
+  );
+}
+
 const CURRENCY_ICONS: Record<string, string> = {
   'ancient orb': ancientOrbIconUrl,
   'orb of alchemy': alchemyIconUrl,
@@ -1192,14 +1909,14 @@ const CURRENCY_ICONS: Record<string, string> = {
 function PinnedPrice({
   price,
   chaosEquivalent,
+  className = 'btff-panel__pinned-price',
   currencyIconUrl,
 }: {
   price: string;
   chaosEquivalent?: number | null;
+  className?: string;
   currencyIconUrl?: string | null;
 }) {
-  const className = 'btff-panel__pinned-price';
-
   // Parse the internal "NNN×Currency Name" form and omit its delimiter in the UI.
   const match = price.match(/^([\d.]+)×(.+)$/);
   const currencyLower = match?.[2].toLowerCase().trim() ?? '';
@@ -1227,6 +1944,34 @@ function PinnedPrice({
       ) : null}
     </span>
   );
+}
+
+function resolveDockLeagueSummary(
+  tradeLocation: ParsedTradeLocation | null,
+  pinnedItems: PinnedItemRecord[],
+) {
+  const leagueLabels = new Set<string>();
+
+  if (tradeLocation?.league) {
+    leagueLabels.add(formatTradeLeagueLabel(tradeLocation.league));
+  }
+
+  for (const item of pinnedItems) {
+    try {
+      const pathname = new URL(
+        item.sourcePath,
+        'https://www.pathofexile.com',
+      ).pathname;
+      const pinnedLocation = parseTradeLocationFromPathname(pathname);
+      if (pinnedLocation?.league) {
+        leagueLabels.add(formatTradeLeagueLabel(pinnedLocation.league));
+      }
+    } catch {
+      // Ignore malformed legacy source paths; the current league can still render.
+    }
+  }
+
+  return Array.from(leagueLabels).join(' & ');
 }
 
 function shortenSlug(slug: string, maxLength = 24) {
@@ -1268,13 +2013,57 @@ function splitPinnedSubtitle(subtitle: string) {
 }
 
 function resolveBookmarkTradeLeague(
-  version: BookmarkTrade['location']['version'],
+  trade: BookmarkTrade,
   tradeLocation: ParsedTradeLocation | null,
+  historyEntries: StorageSchemaV1['history']['entries'],
   lastSeenLeagues: StorageSchemaV1['preferences']['lastSeenLeagues'],
 ) {
-  if (tradeLocation?.version === version) {
+  if (trade.location.league) {
+    return trade.location.league;
+  }
+
+  if (
+    tradeLocation?.version === trade.location.version &&
+    tradeLocation.type === trade.location.type &&
+    tradeLocation.slug === trade.location.slug
+  ) {
     return tradeLocation.league;
   }
 
-  return lastSeenLeagues[version];
+  const matchingHistory = historyEntries.find(
+    (entry) =>
+      entry.version === trade.location.version &&
+      entry.type === trade.location.type &&
+      entry.slug === trade.location.slug,
+  );
+
+  return matchingHistory?.league ?? lastSeenLeagues[trade.location.version];
+}
+
+function resolveBookmarkFolderLeagueSummary(
+  trades: BookmarkTrade[],
+  tradeLocation: ParsedTradeLocation | null,
+  historyEntries: StorageSchemaV1['history']['entries'],
+  lastSeenLeagues: StorageSchemaV1['preferences']['lastSeenLeagues'],
+) {
+  const leagueLabels = new Set<string>();
+
+  for (const trade of trades) {
+    const league = resolveBookmarkTradeLeague(
+      trade,
+      tradeLocation,
+      historyEntries,
+      lastSeenLeagues,
+    );
+    if (!league) continue;
+
+    const label = formatTradeLeagueLabel(league);
+    leagueLabels.add(
+      trade.location.version === '2' && label.startsWith('PoE2 - ')
+        ? label.slice('PoE2 - '.length)
+        : label,
+    );
+  }
+
+  return [...leagueLabels].join(' & ');
 }

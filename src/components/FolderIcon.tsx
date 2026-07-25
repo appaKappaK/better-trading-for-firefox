@@ -164,6 +164,7 @@ export function FolderIconPicker({
       <div
         aria-label="Folder icon choices"
         className="btff-folder-icon-picker__options"
+        data-transient-scrollbar="true"
         ref={optionsRef}
         role="group">
         <button

@@ -29,6 +29,7 @@ import {
 import { getFolderIconLabel } from '@/src/lib/bookmarks/folderIcons';
 import { getBookmarkColorHex } from '@/src/lib/bookmarks/nameColors';
 import { formatTradeLeagueLabel } from '@/src/lib/trade/location';
+import { attachTransientScrollbar } from '@/src/lib/ui/transientScrollbar';
 import { readImportFile } from '@/src/popup/importFiles';
 import { ConfirmationDialog } from '@/src/popup/ConfirmationDialog';
 import { SettingsView } from '@/src/popup/SettingsView';
@@ -36,6 +37,8 @@ import { buildTradeUrl } from '@/src/popup/tradeUrls';
 import { UpdateNoticeContent } from '@/src/popup/UpdateNoticeContent';
 
 import './App.css';
+
+export { attachTransientScrollbar };
 
 type PopupPage = 'bookmarks' | 'history' | 'import' | 'settings';
 type FeedbackTone = 'neutral' | 'success' | 'error';
@@ -650,6 +653,7 @@ function App() {
 
         {activePage === 'import' ? (
           <MigrationPanel
+            hasBookmarks={folders.length > 0}
             importInput={importInput}
             importPreview={importPreview}
             isReadingImportFile={isReadingImportFile}
@@ -659,6 +663,8 @@ function App() {
             onImportInputChange={setImportInput}
             onImportSubmit={handleImportSubmit}
             onClearSavedData={handleClearSavedData}
+            onCopyBackup={handleCopyBackup}
+            onDownloadBackup={handleDownloadBackup}
           />
         ) : null}
 
@@ -667,11 +673,9 @@ function App() {
             folders={folders}
             isSchemaLoading={isSchemaLoading}
             onChangeFolderIcon={handleChangeFolderIcon}
-            onCopyBackup={handleCopyBackup}
             onCopyFolderExport={handleCopyFolderExport}
             onDeleteFolder={handleDeleteFolder}
             onDeleteTrade={handleDeleteTrade}
-            onDownloadBackup={handleDownloadBackup}
             onToggleFolderArchive={handleToggleFolderArchive}
             tradesByFolderId={schema?.bookmarks.tradesByFolderId ?? {}}
           />
@@ -704,32 +708,54 @@ function App() {
 }
 
 interface MigrationPanelProps {
+  hasBookmarks: boolean;
   importInput: string;
   importPreview: ReturnType<typeof previewLegacyImport>;
   isReadingImportFile: boolean;
   isSchemaLoading: boolean;
   isSubmitting: boolean;
   onClearSavedData: () => void;
+  onCopyBackup: () => Promise<void>;
+  onDownloadBackup: () => Promise<void>;
   onImportFileChange: (file: File | null) => void | Promise<void>;
   onImportInputChange: (value: string) => void;
   onImportSubmit: () => void;
 }
 
 export function MigrationPanel({
+  hasBookmarks,
   importInput,
   importPreview,
   isReadingImportFile,
   isSchemaLoading,
   isSubmitting,
   onClearSavedData,
+  onCopyBackup,
+  onDownloadBackup,
   onImportFileChange,
   onImportInputChange,
   onImportSubmit,
 }: MigrationPanelProps) {
   const [dragCounter, setDragCounter] = useState(0);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
+  const [busyBackupAction, setBusyBackupAction] = useState<
+    'copy' | 'download' | null
+  >(null);
   const isDragOver = dragCounter > 0;
-  const isDisabled = isReadingImportFile || isSubmitting;
+  const isDisabled =
+    isReadingImportFile || isSubmitting || busyBackupAction !== null;
+
+  async function runBackupAction(
+    action: 'copy' | 'download',
+    callback: () => Promise<void>,
+  ) {
+    setBusyBackupAction(action);
+    try {
+      await callback();
+    } finally {
+      setBusyBackupAction(null);
+    }
+  }
 
   return (
     <>
@@ -774,6 +800,7 @@ export function MigrationPanel({
 
       <label className="popup-field" htmlFor="legacy-import-input">
         <textarea
+          data-transient-scrollbar="true"
           id="legacy-import-input"
           onChange={(event) => onImportInputChange(event.target.value)}
           placeholder="3:eyJpY24iOiJhc2NlbmRhbnQiLCJ0aXQiOiJ..."
@@ -832,6 +859,24 @@ export function MigrationPanel({
           {isSubmitting ? 'Working...' : 'Import legacy data'}
         </button>
         <button
+          aria-busy={busyBackupAction === 'copy'}
+          className="popup-button popup-button--utility"
+          disabled={!hasBookmarks || isDisabled || isSchemaLoading}
+          onClick={() => void runBackupAction('copy', onCopyBackup)}
+          type="button">
+          {busyBackupAction === 'copy' ? 'Copying...' : 'Copy full backup'}
+        </button>
+        <button
+          aria-busy={busyBackupAction === 'download'}
+          className="popup-button popup-button--utility"
+          disabled={!hasBookmarks || isDisabled || isSchemaLoading}
+          onClick={() => void runBackupAction('download', onDownloadBackup)}
+          type="button">
+          {busyBackupAction === 'download'
+            ? 'Preparing...'
+            : 'Download backup'}
+        </button>
+        <button
           className="popup-button popup-button--secondary popup-button--danger"
           disabled={isSubmitting || isReadingImportFile || isSchemaLoading}
           onClick={() => setIsConfirmingReset(true)}
@@ -861,11 +906,9 @@ interface BookmarksPanelProps {
   folders: BookmarkFolder[];
   isSchemaLoading: boolean;
   onChangeFolderIcon: (folder: BookmarkFolder, icon: string | null) => Promise<void>;
-  onCopyBackup: () => Promise<void>;
   onCopyFolderExport: (folder: BookmarkFolder) => Promise<void>;
   onDeleteFolder: (folder: BookmarkFolder) => Promise<void>;
   onDeleteTrade: (folder: BookmarkFolder, trade: BookmarkTrade) => Promise<void>;
-  onDownloadBackup: () => Promise<void>;
   onToggleFolderArchive: (folder: BookmarkFolder) => Promise<void>;
   tradesByFolderId: Record<string, BookmarkTrade[]>;
 }
@@ -874,11 +917,9 @@ export function BookmarksPanel({
   folders,
   isSchemaLoading,
   onChangeFolderIcon,
-  onCopyBackup,
   onCopyFolderExport,
   onDeleteFolder,
   onDeleteTrade,
-  onDownloadBackup,
   onToggleFolderArchive,
   tradesByFolderId,
 }: BookmarksPanelProps) {
@@ -914,37 +955,11 @@ export function BookmarksPanel({
   return (
     <>
       <p className="popup-copy popup-copy--panel">
-        Export individual folders or generate a full backup compatible with the
-        original Better Trading add-on format.
+        Manage folders and export them individually.
       </p>
 
-      <div className="popup-toolbar">
-        <div className="popup-toolbar-group">
-          <button
-            aria-busy={busyAction === 'copy-backup'}
-            className="popup-button popup-button--utility popup-button--small"
-            disabled={folders.length === 0 || busyAction !== null}
-            onClick={() => {
-              void runAction('copy-backup', onCopyBackup);
-            }}
-            type="button">
-            {busyAction === 'copy-backup' ? 'Copying...' : 'Copy full backup'}
-          </button>
-          <button
-            aria-busy={busyAction === 'download-backup'}
-            className="popup-button popup-button--utility popup-button--small"
-            disabled={folders.length === 0 || busyAction !== null}
-            onClick={() => {
-              void runAction('download-backup', onDownloadBackup);
-            }}
-            type="button">
-            {busyAction === 'download-backup'
-              ? 'Preparing...'
-              : 'Download backup'}
-          </button>
-        </div>
-
-        {archivedFolders.length > 0 ? (
+      {archivedFolders.length > 0 ? (
+        <div className="popup-toolbar">
           <button
             className="popup-button popup-button--secondary popup-button--small"
             disabled={busyAction !== null}
@@ -956,8 +971,8 @@ export function BookmarksPanel({
             type="button">
             {showArchived ? 'Show active' : 'Show archived'}
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {displayedFolders.length === 0 ? (
         <p className="popup-empty">
@@ -997,7 +1012,9 @@ export function BookmarksPanel({
                     </p>
                   </div>
                   <div className="popup-record-badges">
-                    <span>{trades.length} trades</span>
+                    <span>
+                      {trades.length} search{trades.length === 1 ? '' : 'es'}
+                    </span>
                     {folder.archivedAt ? <span>Archived</span> : <span>Active</span>}
                   </div>
                 </div>
@@ -1075,7 +1092,7 @@ export function BookmarksPanel({
                 ) : null}
 
                 {trades.length === 0 ? (
-                  <p className="popup-inline-empty">This folder does not have any trades yet.</p>
+                  <p className="popup-inline-empty">This folder does not have any saved searches yet.</p>
                 ) : (
                   <ul className="popup-trade-list">
                     {trades.map((trade) => {
@@ -1084,7 +1101,7 @@ export function BookmarksPanel({
                       return (
                         <li key={trade.id}>
                           <div className="popup-trade-row">
-                            <div>
+                            <div className="popup-trade-copy">
                               <strong
                                 data-name-color={trade.color ?? undefined}
                                 style={
@@ -1238,38 +1255,6 @@ export function HistoryPanel({
       )}
     </>
   );
-}
-
-export function attachTransientScrollbar(
-  element: HTMLElement,
-  hideDelayMs = 700,
-) {
-  let hideTimer: number | null = null;
-
-  const showScrollbar = () => {
-    element.dataset.scrolling = 'true';
-
-    if (hideTimer !== null) {
-      window.clearTimeout(hideTimer);
-    }
-
-    hideTimer = window.setTimeout(() => {
-      delete element.dataset.scrolling;
-      hideTimer = null;
-    }, hideDelayMs);
-  };
-
-  element.addEventListener('wheel', showScrollbar, { passive: true });
-
-  return () => {
-    element.removeEventListener('wheel', showScrollbar);
-
-    if (hideTimer !== null) {
-      window.clearTimeout(hideTimer);
-    }
-
-    delete element.dataset.scrolling;
-  };
 }
 
 async function copyTextToClipboard(value: string) {

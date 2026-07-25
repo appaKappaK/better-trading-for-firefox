@@ -49,7 +49,11 @@ describe('FolderIconPicker', () => {
     ).toHaveLength(
       FOLDER_ICON_OPTIONS.length + 1,
     );
-    expect(container.querySelector('.btff-folder-icon-picker__options')).not.toBeNull();
+    const options = container.querySelector<HTMLElement>(
+      '.btff-folder-icon-picker__options',
+    );
+    expect(options).not.toBeNull();
+    expect(options?.dataset.transientScrollbar).toBe('true');
 
     const chaosOption = Array.from(
       container.querySelectorAll<HTMLButtonElement>(

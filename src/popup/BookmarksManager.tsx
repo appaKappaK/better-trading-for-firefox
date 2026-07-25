@@ -148,7 +148,9 @@ export function BookmarksManager({
                   </div>
 
                   <div className="popup-record-badges">
-                    <span>{trades.length} trades</span>
+                    <span>
+                      {trades.length} search{trades.length === 1 ? '' : 'es'}
+                    </span>
                     {folder.archivedAt ? <span>Archived</span> : <span>Active</span>}
                     {folder.archivedAt ? null : <span>{isExpanded ? 'Hide' : 'Show'}</span>}
                   </div>
@@ -245,7 +247,7 @@ export function BookmarksManager({
                     </ul>
                   ) : (
                     <p className="popup-inline-empty">
-                      This folder does not have any saved trades yet.
+                      This folder does not have any saved searches yet.
                     </p>
                   )
                 ) : null}

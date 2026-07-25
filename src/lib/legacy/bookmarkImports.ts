@@ -5,6 +5,7 @@ import type {
   TradeSiteVersion,
 } from '@/src/features/bookmarks/types';
 import { normalizeBookmarkColor } from '@/src/lib/bookmarks/nameColors';
+import { normalizeTradeLeague } from '@/src/lib/trade/location';
 import {
   decodeLatin1Base64,
   decodeUtf8Base64,
@@ -21,6 +22,7 @@ interface ExportedFolderStructV1 {
   tit: string;
   trs: Array<{
     clr?: BookmarkColor | null;
+    lge?: string;
     tit: string;
     loc: string;
   }>;
@@ -124,6 +126,7 @@ function parseLegacyTrade(
     title: trade.tit,
     completedAt: null,
     location: {
+      ...(trade.lge ? { league: normalizeTradeLeague(trade.lge) } : {}),
       version: version as TradeSiteVersion,
       type,
       slug,

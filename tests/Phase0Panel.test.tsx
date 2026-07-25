@@ -15,6 +15,12 @@ describe('Phase0Panel collapse chrome', () => {
   let root: Root;
 
   beforeEach(() => {
+    if (!window.PointerEvent) {
+      Object.defineProperty(window, 'PointerEvent', {
+        configurable: true,
+        value: MouseEvent,
+      });
+    }
     container = document.createElement('div');
     document.body.append(container);
     root = createRoot(container);
@@ -64,7 +70,13 @@ describe('Phase0Panel collapse chrome', () => {
       'Better Trading',
     );
     expect(container.querySelector('.btff-panel-dock__button')?.textContent).toContain(
-      '1 pinned | 12 results',
+      '1 pinned | 12 results | Standard',
+    );
+    expect(
+      container.querySelector('.btff-panel-dock__summary')?.getAttribute('title'),
+    ).toBe('1 pinned | 12 results | Standard');
+    expect(container.querySelector('.btff-panel-dock__pinned-price')?.textContent).toContain(
+      'Exact Price: 50 Chaos Orb',
     );
     expect(container.querySelector('.btff-panel-dock__pinned-jump')?.textContent).toBe(
       'Open',
@@ -108,6 +120,42 @@ describe('Phase0Panel collapse chrome', () => {
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     expect(onSetCollapsed).toHaveBeenCalledWith(true);
+  });
+
+  it('toggles the persisted in-page header with matching context-menu shortcuts', async () => {
+    const schema = createEmptyStorageSchema('phase0-header-test');
+    const onSetHeaderHidden = vi.fn();
+    schema.preferences.hasCompletedOnboarding = true;
+
+    await renderPanel({ onSetHeaderHidden, schema });
+
+    const header = container.querySelector('.btff-panel__header');
+    expect(header?.getAttribute('title')).toBe(
+      'Right-click to hide the panel header',
+    );
+
+    const hideEvent = new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+    });
+    expect(header?.dispatchEvent(hideEvent)).toBe(false);
+    expect(onSetHeaderHidden).toHaveBeenCalledWith(true);
+
+    schema.preferences.popupIntroHidden = true;
+    await renderPanel({ onSetHeaderHidden, schema });
+
+    expect(container.querySelector('.btff-panel__header')).toBeNull();
+    const tabs = container.querySelector('.btff-panel__tabs');
+    expect(tabs?.getAttribute('title')).toBe(
+      'Right-click to show the panel header',
+    );
+
+    const restoreEvent = new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+    });
+    expect(tabs?.dispatchEvent(restoreEvent)).toBe(false);
+    expect(onSetHeaderHidden).toHaveBeenLastCalledWith(false);
   });
 
   it('labels the footer with bookmark count instead of saved trade rows', async () => {
@@ -727,7 +775,8 @@ describe('Phase0Panel collapse chrome', () => {
     );
     expect(folderToggle?.textContent).toContain('Mageblood');
     expect(folderToggle?.textContent).toContain('PoE 1 · Divine Orb');
-    expect(folderToggle?.textContent).toContain('1 trade');
+    expect(folderToggle?.textContent).toContain('1 search');
+    expect(folderToggle?.textContent).not.toContain('1 trade');
     expect(folderToggle?.getAttribute('aria-expanded')).toBe('false');
     expect(container.querySelector('.btff-panel__trade-list')).toBeNull();
 
@@ -745,7 +794,643 @@ describe('Phase0Panel collapse chrome', () => {
     expect(container.querySelector('.btff-panel__trade-list')).not.toBeNull();
   });
 
-  it('suspends folder reordering while a bookmark title is being edited', async () => {
+  it('summarizes every distinct saved league in the collapsed folder metadata', async () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+    schema.preferences.hasCompletedOnboarding = true;
+    schema.bookmarks.folders = [
+      {
+        archivedAt: null,
+        icon: 'duelist',
+        id: 'folder-mixed-leagues',
+        title: 'League searches',
+        version: '1',
+      },
+    ];
+    schema.bookmarks.tradesByFolderId = {
+      'folder-mixed-leagues': [
+        {
+          completedAt: null,
+          id: 'trade-allflame-1',
+          location: {
+            league: 'Allflame',
+            slug: 'allflame-one',
+            type: 'search',
+            version: '1',
+          },
+          title: 'Allflame one',
+        },
+        {
+          completedAt: null,
+          id: 'trade-standard',
+          location: {
+            league: 'Standard',
+            slug: 'standard-one',
+            type: 'search',
+            version: '1',
+          },
+          title: 'Standard one',
+        },
+        {
+          completedAt: null,
+          id: 'trade-allflame-2',
+          location: {
+            league: 'Allflame',
+            slug: 'allflame-two',
+            type: 'search',
+            version: '1',
+          },
+          title: 'Allflame two',
+        },
+      ],
+    };
+
+    await renderPanel({ schema });
+
+    const metadata = container.querySelector(
+      '.btff-panel__record-toggle-body small',
+    );
+    expect(metadata?.textContent).toBe(
+      'PoE 1 · Duelist · Allflame & Standard',
+    );
+    expect(metadata?.getAttribute('title')).toBe(
+      'PoE 1 · Duelist · Allflame & Standard',
+    );
+  });
+
+  it('recovers an older bookmark league from matching history metadata', async () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+    schema.preferences.hasCompletedOnboarding = true;
+    schema.bookmarks.folders = [
+      {
+        archivedAt: null,
+        icon: 'shadow',
+        id: 'folder-legacy-league',
+        title: 'Older searches',
+        version: '1',
+      },
+    ];
+    schema.bookmarks.tradesByFolderId = {
+      'folder-legacy-league': [
+        {
+          completedAt: null,
+          id: 'trade-legacy-league',
+          location: { slug: 'legacy-search', type: 'search', version: '1' },
+          title: 'Legacy search',
+        },
+      ],
+    };
+    schema.history.entries = [
+      {
+        createdAt: '2026-07-25T00:00:00.000Z',
+        id: 'history-legacy-league',
+        isLive: false,
+        league: 'Allflame',
+        slug: 'legacy-search',
+        title: 'Legacy search',
+        type: 'search',
+        version: '1',
+      },
+    ];
+
+    await renderPanel({ schema });
+
+    expect(
+      container.querySelector('.btff-panel__record-toggle-body small')?.textContent,
+    ).toBe('PoE 1 · Shadow · Allflame');
+  });
+
+  it('uses dedicated folder reorder handles instead of native draggable cards', async () => {
+    const schema = createSchemaWithBookmarkFolder();
+
+    await renderPanel({ schema });
+
+    const folderRecords = Array.from(
+      container.querySelectorAll<HTMLElement>('.btff-panel__record'),
+    );
+    const reorderHandles = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        '.btff-panel__record-reorder',
+      ),
+    );
+
+    expect(folderRecords).toHaveLength(2);
+    expect(folderRecords.every((record) => record.draggable === false)).toBe(true);
+    expect(reorderHandles).toHaveLength(2);
+    expect(reorderHandles[0].getAttribute('aria-label')).toContain(
+      'Reorder RFCHIEF',
+    );
+    expect(reorderHandles[0].getAttribute('title')).toBe(
+      'Drag to reorder',
+    );
+  });
+
+  it('preserves bookmark list scrolling when a folder expands or collapses', async () => {
+    const schema = createSchemaWithBookmarkFolder();
+    const onToggleFolder = vi.fn();
+
+    await renderPanel({ onToggleFolder, schema });
+
+    const bookmarkList = container.querySelector<HTMLElement>(
+      '.btff-panel__bookmark-list-scroll',
+    );
+    const firstFolderToggle = container.querySelector<HTMLButtonElement>(
+      '.btff-panel__record-toggle',
+    );
+    if (!bookmarkList || !firstFolderToggle) {
+      throw new Error('Bookmark list did not render.');
+    }
+
+    bookmarkList.scrollTop = 173;
+    firstFolderToggle.click();
+    expect(onToggleFolder).toHaveBeenCalledWith('folder-1');
+
+    bookmarkList.scrollTop = 0;
+    const expandedSchema = {
+      ...schema,
+      preferences: {
+        ...schema.preferences,
+        expandedFolderIds: ['folder-1'],
+      },
+    };
+    await renderPanel({
+      onToggleFolder,
+      schema: expandedSchema,
+    });
+
+    const expandedBookmarkList = container.querySelector<HTMLElement>(
+      '.btff-panel__bookmark-list-scroll',
+    );
+    expect(expandedBookmarkList?.scrollTop).toBe(173);
+
+    if (!expandedBookmarkList) {
+      throw new Error('Expanded bookmark list did not render.');
+    }
+    expandedBookmarkList.scrollTop = 211;
+    container
+      .querySelector<HTMLButtonElement>('.btff-panel__record-toggle')
+      ?.click();
+    expandedBookmarkList.scrollTop = 0;
+
+    await renderPanel({
+      onToggleFolder,
+      schema: {
+        ...expandedSchema,
+        preferences: {
+          ...expandedSchema.preferences,
+          expandedFolderIds: [],
+        },
+      },
+    });
+
+    expect(
+      container.querySelector<HTMLElement>('.btff-panel__bookmark-list-scroll')
+        ?.scrollTop,
+    ).toBe(211);
+  });
+
+  it('routes wheel input from anywhere in the panel to the active bookmark list', async () => {
+    const schema = createSchemaWithBookmarkFolder();
+
+    await renderPanel({ schema });
+
+    const bookmarkList = container.querySelector<HTMLElement>(
+      '.btff-panel__bookmark-list-scroll',
+    );
+    const panelHeader = container.querySelector<HTMLElement>(
+      '.btff-panel__header',
+    );
+    if (!bookmarkList || !panelHeader) {
+      throw new Error('Bookmark panel did not render.');
+    }
+
+    Object.defineProperties(bookmarkList, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, value: 500 },
+    });
+    const wheelEvent = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: 64,
+    });
+
+    panelHeader.dispatchEvent(wheelEvent);
+
+    expect(wheelEvent.defaultPrevented).toBe(true);
+    expect(bookmarkList.scrollTop).toBe(64);
+    expect(bookmarkList.dataset.scrolling).toBe('true');
+  });
+
+  it('reorders pinned items by dragging a card without hijacking its actions', async () => {
+    const onReorderPinnedItems = vi.fn();
+    const onActivatePinnedItem = vi.fn();
+    const pinnedItems = [
+      {
+        id: 'pin-one',
+        pinnedAt: '2026-07-25T00:00:02.000Z',
+        price: '1×Divine Orb',
+        sourcePath: '/trade/search/Allflame/pin-one',
+        subtitle: 'Item Level: 80 | SellerOne#1111',
+        title: 'First pin',
+      },
+      {
+        id: 'pin-two',
+        pinnedAt: '2026-07-25T00:00:01.000Z',
+        price: '2×Divine Orb',
+        sourcePath: '/trade/search/Allflame/pin-two',
+        subtitle: 'Item Level: 81 | SellerTwo#2222',
+        title: 'Second pin',
+      },
+    ];
+
+    await renderPanel({
+      currentPage: 'pinned',
+      onActivatePinnedItem,
+      onReorderPinnedItems,
+      pinnedItems,
+    });
+
+    const cards = Array.from(
+      container.querySelectorAll<HTMLElement>('.btff-panel__pinned-item'),
+    );
+    mockElementRect(cards[0], { bottom: 70, top: 0 });
+    mockElementRect(cards[1], { bottom: 150, top: 80 });
+
+    dispatchPointerEvent(cards[0], 'pointerdown', {
+      clientY: 35,
+      pointerId: 17,
+    });
+    dispatchPointerEvent(cards[0], 'pointermove', {
+      clientY: 140,
+      pointerId: 17,
+    });
+
+    expect(cards[0].getAttribute('data-reorder-source')).toBe('true');
+    expect(cards[1].getAttribute('data-reorder-shift')).toBe('up');
+    expect(
+      container.querySelector('.btff-panel__pinned-reorder-slot'),
+    ).not.toBeNull();
+
+    dispatchPointerEvent(cards[0], 'pointerup', {
+      clientY: 140,
+      pointerId: 17,
+    });
+
+    expect(onReorderPinnedItems).toHaveBeenCalledWith(0, 1);
+
+    const jumpButton = container.querySelector<HTMLButtonElement>(
+      '.btff-panel__pinned-actions button',
+    );
+    dispatchPointerEvent(jumpButton, 'pointerdown', {
+      clientY: 35,
+      pointerId: 18,
+    });
+    dispatchPointerEvent(jumpButton, 'pointermove', {
+      clientY: 140,
+      pointerId: 18,
+    });
+    dispatchPointerEvent(jumpButton, 'pointerup', {
+      clientY: 140,
+      pointerId: 18,
+    });
+    jumpButton?.click();
+
+    expect(onReorderPinnedItems).toHaveBeenCalledTimes(1);
+    expect(onActivatePinnedItem).toHaveBeenCalledWith('pin-one');
+  });
+
+  it('keeps a held pinned card under the pointer while wheel scrolling', async () => {
+    const onReorderPinnedItems = vi.fn();
+    const pinnedItems = Array.from({ length: 4 }, (_, index) => ({
+      id: `pin-${index + 1}`,
+      pinnedAt: `2026-07-25T00:00:0${index}.000Z`,
+      price: '1×Divine Orb',
+      sourcePath: `/trade/search/Allflame/pin-${index + 1}`,
+      subtitle: `Item Level: 8${index} | Seller${index + 1}#1111`,
+      title: `Pinned item ${index + 1}`,
+    }));
+
+    await renderPanel({
+      currentPage: 'pinned',
+      onReorderPinnedItems,
+      pinnedItems,
+    });
+
+    const scrollArea = container.querySelector<HTMLElement>(
+      ".btff-panel__scroll-area[data-page='pinned']",
+    );
+    const cards = Array.from(
+      container.querySelectorAll<HTMLElement>('.btff-panel__pinned-item'),
+    );
+    if (!scrollArea) throw new Error('Pinned scroll area did not render.');
+
+    Object.defineProperties(scrollArea, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, value: 500 },
+    });
+    mockElementRect(cards[0], { bottom: 60, top: 0 });
+    mockElementRect(cards[1], { bottom: 130, top: 70 });
+    mockElementRect(cards[2], { bottom: 200, top: 140 });
+    mockElementRect(cards[3], { bottom: 270, top: 210 });
+
+    dispatchPointerEvent(cards[0], 'pointerdown', {
+      clientY: 30,
+      pointerId: 19,
+    });
+
+    const wheelEvent = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: 140,
+    });
+    flushSync(() => cards[0]?.dispatchEvent(wheelEvent));
+
+    expect(wheelEvent.defaultPrevented).toBe(true);
+    expect(scrollArea.scrollTop).toBe(140);
+    expect(cards[0].style.getPropertyValue('--btff-folder-drag-y')).toBe('140px');
+    expect(cards[1].getAttribute('data-reorder-shift')).toBe('up');
+    expect(cards[2].getAttribute('data-reorder-shift')).toBe('up');
+    expect(
+      container
+        .querySelector<HTMLElement>('.btff-panel__pinned-reorder-slot')
+        ?.getAttribute('data-slot-index'),
+    ).toBe('2');
+
+    dispatchPointerEvent(cards[0], 'pointerup', {
+      clientY: 30,
+      pointerId: 19,
+    });
+
+    expect(onReorderPinnedItems).toHaveBeenCalledWith(0, 2);
+  });
+
+  it('enables held-card wheel scrolling after pinned storage finishes loading', async () => {
+    const pinnedItems = Array.from({ length: 2 }, (_, index) => ({
+      id: `loading-pin-${index + 1}`,
+      pinnedAt: `2026-07-25T00:00:0${index}.000Z`,
+      price: '1×Divine Orb',
+      sourcePath: `/trade/search/Allflame/loading-pin-${index + 1}`,
+      subtitle: `Item Level: 8${index} | Seller${index + 1}#1111`,
+      title: `Loading pinned item ${index + 1}`,
+    }));
+
+    await renderPanel({
+      currentPage: 'pinned',
+      isSchemaLoading: true,
+      pinnedItems,
+    });
+    expect(container.querySelector('.btff-panel__pinned-list')).toBeNull();
+
+    await renderPanel({
+      currentPage: 'pinned',
+      isSchemaLoading: false,
+      pinnedItems,
+    });
+
+    const scrollArea = container.querySelector<HTMLElement>(
+      ".btff-panel__scroll-area[data-page='pinned']",
+    );
+    const cards = Array.from(
+      container.querySelectorAll<HTMLElement>('.btff-panel__pinned-item'),
+    );
+    if (!scrollArea) throw new Error('Pinned scroll area did not render.');
+
+    Object.defineProperties(scrollArea, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, value: 500 },
+    });
+    mockElementRect(cards[0], { bottom: 60, top: 0 });
+    mockElementRect(cards[1], { bottom: 130, top: 70 });
+
+    dispatchPointerEvent(cards[0], 'pointerdown', {
+      clientY: 30,
+      pointerId: 20,
+    });
+    flushSync(() => {
+      cards[0]?.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          deltaY: 70,
+        }),
+      );
+    });
+
+    expect(scrollArea.scrollTop).toBe(70);
+    expect(cards[0].style.getPropertyValue('--btff-folder-drag-y')).toBe('70px');
+  });
+
+  it('reorders folders from the focused handle with arrow keys', async () => {
+    const schema = createSchemaWithBookmarkFolder();
+    const onReorderFolders = vi.fn();
+
+    await renderPanel({ onReorderFolders, schema });
+
+    const reorderHandles = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        '.btff-panel__record-reorder',
+      ),
+    );
+
+    reorderHandles[1]?.dispatchEvent(
+      new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowUp' }),
+    );
+    expect(onReorderFolders).toHaveBeenCalledWith(1, 0);
+
+    reorderHandles[0]?.dispatchEvent(
+      new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowDown' }),
+    );
+    expect(onReorderFolders).toHaveBeenLastCalledWith(0, 1);
+  });
+
+  it('moves the held folder with the pointer while later folders make room', async () => {
+    const schema = createSchemaWithBookmarkFolder();
+    const onReorderFolders = vi.fn();
+
+    await renderPanel({ onReorderFolders, schema });
+
+    const folderRecords = Array.from(
+      container.querySelectorAll<HTMLElement>('.btff-panel__record'),
+    );
+    const reorderHandles = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        '.btff-panel__record-reorder',
+      ),
+    );
+
+    expect(folderRecords).toHaveLength(2);
+    expect(reorderHandles).toHaveLength(2);
+
+    mockElementRect(folderRecords[0], { bottom: 60, top: 0 });
+    mockElementRect(folderRecords[1], { bottom: 130, top: 70 });
+
+    dispatchPointerEvent(reorderHandles[0], 'pointerdown', {
+      clientY: 30,
+      pointerId: 7,
+    });
+    dispatchPointerEvent(reorderHandles[0], 'pointermove', {
+      clientY: 120,
+      pointerId: 7,
+    });
+
+    expect(folderRecords[0].getAttribute('data-reorder-source')).toBe('true');
+    expect(folderRecords[0].style.getPropertyValue('--btff-folder-drag-y')).toBe(
+      '90px',
+    );
+    expect(folderRecords[1].getAttribute('data-reorder-shift')).toBe('up');
+    expect(folderRecords[1].style.getPropertyValue('--btff-folder-shift-y')).toBe(
+      '-70px',
+    );
+    const reorderSlot = container.querySelector<HTMLElement>(
+      '.btff-panel__reorder-slot',
+    );
+    expect(reorderSlot?.getAttribute('data-slot-index')).toBe('1');
+    expect(reorderSlot?.style.getPropertyValue('--btff-folder-slot-y')).toBe(
+      '70px',
+    );
+    expect(reorderSlot?.style.getPropertyValue('--btff-folder-slot-height')).toBe(
+      '60px',
+    );
+
+    dispatchPointerEvent(reorderHandles[0], 'pointerup', {
+      clientY: 120,
+      pointerId: 7,
+    });
+
+    expect(onReorderFolders).toHaveBeenCalledWith(0, 1);
+    expect(folderRecords[0].hasAttribute('data-reorder-source')).toBe(false);
+    expect(folderRecords[1].hasAttribute('data-reorder-shift')).toBe(false);
+    expect(container.querySelector('.btff-panel__reorder-slot')).toBeNull();
+  });
+
+  it('keeps a held folder under the pointer while wheel scrolling to a new destination', async () => {
+    const schema = createSchemaWithBookmarkFolder();
+    schema.bookmarks.folders.push(
+      {
+        archivedAt: null,
+        icon: 'shadow',
+        id: 'folder-3',
+        title: 'Third folder',
+        version: '1',
+      },
+      {
+        archivedAt: null,
+        icon: 'witch',
+        id: 'folder-4',
+        title: 'Fourth folder',
+        version: '1',
+      },
+    );
+    schema.bookmarks.tradesByFolderId['folder-3'] = [];
+    schema.bookmarks.tradesByFolderId['folder-4'] = [];
+    const onReorderFolders = vi.fn();
+
+    await renderPanel({ onReorderFolders, schema });
+
+    const bookmarkList = container.querySelector<HTMLElement>(
+      '.btff-panel__bookmark-list-scroll',
+    );
+    const folderRecords = Array.from(
+      container.querySelectorAll<HTMLElement>('.btff-panel__record'),
+    );
+    const reorderHandles = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        '.btff-panel__record-reorder',
+      ),
+    );
+    if (!bookmarkList) throw new Error('Bookmark list did not render.');
+
+    Object.defineProperties(bookmarkList, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, value: 500 },
+    });
+    mockElementRect(folderRecords[0], { bottom: 60, top: 0 });
+    mockElementRect(folderRecords[1], { bottom: 130, top: 70 });
+    mockElementRect(folderRecords[2], { bottom: 200, top: 140 });
+    mockElementRect(folderRecords[3], { bottom: 270, top: 210 });
+
+    dispatchPointerEvent(reorderHandles[0], 'pointerdown', {
+      clientY: 30,
+      pointerId: 11,
+    });
+
+    const wheelEvent = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: 140,
+    });
+    flushSync(() => reorderHandles[0]?.dispatchEvent(wheelEvent));
+
+    expect(wheelEvent.defaultPrevented).toBe(true);
+    expect(bookmarkList.scrollTop).toBe(140);
+    expect(folderRecords[0].style.getPropertyValue('--btff-folder-drag-y')).toBe(
+      '140px',
+    );
+    expect(folderRecords[1].getAttribute('data-reorder-shift')).toBe('up');
+    expect(folderRecords[2].getAttribute('data-reorder-shift')).toBe('up');
+    expect(
+      container
+        .querySelector<HTMLElement>('.btff-panel__reorder-slot')
+        ?.getAttribute('data-slot-index'),
+    ).toBe('2');
+
+    dispatchPointerEvent(reorderHandles[0], 'pointerup', {
+      clientY: 30,
+      pointerId: 11,
+    });
+
+    expect(onReorderFolders).toHaveBeenCalledWith(0, 2);
+  });
+
+  it('moves earlier folders down while a later folder is dragged to the top', async () => {
+    const schema = createSchemaWithBookmarkFolder();
+    schema.bookmarks.folders.push({
+      archivedAt: null,
+      icon: 'shadow',
+      id: 'folder-3',
+      title: 'Third folder',
+      version: '1',
+    });
+    schema.bookmarks.tradesByFolderId['folder-3'] = [];
+
+    await renderPanel({ schema });
+
+    const folderRecords = Array.from(
+      container.querySelectorAll<HTMLElement>('.btff-panel__record'),
+    );
+    const reorderHandles = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        '.btff-panel__record-reorder',
+      ),
+    );
+    mockElementRect(folderRecords[0], { bottom: 60, top: 0 });
+    mockElementRect(folderRecords[1], { bottom: 130, top: 70 });
+    mockElementRect(folderRecords[2], { bottom: 200, top: 140 });
+
+    dispatchPointerEvent(reorderHandles[2], 'pointerdown', {
+      clientY: 170,
+      pointerId: 9,
+    });
+    dispatchPointerEvent(reorderHandles[2], 'pointermove', {
+      clientY: 10,
+      pointerId: 9,
+    });
+
+    expect(folderRecords[2].style.getPropertyValue('--btff-folder-drag-y')).toBe(
+      '-160px',
+    );
+    expect(folderRecords[0].getAttribute('data-reorder-shift')).toBe('down');
+    expect(folderRecords[1].getAttribute('data-reorder-shift')).toBe('down');
+    expect(folderRecords[0].style.getPropertyValue('--btff-folder-shift-y')).toBe(
+      '70px',
+    );
+    expect(
+      container
+        .querySelector<HTMLElement>('.btff-panel__reorder-slot')
+        ?.getAttribute('data-slot-index'),
+    ).toBe('0');
+  });
+
+  it('disables folder reordering while a bookmark title is being edited', async () => {
     const schema = createEmptyStorageSchema('phase0-instance');
     schema.preferences.hasCompletedOnboarding = true;
     schema.preferences.expandedFolderIds = ['folder-editable'];
@@ -771,24 +1456,28 @@ describe('Phase0Panel collapse chrome', () => {
 
     await renderPanel({ schema });
 
-    let folderRecord = container.querySelector<HTMLElement>(
-      '.btff-panel__record',
+    let reorderHandle = container.querySelector<HTMLButtonElement>(
+      '.btff-panel__record-reorder',
     );
-    expect(folderRecord?.draggable).toBe(true);
+    expect(reorderHandle?.disabled).toBe(false);
 
     flushSync(() => findButton(container, 'Rename')?.click());
 
     const renameInput = container.querySelector<HTMLInputElement>(
       '.btff-panel__inline-form--nested .btff-panel__input',
     );
-    folderRecord = container.querySelector<HTMLElement>('.btff-panel__record');
+    reorderHandle = container.querySelector<HTMLButtonElement>(
+      '.btff-panel__record-reorder',
+    );
     expect(renameInput).not.toBeNull();
-    expect(folderRecord?.draggable).toBe(false);
+    expect(reorderHandle?.disabled).toBe(true);
 
     flushSync(() => findButton(container, 'Cancel')?.click());
 
-    folderRecord = container.querySelector<HTMLElement>('.btff-panel__record');
-    expect(folderRecord?.draggable).toBe(true);
+    reorderHandle = container.querySelector<HTMLButtonElement>(
+      '.btff-panel__record-reorder',
+    );
+    expect(reorderHandle?.disabled).toBe(false);
   });
 
   it('renders saved name colors and a completed-title hook without recoloring metadata', async () => {
@@ -1133,6 +1822,49 @@ describe('Phase0Panel collapse chrome', () => {
     expect(onSetCollapsed).toHaveBeenCalledWith(false);
   });
 
+  it('summarizes distinct current and persisted-pin leagues in the compact dock', async () => {
+    await renderPanel({
+      isCollapsed: true,
+      pinnedItems: [
+        {
+          id: 'allflame-pin',
+          pinnedAt: '2026-07-25T00:00:00.000Z',
+          price: '3×Divine Orb',
+          sourcePath: '/trade/search/Allflame/allflame-pin',
+          subtitle: 'SellerOne#1111',
+          title: 'Stormfire',
+        },
+        {
+          id: 'standard-pin',
+          pinnedAt: '2026-07-25T00:00:01.000Z',
+          price: '12×Chaos Orb',
+          sourcePath: '/trade/search/Standard/standard-pin',
+          subtitle: 'SellerTwo#2222',
+          title: 'A Very Long Item Name That Must Not Widen The Dock',
+        },
+      ],
+      snapshot: {
+        ...createSnapshot(),
+        tradeLocation: {
+          isLive: false,
+          league: 'Allflame',
+          slug: 'current-search',
+          type: 'search',
+          version: '1',
+        },
+      },
+    });
+
+    const summary = container.querySelector('.btff-panel-dock__summary');
+    expect(summary?.textContent).toBe(
+      '2 pinned | 3 results | Allflame & Standard',
+    );
+    expect(summary?.getAttribute('title')).toBe(
+      '2 pinned | 3 results | Allflame & Standard',
+    );
+    expect(container.querySelectorAll('.btff-panel-dock__pinned-price')).toHaveLength(2);
+  });
+
   async function renderPanel(
     overrides: Partial<React.ComponentProps<typeof Phase0Panel>> = {},
   ) {
@@ -1152,10 +1884,12 @@ describe('Phase0Panel collapse chrome', () => {
           //onPoeNinjaPing={() => {}}
           //onRefresh={() => {}}
           onReorderFolders={async () => {}}
+          onReorderPinnedItems={() => {}}
           onRenameTrade={async () => {}}
           onSaveTrade={async () => {}}
           onActivatePinnedItem={() => {}}
           onSelectPage={() => {}}
+          onSetHeaderHidden={() => {}}
           onSetCollapsed={() => {}}
           onToggleFolder={() => {}}
           onToggleFolderArchive={async () => {}}
@@ -1269,4 +2003,46 @@ function findButton(container: HTMLElement, label: string) {
   return Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(
     (button) => button.textContent === label,
   );
+}
+
+function dispatchPointerEvent(
+  element: Element | null | undefined,
+  type: 'pointerdown' | 'pointermove' | 'pointerup',
+  options: { clientY: number; pointerId: number },
+) {
+  if (!element) throw new Error(`Unable to dispatch ${type} without an element.`);
+
+  const pointerSuffix = type.slice('pointer'.length);
+  const eventType =
+    `on${type}` in element
+      ? type
+      : `Pointer${pointerSuffix[0].toUpperCase()}${pointerSuffix.slice(1)}`;
+  const event = new PointerEvent(eventType, {
+    bubbles: true,
+    button: 0,
+    clientY: options.clientY,
+  });
+  Object.defineProperty(event, 'pointerId', { value: options.pointerId });
+
+  flushSync(() => element.dispatchEvent(event));
+}
+
+function mockElementRect(
+  element: Element | undefined,
+  verticalBounds: { bottom: number; top: number },
+) {
+  if (!element) throw new Error('Unable to mock a missing folder header.');
+
+  element.getBoundingClientRect = () =>
+    ({
+      bottom: verticalBounds.bottom,
+      height: verticalBounds.bottom - verticalBounds.top,
+      left: 0,
+      right: 280,
+      top: verticalBounds.top,
+      width: 280,
+      x: 0,
+      y: verticalBounds.top,
+      toJSON: () => ({}),
+    }) as DOMRect;
 }

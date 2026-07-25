@@ -71,7 +71,9 @@ export function BookmarksView({ schema, onToggleFolder }: Props) {
                     <strong>{folder.title}</strong>
                     <div className="popup-folder-meta">
                       <span>PoE {folder.version}</span>
-                      <span>{trades.length} trades</span>
+                      <span>
+                        {trades.length} search{trades.length === 1 ? '' : 'es'}
+                      </span>
                       {folder.archivedAt ? <span>Archived</span> : null}
                     </div>
                   </div>
@@ -103,7 +105,7 @@ export function BookmarksView({ schema, onToggleFolder }: Props) {
                     </ul>
                   ) : (
                     <div className="popup-inline-empty">
-                      This folder has no saved trades yet.
+                      This folder has no saved searches yet.
                     </div>
                   )
                 ) : null}

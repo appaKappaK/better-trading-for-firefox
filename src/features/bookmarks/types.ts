@@ -12,6 +12,7 @@ export interface BookmarkTradeLocation {
   version: TradeSiteVersion;
   type: string;
   slug: string;
+  league?: string;
 }
 
 export interface BookmarkTrade {

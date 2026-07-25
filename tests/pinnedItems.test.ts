@@ -141,6 +141,41 @@ describe('pinnedItems store', () => {
     );
   });
 
+  it('keeps an explicit pin order and emits it after reordering', () => {
+    const store = createPinnedItemsStore(document);
+    const listener = vi.fn();
+    store.replaceItems([
+      {
+        id: 'pin-one',
+        pinnedAt: '2026-07-25T00:00:02.000Z',
+        price: null,
+        sourcePath: '/trade/search/Allflame/pin-one',
+        subtitle: 'First seller',
+        title: 'First pin',
+      },
+      {
+        id: 'pin-two',
+        pinnedAt: '2026-07-25T00:00:01.000Z',
+        price: null,
+        sourcePath: '/trade/search/Allflame/pin-two',
+        subtitle: 'Second seller',
+        title: 'Second pin',
+      },
+    ]);
+    store.subscribe(listener);
+
+    expect(store.reorder(0, 1)).toBe(true);
+    expect(store.getItems().map((item) => item.id)).toEqual([
+      'pin-two',
+      'pin-one',
+    ]);
+    expect(listener).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: 'pin-two' }),
+      expect.objectContaining({ id: 'pin-one' }),
+    ]);
+    expect(store.reorder(1, 1)).toBe(false);
+  });
+
   it('can restore pinned items and detect whether their row is on the current page', () => {
     const store = createPinnedItemsStore(document);
 
