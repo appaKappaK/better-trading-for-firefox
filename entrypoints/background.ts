@@ -30,13 +30,20 @@ interface PoeNinjaChaosRatiosResponse {
 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(async (details) => {
+    const currentVersion = browser.runtime.getManifest().version;
+    const firefoxDetails = details as typeof details & { temporary?: boolean };
     console.log('Better Trading for Firefox background ready.', {
+      currentVersion,
       id: browser.runtime.id,
+      previousVersion: details.previousVersion ?? null,
       reason: details.reason,
+      temporary: firefoxDetails.temporary ?? null,
     });
 
-    if (details.reason === 'update') {
-      const newVersion = browser.runtime.getManifest().version;
+    if (
+      details.reason === 'update' &&
+      details.previousVersion !== currentVersion
+    ) {
       const stored = await browser.storage.local.get('btff-schema-v1');
       const raw = stored['btff-schema-v1'];
 
@@ -50,7 +57,7 @@ export default defineBackground(() => {
             ...schema,
             preferences: {
               ...prefs,
-              pendingUpdateNotice: newVersion,
+              pendingUpdateNotice: currentVersion,
             },
           },
         });

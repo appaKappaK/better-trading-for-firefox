@@ -4,7 +4,9 @@ import { createEmptyStorageSchema } from '../src/lib/storage/schema';
 import { STORAGE_SCHEMA_KEY } from '../src/lib/storage/runtime';
 
 interface InstalledDetails {
+  previousVersion?: string;
   reason: string;
+  temporary?: boolean;
 }
 
 type InstalledListener = (
@@ -23,7 +25,11 @@ describe('background update notice lifecycle', () => {
     schema.preferences.sidePanelDraggable = true;
     const harness = await loadBackgroundHarness(schema);
 
-    await harness.installedListener({ reason: 'update' });
+    await harness.installedListener({
+      previousVersion: '1.1.0',
+      reason: 'update',
+      temporary: false,
+    });
 
     expect(harness.get).toHaveBeenCalledWith(STORAGE_SCHEMA_KEY);
     expect(harness.set).toHaveBeenCalledWith({
@@ -42,6 +48,20 @@ describe('background update notice lifecycle', () => {
     const harness = await loadBackgroundHarness(schema);
 
     await harness.installedListener({ reason: 'install' });
+
+    expect(harness.get).not.toHaveBeenCalled();
+    expect(harness.set).not.toHaveBeenCalled();
+  });
+
+  it('ignores a same-version development reload reported as an update', async () => {
+    const schema = createEmptyStorageSchema('background-reload-test');
+    const harness = await loadBackgroundHarness(schema);
+
+    await harness.installedListener({
+      previousVersion: '1.2.0',
+      reason: 'update',
+      temporary: true,
+    });
 
     expect(harness.get).not.toHaveBeenCalled();
     expect(harness.set).not.toHaveBeenCalled();
