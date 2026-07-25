@@ -243,6 +243,114 @@ describe('popup bookmark controls', () => {
     expect(tradeDelete?.textContent).toBe('Delete');
     expect(tradeDelete?.classList.contains('popup-button--danger')).toBe(true);
   });
+
+  it('opens a modal confirmation before deleting a saved trade', async () => {
+    const trade = {
+      completedAt: null,
+      id: 'trade-1',
+      location: { version: '1' as const, type: 'search' as const, slug: 'trade-1' },
+      title: 'Headhunter under 20 Divine',
+    };
+    const folder: BookmarkFolder = {
+      archivedAt: null,
+      icon: 'ranger',
+      id: 'folder-1',
+      title: 'Headhunters',
+      version: '1',
+    };
+    const onDeleteTrade = vi.fn(async () => {});
+
+    renderBookmarksPanel({
+      folders: [folder],
+      onDeleteTrade,
+      tradesByFolderId: { 'folder-1': [trade] },
+    });
+
+    const deleteButton = container.querySelector<HTMLButtonElement>(
+      '.popup-trade-actions .popup-button--danger',
+    );
+    flushSync(() => deleteButton?.click());
+    await Promise.resolve();
+
+    expect(onDeleteTrade).not.toHaveBeenCalled();
+    expect(container.querySelector('.popup-confirmation')).toBeNull();
+    const dialog = container.querySelector<HTMLDialogElement>(
+      '[data-confirmation="delete-trade"]',
+    );
+    expect(dialog?.tagName).toBe('DIALOG');
+    expect(dialog?.getAttribute('role')).toBe('alertdialog');
+    expect(dialog?.hasAttribute('open')).toBe(true);
+    expect(dialog?.textContent).toContain('Delete saved search?');
+    expect(dialog?.textContent).toContain('Headhunter under 20 Divine');
+
+    dialog
+      ?.querySelector<HTMLButtonElement>('.popup-button--danger')
+      ?.click();
+    await Promise.resolve();
+
+    expect(onDeleteTrade).toHaveBeenCalledWith(folder, trade);
+  });
+
+  it('opens a modal confirmation before permanently deleting a folder', async () => {
+    const folder: BookmarkFolder = {
+      archivedAt: '2026-07-24T12:00:00.000Z',
+      icon: 'ranger',
+      id: 'folder-1',
+      title: 'Archived belts',
+      version: '1',
+    };
+    const onDeleteFolder = vi.fn(async () => {});
+
+    renderBookmarksPanel({
+      folders: [folder],
+      onDeleteFolder,
+      tradesByFolderId: { 'folder-1': [] },
+    });
+
+    flushSync(() => findButton(container, 'Show archived')?.click());
+    const deleteButton = findButton(container, 'Delete');
+    flushSync(() => deleteButton?.click());
+    await Promise.resolve();
+
+    expect(onDeleteFolder).not.toHaveBeenCalled();
+    expect(container.querySelector('.popup-confirmation')).toBeNull();
+    const dialog = container.querySelector<HTMLDialogElement>(
+      '[data-confirmation="delete-folder"]',
+    );
+    expect(dialog?.tagName).toBe('DIALOG');
+    expect(dialog?.hasAttribute('open')).toBe(true);
+    expect(dialog?.textContent).toContain('Delete archived folder?');
+    expect(dialog?.textContent).toContain('Archived belts');
+
+    dialog
+      ?.querySelector<HTMLButtonElement>('.popup-button--danger')
+      ?.click();
+    await Promise.resolve();
+
+    expect(onDeleteFolder).toHaveBeenCalledWith(folder);
+  });
+
+  function renderBookmarksPanel(
+    overrides: Partial<React.ComponentProps<typeof BookmarksPanel>> = {},
+  ) {
+    flushSync(() => {
+      root.render(
+        <BookmarksPanel
+          folders={[]}
+          isSchemaLoading={false}
+          onChangeFolderIcon={async () => {}}
+          onCopyBackup={async () => {}}
+          onCopyFolderExport={async () => {}}
+          onDeleteFolder={async () => {}}
+          onDeleteTrade={async () => {}}
+          onDownloadBackup={async () => {}}
+          onToggleFolderArchive={async () => {}}
+          tradesByFolderId={{}}
+          {...overrides}
+        />,
+      );
+    });
+  }
 });
 
 function findButton(container: HTMLElement, label: string) {

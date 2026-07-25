@@ -71,9 +71,16 @@ describe('SettingsView session pins toggle', () => {
 
     expect(onSetPinnedItemsSessionPersistence).not.toHaveBeenCalled();
     expect(container.textContent).toContain('Disable session pins?');
+    expect(container.querySelector('.popup-confirmation')).toBeNull();
+    const dialog = container.querySelector<HTMLDialogElement>(
+      '[data-confirmation="disable-session-pins"]',
+    );
+    expect(dialog?.tagName).toBe('DIALOG');
+    expect(dialog?.getAttribute('role')).toBe('alertdialog');
+    expect(dialog?.hasAttribute('open')).toBe(true);
 
     const confirmButton = Array.from(
-      container.querySelectorAll<HTMLButtonElement>('button'),
+      dialog?.querySelectorAll<HTMLButtonElement>('button') ?? [],
     ).find((button) => button.textContent === 'Disable session pins');
 
     confirmButton?.click();

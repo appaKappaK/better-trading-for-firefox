@@ -1009,30 +1009,20 @@ export function BookmarksPanel({
                 ) : null}
 
                 {confirmingFolderId === folder.id ? (
-                  <div className="popup-confirmation">
-                    <p>Delete this archived folder and all of its trades permanently?</p>
-                    <div className="popup-confirmation-actions">
-                      <button
-                        className="popup-button popup-button--danger popup-button--small"
-                        disabled={busyAction !== null}
-                        onClick={() => {
-                          void runAction(`delete-folder:${folder.id}`, async () => {
-                            await onDeleteFolder(folder);
-                            setConfirmingFolderId(null);
-                          });
-                        }}
-                        type="button">
-                        Delete permanently
-                      </button>
-                      <button
-                        className="popup-button popup-button--secondary popup-button--small"
-                        disabled={busyAction !== null}
-                        onClick={() => setConfirmingFolderId(null)}
-                        type="button">
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
+                  <ConfirmationDialog
+                    confirmation="delete-folder"
+                    confirmLabel="Delete permanently"
+                    description={`Delete “${folder.title}” and all of its saved trades permanently? This cannot be undone.`}
+                    disabled={busyAction !== null}
+                    onCancel={() => setConfirmingFolderId(null)}
+                    onConfirm={() => {
+                      void runAction(`delete-folder:${folder.id}`, async () => {
+                        await onDeleteFolder(folder);
+                        setConfirmingFolderId(null);
+                      });
+                    }}
+                    title="Delete archived folder?"
+                  />
                 ) : null}
 
                 {trades.length === 0 ? (
@@ -1082,30 +1072,20 @@ export function BookmarksPanel({
                           </div>
 
                           {confirmingTradeKey === tradeKey ? (
-                            <div className="popup-confirmation popup-confirmation--nested">
-                              <p>Delete this trade from the folder?</p>
-                              <div className="popup-confirmation-actions">
-                                <button
-                                  className="popup-button popup-button--danger popup-button--small"
-                                  disabled={busyAction !== null}
-                                  onClick={() => {
-                                    void runAction(`delete-trade:${tradeKey}`, async () => {
-                                      await onDeleteTrade(folder, trade);
-                                      setConfirmingTradeKey(null);
-                                    });
-                                  }}
-                                  type="button">
-                                  Delete trade
-                                </button>
-                                <button
-                                  className="popup-button popup-button--secondary popup-button--small"
-                                  disabled={busyAction !== null}
-                                  onClick={() => setConfirmingTradeKey(null)}
-                                  type="button">
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
+                            <ConfirmationDialog
+                              confirmation="delete-trade"
+                              confirmLabel="Delete trade"
+                              description={`Remove “${trade.title}” from “${folder.title}”? This cannot be undone.`}
+                              disabled={busyAction !== null}
+                              onCancel={() => setConfirmingTradeKey(null)}
+                              onConfirm={() => {
+                                void runAction(`delete-trade:${tradeKey}`, async () => {
+                                  await onDeleteTrade(folder, trade);
+                                  setConfirmingTradeKey(null);
+                                });
+                              }}
+                              title="Delete saved search?"
+                            />
                           ) : null}
                         </li>
                       );

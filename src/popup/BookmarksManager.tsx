@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import type { BookmarkFolder, BookmarkTrade } from '@/src/features/bookmarks/types';
 import type { StorageSchemaV1 } from '@/src/lib/storage/schema';
+import { ConfirmationDialog } from '@/src/popup/ConfirmationDialog';
 
 export interface PortableDataState {
   filename: string;
@@ -38,6 +39,20 @@ interface Props {
   schema: StorageSchemaV1 | null;
 }
 
+type PendingDelete =
+  | {
+      folderId: string;
+      folderTitle: string;
+      type: 'folder';
+    }
+  | {
+      folderId: string;
+      folderTitle: string;
+      tradeId: string;
+      tradeTitle: string;
+      type: 'trade';
+    };
+
 export function BookmarksManager({
   isSchemaLoading,
   onClearPortableData,
@@ -54,11 +69,7 @@ export function BookmarksManager({
   schema,
 }: Props) {
   const [showArchived, setShowArchived] = useState(false);
-  const [armedFolderDeleteId, setArmedFolderDeleteId] = useState<string | null>(null);
-  const [armedTradeDelete, setArmedTradeDelete] = useState<{
-    folderId: string;
-    tradeId: string;
-  } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
 
   const folders = schema?.bookmarks.folders ?? [];
   const tradesByFolderId = schema?.bookmarks.tradesByFolderId ?? {};
@@ -118,7 +129,6 @@ export function BookmarksManager({
             const trades = tradesByFolderId[folder.id] ?? [];
             const isExpanded =
               folder.archivedAt === null && expandedFolderIds.includes(folder.id);
-            const folderDeleteArmed = armedFolderDeleteId === folder.id;
 
             return (
               <article key={folder.id} className="popup-record-card">
@@ -166,32 +176,18 @@ export function BookmarksManager({
                     {folder.archivedAt ? 'Restore folder' : 'Archive folder'}
                   </button>
                   {folder.archivedAt ? (
-                    <>
-                      <button
-                        className={`popup-button popup-button--secondary${
-                          folderDeleteArmed ? ' popup-button--danger' : ''
-                        }`}
-                        onClick={() => {
-                          if (folderDeleteArmed) {
-                            void onDeleteFolder(folder.id, folder.title);
-                            setArmedFolderDeleteId(null);
-                            return;
-                          }
-
-                          setArmedFolderDeleteId(folder.id);
-                        }}
-                        type="button">
-                        {folderDeleteArmed ? 'Confirm delete' : 'Delete folder'}
-                      </button>
-                      {folderDeleteArmed ? (
-                        <button
-                          className="popup-button popup-button--secondary"
-                          onClick={() => setArmedFolderDeleteId(null)}
-                          type="button">
-                          Cancel
-                        </button>
-                      ) : null}
-                    </>
+                    <button
+                      className="popup-button popup-button--danger"
+                      onClick={() => {
+                        setPendingDelete({
+                          folderId: folder.id,
+                          folderTitle: folder.title,
+                          type: 'folder',
+                        });
+                      }}
+                      type="button">
+                      Delete folder
+                    </button>
                   ) : null}
                 </div>
 
@@ -199,10 +195,6 @@ export function BookmarksManager({
                   trades.length > 0 ? (
                     <ul className="popup-trade-list">
                       {trades.map((trade) => {
-                        const tradeDeleteArmed =
-                          armedTradeDelete?.folderId === folder.id &&
-                          armedTradeDelete.tradeId === trade.id;
-
                         return (
                           <li key={trade.id}>
                             <div className="popup-trade-row-header">
@@ -233,32 +225,19 @@ export function BookmarksManager({
                                 {trade.completedAt ? 'Undo done' : 'Mark done'}
                               </button>
                               <button
-                                className={`popup-button popup-button--secondary${
-                                  tradeDeleteArmed ? ' popup-button--danger' : ''
-                                }`}
+                                className="popup-button popup-button--danger"
                                 onClick={() => {
-                                  if (tradeDeleteArmed) {
-                                    void onDeleteTrade(folder.id, trade.id, trade.title);
-                                    setArmedTradeDelete(null);
-                                    return;
-                                  }
-
-                                  setArmedTradeDelete({
+                                  setPendingDelete({
                                     folderId: folder.id,
+                                    folderTitle: folder.title,
                                     tradeId: trade.id,
+                                    tradeTitle: trade.title,
+                                    type: 'trade',
                                   });
                                 }}
                                 type="button">
-                                {tradeDeleteArmed ? 'Confirm delete' : 'Delete trade'}
+                                Delete trade
                               </button>
-                              {tradeDeleteArmed ? (
-                                <button
-                                  className="popup-button popup-button--secondary"
-                                  onClick={() => setArmedTradeDelete(null)}
-                                  type="button">
-                                  Cancel
-                                </button>
-                              ) : null}
                             </div>
                           </li>
                         );
@@ -274,6 +253,36 @@ export function BookmarksManager({
             );
           })}
         </div>
+      ) : null}
+
+      {pendingDelete?.type === 'folder' ? (
+        <ConfirmationDialog
+          confirmation="delete-folder"
+          confirmLabel="Delete permanently"
+          description={`Delete “${pendingDelete.folderTitle}” and all of its saved trades permanently? This cannot be undone.`}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => {
+            const target = pendingDelete;
+            setPendingDelete(null);
+            void onDeleteFolder(target.folderId, target.folderTitle);
+          }}
+          title="Delete archived folder?"
+        />
+      ) : null}
+
+      {pendingDelete?.type === 'trade' ? (
+        <ConfirmationDialog
+          confirmation="delete-trade"
+          confirmLabel="Delete trade"
+          description={`Remove “${pendingDelete.tradeTitle}” from “${pendingDelete.folderTitle}”? This cannot be undone.`}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => {
+            const target = pendingDelete;
+            setPendingDelete(null);
+            void onDeleteTrade(target.folderId, target.tradeId, target.tradeTitle);
+          }}
+          title="Delete saved search?"
+        />
       ) : null}
     </>
   );

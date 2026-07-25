@@ -928,6 +928,32 @@ async function verifyPopupControls(driver) {
   await writeFile(POPUP_PICKER_SCREENSHOT_PATH, pickerScreenshot, 'base64');
   await pickerSummary.click();
 
+  const deleteTrade = await driver.wait(
+    until.elementLocated(By.css('.popup-trade-actions .popup-button--danger')),
+    10_000,
+    'Popup saved-search delete action did not render.',
+  );
+  await deleteTrade.click();
+  const deleteTradeDialog = await driver.wait(
+    until.elementLocated(
+      By.css(
+        'dialog.popup-confirmation-dialog[data-confirmation="delete-trade"][open]',
+      ),
+    ),
+    10_000,
+    'Saved-search delete confirmation did not appear.',
+  );
+  await assertDialogIsVisible(driver, deleteTradeDialog, 'Saved-search delete');
+  if (!(await deleteTradeDialog.getText()).includes('Delete saved search?')) {
+    throw new Error('Saved-search delete confirmation copy is missing.');
+  }
+  const cancelDeleteTrade = await findElementByText(
+    driver,
+    'dialog[data-confirmation="delete-trade"] button',
+    'Cancel',
+  );
+  await cancelDeleteTrade.click();
+
   const bookmarksSize = await measurePopupShell(driver, shell);
   const historyTab = await findElementByText(driver, '.popup-tab', 'History');
   await historyTab.click();

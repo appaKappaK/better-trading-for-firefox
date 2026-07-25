@@ -5,6 +5,10 @@ const popupCss = readFileSync(
   new URL('../entrypoints/popup/App.css', import.meta.url),
   'utf8',
 );
+const bookmarksManagerSource = readFileSync(
+  new URL('../src/popup/BookmarksManager.tsx', import.meta.url),
+  'utf8',
+);
 
 describe('popup interaction layout styles', () => {
   it('centers every button label in both axes', () => {
@@ -21,6 +25,18 @@ describe('popup interaction layout styles', () => {
       /\.popup-confirmation-dialog\s*\{[^}]*position:\s*fixed;[^}]*inset:\s*0;/s,
     );
     expect(popupCss).toMatch(/\.popup-confirmation-dialog::backdrop\s*\{/s);
+    expect(popupCss).not.toMatch(/\.popup-confirmation\s*\{/s);
+    expect(popupCss).not.toContain('.popup-confirmation--nested');
+    expect(popupCss).not.toContain('.popup-confirmation--history');
+  });
+
+  it('routes legacy bookmark-manager deletions through the shared modal', () => {
+    expect(bookmarksManagerSource).toContain(
+      "import { ConfirmationDialog } from '@/src/popup/ConfirmationDialog';",
+    );
+    expect(bookmarksManagerSource).toContain('confirmation="delete-folder"');
+    expect(bookmarksManagerSource).toContain('confirmation="delete-trade"');
+    expect(bookmarksManagerSource).not.toContain('Confirm delete');
   });
 
   it('anchors history pill rows left while centering each label internally', () => {

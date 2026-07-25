@@ -5,6 +5,7 @@ import {
   isEnhancerEnabled,
 } from '@/src/lib/preferences/enhancers';
 import type { StorageSchemaV1 } from '@/src/lib/storage/schema';
+import { ConfirmationDialog } from '@/src/popup/ConfirmationDialog';
 
 const REPO_URL = 'https://github.com/appaKappaK/better-trading-for-firefox';
 const ORIGINAL_REPO_URL = 'https://github.com/exile-center/better-trading';
@@ -69,30 +70,17 @@ export function SettingsView({
               />
             </label>
             {confirmingDisableSessionPins ? (
-              <div className="popup-confirmation popup-confirmation--nested">
-                <p>
-                  Disable session pins? Trade tabs you already have open will keep
-                  their current pins until you close the tab or quit Firefox. New
-                  trade tabs will go back to clearing pins when you change filters.
-                </p>
-                <div className="popup-confirmation-actions">
-                  <button
-                    className="popup-button popup-button--secondary popup-button--danger"
-                    onClick={() => {
-                      setConfirmingDisableSessionPins(false);
-                      void onSetPinnedItemsSessionPersistence(false);
-                    }}
-                    type="button">
-                    Disable session pins
-                  </button>
-                  <button
-                    className="popup-button popup-button--secondary"
-                    onClick={() => setConfirmingDisableSessionPins(false)}
-                    type="button">
-                    Cancel
-                  </button>
-                </div>
-              </div>
+              <ConfirmationDialog
+                confirmation="disable-session-pins"
+                confirmLabel="Disable session pins"
+                description="Trade tabs already open will keep their current pins until you close the tab or quit Firefox. New trade tabs will clear pins when you change filters."
+                onCancel={() => setConfirmingDisableSessionPins(false)}
+                onConfirm={() => {
+                  setConfirmingDisableSessionPins(false);
+                  void onSetPinnedItemsSessionPersistence(false);
+                }}
+                title="Disable session pins?"
+              />
             ) : null}
             <label className="popup-setting-card">
               <div>
