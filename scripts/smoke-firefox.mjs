@@ -967,6 +967,35 @@ async function verifyPopupControls(driver) {
     throw new Error('Post-update dialog did not expose one Dismiss action.');
   }
 
+  const updateChangelogLink = await updateNoticeDialog.findElement(
+    By.css('.popup-release-notes__link'),
+  );
+  if (
+    (await updateChangelogLink.getAttribute('href')) !==
+    'https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.1.0'
+  ) {
+    throw new Error('Post-update changelog link did not target the v1.1.0 release.');
+  }
+
+  await driver.actions().move({ origin: updateChangelogLink }).perform();
+  const updateNotesPreview = await driver.wait(async () => {
+    const previews = await updateNoticeDialog.findElements(
+      By.css('.popup-release-notes__preview'),
+    );
+    if (previews.length !== 1 || !(await previews[0].isDisplayed())) return false;
+
+    return previews[0];
+  }, 10_000, 'Post-update changelog preview did not appear on hover.');
+  const updateNotesText = (await updateNotesPreview.getText()).trim();
+  if (
+    !updateNotesText.includes("What's new in v1.1.0") ||
+    !updateNotesText.includes('Keep pinned items across searches')
+  ) {
+    throw new Error(
+      `Post-update changelog preview did not show v1.1.0 highlights: ${updateNotesText}`,
+    );
+  }
+
   const updateNoticeScreenshot = await driver.takeScreenshot();
   await writeFile(
     POPUP_UPDATE_NOTICE_SCREENSHOT_PATH,

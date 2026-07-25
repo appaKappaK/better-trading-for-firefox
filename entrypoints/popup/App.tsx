@@ -33,6 +33,7 @@ import { readImportFile } from '@/src/popup/importFiles';
 import { ConfirmationDialog } from '@/src/popup/ConfirmationDialog';
 import { SettingsView } from '@/src/popup/SettingsView';
 import { buildTradeUrl } from '@/src/popup/tradeUrls';
+import { UpdateNoticeContent } from '@/src/popup/UpdateNoticeContent';
 
 import './App.css';
 
@@ -576,7 +577,11 @@ function App() {
           cancelLabel={null}
           confirmation="update-notice"
           confirmLabel="Dismiss"
-          description="Better Trading for Firefox was just updated. Check the changelog for what is new."
+          description={
+            <UpdateNoticeContent
+              version={schema.preferences.pendingUpdateNotice}
+            />
+          }
           onCancel={() => void handleDismissUpdateNotice()}
           onConfirm={() => void handleDismissUpdateNotice()}
           role="dialog"

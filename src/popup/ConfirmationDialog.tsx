@@ -1,10 +1,10 @@
-import { useId, useLayoutEffect, useRef } from 'react';
+import { useId, useLayoutEffect, useRef, type ReactNode } from 'react';
 
 interface ConfirmationDialogProps {
   cancelLabel?: string | null;
   confirmLabel: string;
   confirmation: string;
-  description: string;
+  description: ReactNode;
   disabled?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -84,7 +84,11 @@ export function ConfirmationDialog({
       role={role}>
       <div className="popup-confirmation-dialog__surface">
         <h3 id={titleId}>{title}</h3>
-        <p id={descriptionId}>{description}</p>
+        <div
+          className="popup-confirmation-dialog__description"
+          id={descriptionId}>
+          {description}
+        </div>
         <div className="popup-confirmation-actions">
           <button
             className={`popup-button popup-button--small ${

@@ -48,7 +48,7 @@ describe('popup update notice', () => {
     vi.unstubAllGlobals();
   });
 
-  it('shows the update as a single-action informational dialog', async () => {
+  it('previews the matching release notes from the changelog link', async () => {
     flushSync(() => root.render(<App />));
 
     await vi.waitFor(() => {
@@ -69,6 +69,29 @@ describe('popup update notice', () => {
     expect(dialog?.hasAttribute('open')).toBe(true);
     expect(dialog?.textContent).toContain('Updated to v1.1.0');
     expect(dialog?.textContent).toContain('Check the changelog for what is new.');
+    const changelogLink = dialog?.querySelector<HTMLAnchorElement>(
+      '.popup-release-notes__link',
+    );
+    expect(changelogLink?.textContent).toBe('changelog');
+    expect(changelogLink?.href).toBe(
+      'https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.1.0',
+    );
+    expect(changelogLink?.target).toBe('_blank');
+    expect(dialog?.querySelector('.popup-release-notes__preview')).toBeNull();
+
+    changelogLink?.focus();
+
+    await vi.waitFor(() => {
+      expect(
+        dialog?.querySelector('.popup-release-notes__preview'),
+      ).not.toBeNull();
+    });
+    const preview = dialog?.querySelector('.popup-release-notes__preview');
+    expect(preview?.textContent).toContain("What's new in v1.1.0");
+    expect(preview?.querySelectorAll('li')).toHaveLength(3);
+    expect(preview?.textContent).toContain(
+      'Keep pinned items across searches in the current trade tab.',
+    );
     expect(buttons).toHaveLength(1);
     expect(buttons?.[0].textContent).toBe('Dismiss');
     expect(buttons?.[0].classList.contains('popup-button--danger')).toBe(false);
