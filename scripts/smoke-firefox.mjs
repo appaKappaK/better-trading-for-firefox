@@ -956,7 +956,7 @@ async function verifyPopupControls(driver) {
             ...schema,
             preferences: {
               ...schema.preferences,
-              pendingUpdateNotice: '1.1.0',
+              pendingUpdateNotice: '1.2.0',
             },
           },
         });
@@ -997,9 +997,9 @@ async function verifyPopupControls(driver) {
   const updateDismissRectBeforePreview = await updateNoticeButtons[0].getRect();
   if (
     (await updateChangelogLink.getAttribute('href')) !==
-    'https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.1.0'
+    'https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.2.0'
   ) {
-    throw new Error('Post-update changelog link did not target the v1.1.0 release.');
+    throw new Error('Post-update changelog link did not target the v1.2.0 release.');
   }
 
   await driver.actions().move({ origin: updateChangelogLink }).perform();
@@ -1013,11 +1013,11 @@ async function verifyPopupControls(driver) {
   }, 10_000, 'Post-update changelog preview did not appear on hover.');
   const updateNotesText = (await updateNotesPreview.getText()).trim();
   if (
-    !updateNotesText.includes("What's new in v1.1.0") ||
-    !updateNotesText.includes('Keep pinned items across searches')
+    !updateNotesText.includes("What's new in v1.2.0") ||
+    !updateNotesText.includes('Organize folders and bookmarks')
   ) {
     throw new Error(
-      `Post-update changelog preview did not show v1.1.0 highlights: ${updateNotesText}`,
+      `Post-update changelog preview did not show v1.2.0 highlights: ${updateNotesText}`,
     );
   }
 

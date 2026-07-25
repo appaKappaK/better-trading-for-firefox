@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 ## [Unreleased]
 
 ### Added
-- Added a keyboard-accessible hover preview of the current release highlights to the post-update changelog link, with v1.1.0 notes used for the initial implementation
+- Added a keyboard-accessible hover preview of the current release highlights to the post-update changelog link
 - Added optional seven-color ROYGBIV palettes for folder and bookmark names in Quick Save, with colors preserved through backup export and import
 - Added a persistent compact-popup preference: right-click the header to hide it, right-click the tab row to restore it, or use the Settings toggle
 - Added accessible, fixed confirmation dialogs for destructive actions so clearing saved data or history and deleting folders or saved searches never requires scrolling to inline controls

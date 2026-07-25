@@ -2,7 +2,7 @@
   "name": "better_trading_for_firefox",
   "description": "Firefox-first rebuild spike for Better Trading on the Path of Exile trade site.",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "engines": {
     "node": ">=22.13.0",

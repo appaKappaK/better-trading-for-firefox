@@ -1,6 +1,11 @@
 import { useId, useState } from 'react';
 
 const RELEASE_HIGHLIGHTS: Record<string, string[]> = {
+  '1.2.0': [
+    'Organize folders and bookmarks with optional name colors and a compact icon picker.',
+    'Use denser pinned, bookmark, and history views with improved overlay and sidebar controls.',
+    'Get more reliable item names, currency artwork, history titles, and live timestamps.',
+  ],
   '1.1.0': [
     'Keep pinned items across searches in the current trade tab.',
     'Reopen a pinned item\'s saved search when its result is no longer visible.',

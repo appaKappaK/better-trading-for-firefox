@@ -23,7 +23,7 @@ describe('popup header visibility', () => {
 
     vi.stubGlobal('browser', {
       runtime: {
-        getManifest: () => ({ version: '1.1.0' }),
+        getManifest: () => ({ version: '1.2.0' }),
       },
       storage: {
         local: {
