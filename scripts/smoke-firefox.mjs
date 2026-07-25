@@ -15,6 +15,14 @@ const BOOKMARK_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
   'firefox-bookmark-collapsed.png',
 );
+const BOOKMARK_COLOR_PICKER_SCREENSHOT_PATH = path.join(
+  ARTIFACTS_DIR,
+  'firefox-bookmark-color-picker.png',
+);
+const BOOKMARK_COMPLETED_SCREENSHOT_PATH = path.join(
+  ARTIFACTS_DIR,
+  'firefox-bookmark-completed.png',
+);
 const DOCK_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
   'firefox-dock-draggable.png',
@@ -397,6 +405,8 @@ try {
     toolbarPopup,
   });
   console.log(`Collapsed bookmark screenshot: ${BOOKMARK_SCREENSHOT_PATH}`);
+  console.log(`Bookmark color picker screenshot: ${BOOKMARK_COLOR_PICKER_SCREENSHOT_PATH}`);
+  console.log(`Completed bookmark screenshot: ${BOOKMARK_COMPLETED_SCREENSHOT_PATH}`);
   console.log(`Draggable dock screenshot: ${DOCK_SCREENSHOT_PATH}`);
   console.log(`Popup history screenshot: ${POPUP_HISTORY_SCREENSHOT_PATH}`);
   console.log(`Popup first-run screenshot: ${POPUP_FIRST_RUN_SCREENSHOT_PATH}`);
@@ -587,6 +597,13 @@ async function initializeFreshProfile(driver, extensionId) {
 
     return false;
   }, 20_000, 'Initialized smoke profile did not return to Bookmarks.');
+
+  const settingsTab = await findElementByText(driver, '.popup-tab', 'Settings');
+  await settingsTab.click();
+  await setPopupCheckbox(driver, 'Keep pins across searches in this tab', true);
+
+  const bookmarksTab = await findElementByText(driver, '.popup-tab', 'Bookmarks');
+  await bookmarksTab.click();
 }
 
 async function measurePinActionSpacing(driver) {
@@ -1220,10 +1237,17 @@ async function createFolderWithIcon(driver) {
   let inputs = await waitForElements(
     driver,
     shadowRoot,
-    '.btff-panel__field input',
+    '.btff-panel__field > input',
     2,
   );
   await inputs[0].sendKeys('Smoke test folder');
+
+  const [folderGreen] = await waitForElements(
+    driver,
+    shadowRoot,
+    'input[aria-label="Folder color: Green"]',
+  );
+  await driver.executeScript((input) => input.click(), folderGreen);
 
   const [iconPickerSummary] = await waitForElements(
     driver,
@@ -1247,10 +1271,24 @@ async function createFolderWithIcon(driver) {
   inputs = await waitForElements(
     driver,
     shadowRoot,
-    '.btff-panel__field input',
+    '.btff-panel__field > input',
     2,
   );
   await inputs.at(-1).sendKeys('Smoke test trade');
+
+  const [bookmarkViolet] = await waitForElements(
+    driver,
+    shadowRoot,
+    'input[aria-label="Bookmark color: Violet"]',
+  );
+  await driver.executeScript((input) => input.click(), bookmarkViolet);
+
+  const colorPickerScreenshot = await driver.takeScreenshot();
+  await writeFile(
+    BOOKMARK_COLOR_PICKER_SCREENSHOT_PATH,
+    colorPickerScreenshot,
+    'base64',
+  );
 
   const saveButton = await findElementByText(
     shadowRoot,
@@ -1286,7 +1324,83 @@ async function createFolderWithIcon(driver) {
       : false;
   }, 20_000, 'Saved bookmark folder did not open after creation.');
 
-  await folderToggle.click();
+  const nameColors = await driver.executeScript(() => {
+    const host = document.querySelector('[data-btff-phase0-host="true"]');
+    const root = host?.shadowRoot;
+    const folderTitle = root?.querySelector(
+      '.btff-panel__record-toggle [data-name-color="green"]',
+    );
+    const tradeTitle = root?.querySelector(
+      '.btff-panel__trade-title[data-name-color="violet"]',
+    );
+
+    return {
+      folder: folderTitle ? getComputedStyle(folderTitle).color : null,
+      trade: tradeTitle ? getComputedStyle(tradeTitle).color : null,
+    };
+  });
+
+  if (nameColors.folder !== 'rgb(104, 168, 117)') {
+    throw new Error(`Folder name color did not persist: ${nameColors.folder}`);
+  }
+
+  if (nameColors.trade !== 'rgb(164, 119, 189)') {
+    throw new Error(`Bookmark name color did not persist: ${nameColors.trade}`);
+  }
+
+  const markDoneButton = await findElementByText(
+    shadowRoot,
+    'button',
+    'Mark done',
+  );
+  await markDoneButton.click();
+
+  const completedX = await driver.wait(async () => {
+    const state = await driver.executeScript(() => {
+      const host = document.querySelector('[data-btff-phase0-host="true"]');
+      const root = host?.shadowRoot;
+      const row = root?.querySelector('.btff-panel__trade-row');
+      const title = row?.querySelector('.btff-panel__trade-title');
+      if (!(row instanceof HTMLElement) || !(title instanceof HTMLElement)) {
+        return null;
+      }
+
+      const before = getComputedStyle(title, '::before');
+      const after = getComputedStyle(title, '::after');
+      return {
+        completed: row.dataset.completed,
+        beforeColor: before.backgroundColor,
+        beforeContent: before.content,
+        afterColor: after.backgroundColor,
+        afterContent: after.content,
+      };
+    });
+
+    return state?.completed === 'true' ? state : false;
+  }, 20_000, 'Saved bookmark did not enter the completed state.');
+
+  if (
+    completedX.beforeColor !== 'rgb(200, 90, 74)' ||
+    completedX.afterColor !== 'rgb(200, 90, 74)' ||
+    completedX.beforeContent === 'none' ||
+    completedX.afterContent === 'none'
+  ) {
+    throw new Error(`Completed bookmark X did not render correctly: ${JSON.stringify(completedX)}`);
+  }
+
+  const completedScreenshot = await driver.takeScreenshot();
+  await writeFile(
+    BOOKMARK_COMPLETED_SCREENSHOT_PATH,
+    completedScreenshot,
+    'base64',
+  );
+
+  const [updatedFolderToggle] = await waitForElements(
+    driver,
+    shadowRoot,
+    '.btff-panel__record-toggle',
+  );
+  await updatedFolderToggle.click();
 
   const collapsedFolder = await driver.wait(async () => {
     const state = await driver.executeScript(() => {
@@ -1310,6 +1424,8 @@ async function createFolderWithIcon(driver) {
   return {
     ...loadedFolderIcon,
     ...collapsedFolder,
+    completedX,
+    nameColors,
     picker,
   };
 }
@@ -1341,10 +1457,53 @@ async function pinResultAndMeasure(driver) {
       );
     });
   const initialTimestamp = await readPinnedTimestamp();
-  const updatedTimestamp = await driver.wait(async () => {
-    const timestamp = await readPinnedTimestamp();
-    return timestamp !== initialTimestamp ? timestamp : false;
-  }, 3_000, 'Pinned item relative time did not update while the tab remained open.');
+  let updatedTimestamp;
+
+  try {
+    updatedTimestamp = await driver.wait(async () => {
+      const timestamp = await readPinnedTimestamp();
+      return timestamp !== initialTimestamp ? timestamp : false;
+    }, 6_000, 'Pinned item relative time did not update while the tab remained open.');
+  } catch (error) {
+    const diagnostic = await driver.executeScript(() => ({
+      activeTab:
+        document
+          .querySelector('[data-btff-phase0-host="true"]')
+          ?.shadowRoot?.querySelector('.btff-panel__tab[data-active="true"]')
+          ?.textContent?.trim() ?? null,
+      dockPresent: Boolean(
+        document
+          .querySelector('[data-btff-phase0-host="true"]')
+          ?.shadowRoot?.querySelector('.btff-panel-dock'),
+      ),
+      latestTimestamp:
+        document
+          .querySelector('[data-btff-phase0-host="true"]')
+          ?.shadowRoot?.querySelector('.btff-panel__pinned-time')
+          ?.textContent?.trim() ?? null,
+      panelText:
+        document
+          .querySelector('[data-btff-phase0-host="true"]')
+          ?.shadowRoot?.querySelector('.btff-panel')
+          ?.textContent?.replace(/\s+/g, ' ')
+          .trim() ?? null,
+      pinnedItemCount:
+        document
+          .querySelector('[data-btff-phase0-host="true"]')
+          ?.shadowRoot?.querySelectorAll('.btff-panel__pinned-item').length ?? 0,
+      storedPins: sessionStorage.getItem('btff:session-pins-items'),
+    }));
+    const timeoutScreenshot = await driver.takeScreenshot();
+    await writeFile(
+      path.join(ARTIFACTS_DIR, 'firefox-pinned-timeout.png'),
+      timeoutScreenshot,
+      'base64',
+    );
+    throw new Error(
+      `Pinned item relative time did not update: ${JSON.stringify({ initialTimestamp, ...diagnostic })}`,
+      { cause: error },
+    );
+  }
 
   const metrics = await driver.executeScript(() => {
     const hostElement = document.querySelector('[data-btff-phase0-host="true"]');

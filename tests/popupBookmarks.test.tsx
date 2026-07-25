@@ -156,6 +156,52 @@ describe('popup bookmark controls', () => {
     expect(findButton(container, 'Copy full backup')?.disabled).toBe(false);
   });
 
+  it('renders saved colors on folder and bookmark names only', () => {
+    const folder: BookmarkFolder = {
+      archivedAt: null,
+      color: 'orange',
+      icon: 'ranger',
+      id: 'folder-1',
+      title: 'Headhunters',
+      version: '1',
+    };
+
+    flushSync(() => {
+      root.render(
+        <BookmarksPanel
+          folders={[folder]}
+          isSchemaLoading={false}
+          onChangeFolderIcon={async () => {}}
+          onCopyBackup={async () => {}}
+          onCopyFolderExport={async () => {}}
+          onDeleteFolder={async () => {}}
+          onDeleteTrade={async () => {}}
+          onDownloadBackup={async () => {}}
+          onToggleFolderArchive={async () => {}}
+          tradesByFolderId={{
+            'folder-1': [
+              {
+                color: 'blue',
+                completedAt: null,
+                id: 'trade-1',
+                location: { version: '1', type: 'search', slug: 'trade-1' },
+                title: 'Headhunter under 20 Divine',
+              },
+            ],
+          }}
+        />,
+      );
+    });
+
+    expect(
+      container.querySelector('.popup-record-copy h3')?.getAttribute('data-name-color'),
+    ).toBe('orange');
+    expect(
+      container.querySelector('.popup-trade-row strong')?.getAttribute('data-name-color'),
+    ).toBe('blue');
+    expect(container.querySelector('.popup-record-copy p')?.getAttribute('style')).toBeNull();
+  });
+
   it('styles every bookmark deletion entry point as destructive', () => {
     const folder: BookmarkFolder = {
       id: 'folder-1',

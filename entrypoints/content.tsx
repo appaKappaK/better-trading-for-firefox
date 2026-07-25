@@ -40,6 +40,7 @@ import {
   applyMaximumSocketWarnings,
   collectTradePageSnapshot,
 } from '@/src/content/tradePage';
+import type { BookmarkColor } from '@/src/features/bookmarks/types';
 import { isEnhancerEnabled } from '@/src/lib/preferences/enhancers';
 import type { PoeNinjaChaosRatios } from '@/src/lib/poeNinja/chaosRatios';
 import type { StorageSchemaV1 } from '@/src/lib/storage/schema';
@@ -643,6 +644,8 @@ export default defineContentScript({
     }
 
     async function saveTrade(draft: {
+      bookmarkColor: BookmarkColor | null;
+      folderColor: BookmarkColor | null;
       folderId: string | null;
       folderTitle: string | null;
       folderIcon: string | null;
@@ -653,6 +656,8 @@ export default defineContentScript({
       }
 
       const nextSchema = await saveStoredBookmarkTrade({
+        bookmarkColor: draft.bookmarkColor,
+        folderColor: draft.folderColor,
         folderId: draft.folderId,
         folderTitle: draft.folderTitle,
         folderIcon: draft.folderIcon,

@@ -1,8 +1,10 @@
 import type {
+  BookmarkColor,
   ImportedBookmarkFolder,
   ImportedBookmarkTrade,
   TradeSiteVersion,
 } from '@/src/features/bookmarks/types';
+import { normalizeBookmarkColor } from '@/src/lib/bookmarks/nameColors';
 import {
   decodeLatin1Base64,
   decodeUtf8Base64,
@@ -14,9 +16,11 @@ const LINE_DELIMITER = '\n';
 type ExportVersion = 1 | 2 | 3;
 
 interface ExportedFolderStructV1 {
+  clr?: BookmarkColor | null;
   icn: string;
   tit: string;
   trs: Array<{
+    clr?: BookmarkColor | null;
     tit: string;
     loc: string;
   }>;
@@ -50,6 +54,7 @@ export function parseLegacyFolderExport(
     }
 
     const folder: ImportedBookmarkFolder = {
+      color: normalizeBookmarkColor(payload.clr),
       title: payload.tit,
       version:
         exportVersion >= 3
@@ -115,6 +120,7 @@ function parseLegacyTrade(
   if (!version || !type || !slug) return null;
 
   return {
+    color: normalizeBookmarkColor(trade.clr),
     title: trade.tit,
     completedAt: null,
     location: {

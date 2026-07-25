@@ -27,6 +27,7 @@ import {
   updateStoredPreferences,
 } from '@/src/lib/storage/runtime';
 import { getFolderIconLabel } from '@/src/lib/bookmarks/folderIcons';
+import { getBookmarkColorHex } from '@/src/lib/bookmarks/nameColors';
 import { formatTradeLeagueLabel } from '@/src/lib/trade/location';
 import { readImportFile } from '@/src/popup/importFiles';
 import { ConfirmationDialog } from '@/src/popup/ConfirmationDialog';
@@ -932,7 +933,15 @@ export function BookmarksPanel({
                     />
                   ) : null}
                   <div className="popup-record-copy">
-                    <h3>{folder.title}</h3>
+                    <h3
+                      data-name-color={folder.color ?? undefined}
+                      style={
+                        folder.color
+                          ? { color: getBookmarkColorHex(folder.color) }
+                          : undefined
+                      }>
+                      {folder.title}
+                    </h3>
                     <p>
                       PoE {folder.version}
                       {folder.icon ? ` · ${getFolderIconLabel(folder.icon)}` : ''}
@@ -1037,7 +1046,15 @@ export function BookmarksPanel({
                         <li key={trade.id}>
                           <div className="popup-trade-row">
                             <div>
-                              <strong>{trade.title}</strong>
+                              <strong
+                                data-name-color={trade.color ?? undefined}
+                                style={
+                                  trade.color
+                                    ? { color: getBookmarkColorHex(trade.color) }
+                                    : undefined
+                                }>
+                                {trade.title}
+                              </strong>
                               <span>
                                 PoE {trade.location.version} | {trade.location.type} |{' '}
                                 {shortenSlug(trade.location.slug)}

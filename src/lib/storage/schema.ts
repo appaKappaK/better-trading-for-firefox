@@ -3,6 +3,7 @@ import type {
   BookmarkTrade,
   TradeSiteVersion,
 } from '@/src/features/bookmarks/types';
+import { normalizeBookmarkColor } from '@/src/lib/bookmarks/nameColors';
 import {
   formatTradeHistoryFallbackLabel,
   formatTradeLocationLabel,
@@ -201,6 +202,37 @@ export function normalizeStoredSchema(
 ): NormalizeStoredSchemaResult {
   let changed = false;
 
+  const bookmarkFolders = schema.bookmarks.folders.map((folder) => {
+    if (folder.color === undefined) return folder;
+
+    const color = normalizeBookmarkColor(folder.color);
+    if (color === folder.color) return folder;
+
+    changed = true;
+    return { ...folder, color };
+  });
+
+  const bookmarkTradesByFolderId = Object.fromEntries(
+    Object.entries(schema.bookmarks.tradesByFolderId).map(([folderId, trades]) => {
+      const normalizedTrades = Array.isArray(trades) ? trades : [];
+
+      if (!Array.isArray(trades)) changed = true;
+
+      return [
+        folderId,
+        normalizedTrades.map((trade) => {
+          if (trade.color === undefined) return trade;
+
+          const color = normalizeBookmarkColor(trade.color);
+          if (color === trade.color) return trade;
+
+          changed = true;
+          return { ...trade, color };
+        }),
+      ];
+    }),
+  );
+
   const historyEntries = schema.history.entries.map((entry) => {
     const normalizedLeague = normalizeTradeLeague(entry.league);
     const normalizedTitle = normalizeHistoryEntryTitle(entry, normalizedLeague);
@@ -240,6 +272,10 @@ export function normalizeStoredSchema(
     changed: true,
     schema: {
       ...schema,
+      bookmarks: {
+        folders: bookmarkFolders,
+        tradesByFolderId: bookmarkTradesByFolderId,
+      },
       history: {
         entries: historyEntries,
       },

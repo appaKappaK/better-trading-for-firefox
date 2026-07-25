@@ -29,6 +29,7 @@ import {
 } from '@/src/lib/storage/tradeContext';
 import type { ParsedTradeLocation } from '@/src/lib/trade/location';
 import type {
+  BookmarkColor,
   BookmarkTradeLocation,
   TradeSiteVersion,
 } from '@/src/features/bookmarks/types';
@@ -183,6 +184,8 @@ export async function saveStoredBookmarkTrade(input: {
   folderId: string | null;
   folderTitle: string | null;
   folderIcon?: string | null;
+  folderColor?: BookmarkColor | null;
+  bookmarkColor?: BookmarkColor | null;
   title: string;
   location: BookmarkTradeLocation;
 }): Promise<StorageSchemaV1> {
@@ -194,6 +197,7 @@ export async function saveStoredBookmarkTrade(input: {
       nextSchema = createBookmarkFolder(nextSchema, {
         title: input.folderTitle ?? '',
         version: input.location.version,
+        color: input.folderColor ?? null,
         icon: input.folderIcon ?? null,
       });
       nextFolderId = nextSchema.bookmarks.folders.at(-1)?.id ?? null;
@@ -206,6 +210,7 @@ export async function saveStoredBookmarkTrade(input: {
     nextSchema = createBookmarkTrade(nextSchema, {
       folderId: nextFolderId,
       title: input.title,
+      color: input.bookmarkColor ?? null,
       location: input.location,
     });
 
@@ -227,6 +232,7 @@ export async function saveStoredBookmarkTrade(input: {
 export async function createStoredBookmarkFolder(input: {
   title: string;
   version: TradeSiteVersion;
+  color?: BookmarkColor | null;
   icon?: string | null;
 }): Promise<StorageSchemaV1> {
   return updateStoredSchema((schema) => createBookmarkFolder(schema, input));
@@ -235,6 +241,7 @@ export async function createStoredBookmarkFolder(input: {
 export async function createStoredBookmarkTrade(input: {
   folderId: string;
   title: string;
+  color?: BookmarkColor | null;
   location: BookmarkTradeLocation;
 }): Promise<StorageSchemaV1> {
   return updateStoredSchema((schema) => createBookmarkTrade(schema, input));

@@ -5,11 +5,14 @@ import chaosIconUrl from '/public/assets/images/bookmark-folder/chaos.png?url';
 import divineIconUrl from '/public/assets/images/bookmark-folder/divine.png?url';
 
 import type {
+  BookmarkColor,
   BookmarkFolder,
   BookmarkTrade,
 } from '@/src/features/bookmarks/types';
 import { FolderIcon, FolderIconPicker } from '@/src/components/FolderIcon';
+import { NameColorPicker } from '@/src/components/NameColorPicker';
 import { getFolderIconLabel } from '@/src/lib/bookmarks/folderIcons';
+import { getBookmarkColorHex } from '@/src/lib/bookmarks/nameColors';
 import type { StorageSchemaV1 } from '@/src/lib/storage/schema';
 import {
   formatTradeLeagueLabel,
@@ -29,6 +32,8 @@ type PanelPage = 'bookmarks' | 'history' | 'pinned';
 const SUCCESS_FEEDBACK_DURATION_MS = 3_000;
 
 interface SaveTradeDraft {
+  bookmarkColor: BookmarkColor | null;
+  folderColor: BookmarkColor | null;
   folderId: string | null;
   folderTitle: string | null;
   folderIcon: string | null;
@@ -346,7 +351,9 @@ function BookmarksView({
   );
   const [newFolderTitle, setNewFolderTitle] = useState('');
   const [newFolderIcon, setNewFolderIcon] = useState<string | null>(null);
+  const [newFolderColor, setNewFolderColor] = useState<BookmarkColor | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
+  const [draftColor, setDraftColor] = useState<BookmarkColor | null>(null);
   const [editingTrade, setEditingTrade] = useState<{
     folderId: string;
     title: string;
@@ -435,6 +442,8 @@ function BookmarksView({
     setIsSaving(true);
     try {
       await onSaveTrade({
+        bookmarkColor: draftColor,
+        folderColor: shouldCreateFolder ? newFolderColor : null,
         folderId,
         folderTitle,
         folderIcon: shouldCreateFolder ? newFolderIcon : null,
@@ -447,8 +456,10 @@ function BookmarksView({
           : 'Saved the current trade into the selected folder.',
       });
       setDraftTitle('');
+      setDraftColor(null);
       setNewFolderTitle('');
       setNewFolderIcon(null);
+      setNewFolderColor(null);
       setSaveMode('existing');
     } catch (error) {
       setFeedback({
@@ -495,8 +506,11 @@ function BookmarksView({
         eligibleFolders={eligibleFolders}
         feedback={feedback}
         isSaving={isSaving}
+        newFolderColor={newFolderColor}
         newFolderIcon={newFolderIcon}
         newFolderTitle={newFolderTitle}
+        onBookmarkColorChange={setDraftColor}
+        onNewFolderColorChange={setNewFolderColor}
         onNewFolderIconChange={setNewFolderIcon}
         onNewFolderTitleChange={setNewFolderTitle}
         onSave={handleSaveTrade}
@@ -505,6 +519,7 @@ function BookmarksView({
         saveMode={saveMode}
         selectedFolderId={selectedFolderId}
         title={draftTitle}
+        bookmarkColor={draftColor}
         onTitleChange={setDraftTitle}
       />
 
@@ -555,7 +570,15 @@ function BookmarksView({
                     />
                   ) : null}
                   <div className="btff-panel__record-toggle-body">
-                    <strong>{folder.title}</strong>
+                    <strong
+                      data-name-color={folder.color ?? undefined}
+                      style={
+                        folder.color
+                          ? { color: getBookmarkColorHex(folder.color) }
+                          : undefined
+                      }>
+                      {folder.title}
+                    </strong>
                     <small>
                       PoE {folder.version}
                       {folder.icon ? ` · ${getFolderIconLabel(folder.icon)}` : ''}
@@ -607,6 +630,7 @@ function BookmarksView({
 }
 
 interface QuickSavePanelProps {
+  bookmarkColor: BookmarkColor | null;
   currentTradeLocation: ParsedTradeLocation | null;
   eligibleFolders: BookmarkFolder[];
   feedback: {
@@ -614,8 +638,11 @@ interface QuickSavePanelProps {
     message: string;
   } | null;
   isSaving: boolean;
+  newFolderColor: BookmarkColor | null;
   newFolderIcon: string | null;
   newFolderTitle: string;
+  onBookmarkColorChange: (value: BookmarkColor | null) => void;
+  onNewFolderColorChange: (value: BookmarkColor | null) => void;
   onNewFolderIconChange: (value: string | null) => void;
   onNewFolderTitleChange: (value: string) => void;
   onSave: () => void;
@@ -628,12 +655,16 @@ interface QuickSavePanelProps {
 }
 
 function QuickSavePanel({
+  bookmarkColor,
   currentTradeLocation,
   eligibleFolders,
   feedback,
   isSaving,
+  newFolderColor,
   newFolderIcon,
   newFolderTitle,
+  onBookmarkColorChange,
+  onNewFolderColorChange,
   onNewFolderIconChange,
   onNewFolderTitleChange,
   onSave,
@@ -708,6 +739,11 @@ function QuickSavePanel({
             <input
               onChange={(event) => onNewFolderTitleChange(event.target.value)}
               placeholder="e.g. Belt upgrades"
+              style={
+                newFolderColor
+                  ? { color: getBookmarkColorHex(newFolderColor) }
+                  : undefined
+              }
               value={newFolderTitle}
             />
           </label>
@@ -719,6 +755,12 @@ function QuickSavePanel({
                 onChange={onNewFolderIconChange}
                 value={newFolderIcon}
               />
+              <NameColorPicker
+                disabled={isSaving}
+                label="Folder color"
+                onChange={onNewFolderColorChange}
+                value={newFolderColor}
+              />
             </div>
           ) : null}
         </>
@@ -729,9 +771,23 @@ function QuickSavePanel({
         <input
           onChange={(event) => onTitleChange(event.target.value)}
           placeholder="e.g. Headhunter under 20 Divine"
+          style={
+            bookmarkColor
+              ? { color: getBookmarkColorHex(bookmarkColor) }
+              : undefined
+          }
           value={title}
         />
       </label>
+
+      {title.trim().length > 0 ? (
+        <NameColorPicker
+          disabled={isSaving}
+          label="Bookmark color"
+          onChange={onBookmarkColorChange}
+          value={bookmarkColor}
+        />
+      ) : null}
 
       <div className="btff-panel__inline-actions">
         <button
@@ -809,7 +865,14 @@ function TradeRow({
           })}
           rel="noreferrer"
           target="_blank">
-          <strong>{trade.title}</strong>
+          <strong
+            className="btff-panel__trade-title"
+            data-name-color={trade.color ?? undefined}
+            style={
+              trade.color ? { color: getBookmarkColorHex(trade.color) } : undefined
+            }>
+            {trade.title}
+          </strong>
           <span>
             {trade.location.type} | {formatTradeLeagueLabel(league)} |{' '}
             {shortenSlug(trade.location.slug)}
@@ -817,7 +880,14 @@ function TradeRow({
         </a>
       ) : (
         <div className="btff-panel__trade-link btff-panel__trade-link--static">
-          <strong>{trade.title}</strong>
+          <strong
+            className="btff-panel__trade-title"
+            data-name-color={trade.color ?? undefined}
+            style={
+              trade.color ? { color: getBookmarkColorHex(trade.color) } : undefined
+            }>
+            {trade.title}
+          </strong>
           <span>
             {trade.location.type} | need a recent PoE {trade.location.version} league
             before this bookmark can open directly

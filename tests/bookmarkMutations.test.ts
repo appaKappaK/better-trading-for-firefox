@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  createBookmarkFolder,
+  createBookmarkTrade,
   deleteBookmarkFolder,
   deleteBookmarkTrade,
   toggleBookmarkFolderArchive,
@@ -8,6 +10,70 @@ import {
 import { createEmptyStorageSchema } from '../src/lib/storage/schema';
 
 describe('bookmark mutations', () => {
+  it('stores validated colors on new folders and bookmark names', () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+    const withFolder = createBookmarkFolder(
+      schema,
+      {
+        color: 'green',
+        title: 'Ranger upgrades',
+        version: '1',
+      },
+      () => 'folder-colored',
+    );
+    const withTrade = createBookmarkTrade(
+      withFolder,
+      {
+        color: 'violet',
+        folderId: 'folder-colored',
+        location: {
+          version: '1',
+          type: 'search',
+          slug: 'colored-search',
+        },
+        title: 'Cold bow',
+      },
+      () => 'trade-colored',
+    );
+
+    expect(withTrade.bookmarks.folders[0]).toMatchObject({ color: 'green' });
+    expect(withTrade.bookmarks.tradesByFolderId['folder-colored'][0]).toMatchObject({
+      color: 'violet',
+    });
+  });
+
+  it('normalizes unsupported name colors to neutral', () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+    const withFolder = createBookmarkFolder(
+      schema,
+      {
+        color: 'ultraviolet',
+        title: 'Invalid color',
+        version: '1',
+      } as never,
+      () => 'folder-neutral',
+    );
+    const withTrade = createBookmarkTrade(
+      withFolder,
+      {
+        color: 'infrared',
+        folderId: 'folder-neutral',
+        location: {
+          version: '1',
+          type: 'search',
+          slug: 'neutral-search',
+        },
+        title: 'Neutral bookmark',
+      } as never,
+      () => 'trade-neutral',
+    );
+
+    expect(withTrade.bookmarks.folders[0]).toMatchObject({ color: null });
+    expect(withTrade.bookmarks.tradesByFolderId['folder-neutral'][0]).toMatchObject({
+      color: null,
+    });
+  });
+
   it('archives a folder and moves it to the end of the folder list', () => {
     const schema = createEmptyStorageSchema('phase0-instance');
     schema.bookmarks.folders = [

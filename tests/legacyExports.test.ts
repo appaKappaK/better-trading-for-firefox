@@ -13,12 +13,14 @@ describe('legacy bookmark export generation', () => {
   it('round-trips v3 folder exports with unicode intact', () => {
     const serialized = serializeLegacyFolderExport(
       {
+        color: 'indigo',
         icon: 'ascendancy',
         title: 'League Start 🔥',
         version: '2',
       },
       [
         {
+          color: 'orange',
           id: 'trade-1',
           title: 'Crossbow 💥',
           completedAt: null,
@@ -36,7 +38,9 @@ describe('legacy bookmark export generation', () => {
     expect(parsed).not.toBeNull();
     expect(parsed?.title).toBe('League Start 🔥');
     expect(parsed?.version).toBe('2');
+    expect(parsed?.color).toBe('indigo');
     expect(parsed?.trades[0].title).toBe('Crossbow 💥');
+    expect(parsed?.trades[0].color).toBe('orange');
   });
 
   it('normalizes Firefox class aliases to original Better Trading icon slugs', () => {

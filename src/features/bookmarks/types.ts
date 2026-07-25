@@ -1,4 +1,12 @@
 export type TradeSiteVersion = '1' | '2';
+export type BookmarkColor =
+  | 'red'
+  | 'orange'
+  | 'yellow'
+  | 'green'
+  | 'blue'
+  | 'indigo'
+  | 'violet';
 
 export interface BookmarkTradeLocation {
   version: TradeSiteVersion;
@@ -9,6 +17,7 @@ export interface BookmarkTradeLocation {
 export interface BookmarkTrade {
   id: string;
   title: string;
+  color?: BookmarkColor | null;
   completedAt: string | null;
   location: BookmarkTradeLocation;
 }
@@ -16,6 +25,7 @@ export interface BookmarkTrade {
 export interface BookmarkFolder {
   id: string;
   title: string;
+  color?: BookmarkColor | null;
   version: TradeSiteVersion;
   icon: string | null;
   archivedAt: string | null;
@@ -23,12 +33,14 @@ export interface BookmarkFolder {
 
 export interface ImportedBookmarkTrade {
   title: string;
+  color?: BookmarkColor | null;
   completedAt: string | null;
   location: BookmarkTradeLocation;
 }
 
 export interface ImportedBookmarkFolder {
   title: string;
+  color?: BookmarkColor | null;
   version: TradeSiteVersion;
   icon: string | null;
   archivedAt: string | null;

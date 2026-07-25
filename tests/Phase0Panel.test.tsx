@@ -286,6 +286,45 @@ describe('Phase0Panel collapse chrome', () => {
     expect(bookmarkInput?.placeholder).not.toContain('d8kyqjooUJ');
   });
 
+  it('reveals compact name-color choices only after the matching name is entered', async () => {
+    const onSaveTrade = vi.fn().mockResolvedValue(undefined);
+
+    await renderPanel({
+      onSaveTrade,
+      snapshot: createSaveableSnapshot('colored-new-folder'),
+    });
+
+    openQuickSave(container);
+    expect(findColorPicker(container, 'Folder color')).toBeNull();
+    expect(findColorPicker(container, 'Bookmark color')).toBeNull();
+
+    changeInput(findQuickSaveInput(container, 'Folder name'), 'Belt upgrades');
+    expect(findColorPicker(container, 'Folder color')).not.toBeNull();
+    expect(findColorPicker(container, 'Bookmark color')).toBeNull();
+
+    changeInput(findQuickSaveBookmarkInput(container), 'Cold resistance belts');
+    expect(findColorPicker(container, 'Bookmark color')).not.toBeNull();
+
+    chooseNameColor(container, 'Folder color', 'Green');
+    chooseNameColor(container, 'Bookmark color', 'Violet');
+
+    await act(async () => {
+      findButton(container, 'Save current search')?.click();
+      await Promise.resolve();
+    });
+
+    expect(onSaveTrade).toHaveBeenCalledWith({
+      bookmarkColor: 'violet',
+      folderColor: 'green',
+      folderIcon: null,
+      folderId: null,
+      folderTitle: 'Belt upgrades',
+      title: 'Cold resistance belts',
+    });
+    expect(findColorPicker(container, 'Folder color')).toBeNull();
+    expect(findColorPicker(container, 'Bookmark color')).toBeNull();
+  });
+
   it('clears the saved bookmark name while retaining the selected folder', async () => {
     const schema = createSchemaWithBookmarkFolder();
     const onSaveTrade = vi.fn().mockResolvedValue(undefined);
@@ -307,6 +346,8 @@ describe('Phase0Panel collapse chrome', () => {
       folderSelect.dispatchEvent(new Event('change', { bubbles: true }));
     });
     changeInput(bookmarkInput, 'Gear');
+    expect(findColorPicker(container, 'Bookmark color')).not.toBeNull();
+    chooseNameColor(container, 'Bookmark color', 'Blue');
 
     await act(async () => {
       findButton(container, 'Save current search')?.click();
@@ -314,6 +355,8 @@ describe('Phase0Panel collapse chrome', () => {
     });
 
     expect(onSaveTrade).toHaveBeenCalledWith({
+      bookmarkColor: 'blue',
+      folderColor: null,
       folderIcon: null,
       folderId: 'folder-2',
       folderTitle: null,
@@ -324,6 +367,7 @@ describe('Phase0Panel collapse chrome', () => {
       container.querySelector<HTMLSelectElement>('.btff-panel__field select')?.value,
     ).toBe('folder-2');
     expect(container.querySelector('.btff-panel__composer-copy')).not.toBeNull();
+    expect(findColorPicker(container, 'Bookmark color')).toBeNull();
   });
 
   it('dismisses successful Quick Save feedback after three seconds', async () => {
@@ -375,6 +419,7 @@ describe('Phase0Panel collapse chrome', () => {
 
     openQuickSave(container);
     changeInput(findQuickSaveBookmarkInput(container), 'Keep this name');
+    chooseNameColor(container, 'Bookmark color', 'Red');
 
     await act(async () => {
       findButton(container, 'Save current search')?.click();
@@ -387,6 +432,11 @@ describe('Phase0Panel collapse chrome', () => {
 
     expect(container.textContent).toContain('Could not save this search.');
     expect(findQuickSaveBookmarkInput(container).value).toBe('Keep this name');
+    expect(
+      container.querySelector<HTMLInputElement>(
+        'input[aria-label="Bookmark color: Red"]',
+      )?.checked,
+    ).toBe(true);
   });
 
   it('explains how to make Quick Save available when no trade is open', async () => {
@@ -640,6 +690,50 @@ describe('Phase0Panel collapse chrome', () => {
         ?.getAttribute('aria-expanded'),
     ).toBe('true');
     expect(container.querySelector('.btff-panel__trade-list')).not.toBeNull();
+  });
+
+  it('renders saved name colors and a completed-title hook without recoloring metadata', async () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+    schema.preferences.hasCompletedOnboarding = true;
+    schema.preferences.expandedFolderIds = ['folder-colored'];
+    schema.bookmarks.folders = [
+      {
+        archivedAt: null,
+        color: 'green',
+        icon: null,
+        id: 'folder-colored',
+        title: 'Ranger upgrades',
+        version: '1',
+      },
+    ];
+    schema.bookmarks.tradesByFolderId = {
+      'folder-colored': [
+        {
+          color: 'violet',
+          completedAt: '2026-07-24T12:00:00.000Z',
+          id: 'trade-colored',
+          location: { version: '1', type: 'search', slug: 'colored-trade' },
+          title: 'Cold bow',
+        },
+      ],
+    };
+
+    await renderPanel({ schema });
+
+    expect(
+      container
+        .querySelector('.btff-panel__record-toggle-body strong')
+        ?.getAttribute('data-name-color'),
+    ).toBe('green');
+    expect(
+      container.querySelector('.btff-panel__trade-title')?.getAttribute('data-name-color'),
+    ).toBe('violet');
+    expect(
+      container.querySelector('.btff-panel__trade-row')?.getAttribute('data-completed'),
+    ).toBe('true');
+    expect(
+      container.querySelector('.btff-panel__trade-link span')?.getAttribute('style'),
+    ).toBeNull();
   });
 
   it('shows Jump for current-page dock pins and keeps item level above pinned time', async () => {
@@ -970,12 +1064,28 @@ function openQuickSave(container: HTMLElement) {
 }
 
 function findQuickSaveBookmarkInput(container: HTMLElement) {
+  return findQuickSaveInput(container, 'Bookmark name');
+}
+
+function findQuickSaveInput(container: HTMLElement, label: string) {
   const field = Array.from(
     container.querySelectorAll<HTMLLabelElement>('.btff-panel__field'),
-  ).find((candidate) => candidate.textContent?.includes('Bookmark name'));
+  ).find((candidate) => candidate.textContent?.includes(label));
   const input = field?.querySelector<HTMLInputElement>('input');
-  if (!input) throw new Error('Quick Save bookmark-name input did not render.');
+  if (!input) throw new Error(`Quick Save ${label} input did not render.`);
   return input;
+}
+
+function findColorPicker(container: HTMLElement, label: string) {
+  return container.querySelector(`fieldset[aria-label="${label}"]`);
+}
+
+function chooseNameColor(container: HTMLElement, groupLabel: string, colorLabel: string) {
+  const input = container.querySelector<HTMLInputElement>(
+    `input[aria-label="${groupLabel}: ${colorLabel}"]`,
+  );
+  expect(input).not.toBeNull();
+  flushSync(() => input?.click());
 }
 
 function changeInput(input: HTMLInputElement, value: string) {

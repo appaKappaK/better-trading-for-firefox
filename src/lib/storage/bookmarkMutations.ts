@@ -1,14 +1,17 @@
 import type {
   BookmarkFolder,
+  BookmarkColor,
   BookmarkTrade,
   BookmarkTradeLocation,
   TradeSiteVersion,
 } from '@/src/features/bookmarks/types';
+import { normalizeBookmarkColor } from '@/src/lib/bookmarks/nameColors';
 import type { StorageSchemaV1 } from '@/src/lib/storage/schema';
 
 interface CreateFolderInput {
   title: string;
   version: TradeSiteVersion;
+  color?: BookmarkColor | null;
   icon?: string | null;
   archivedAt?: string | null;
 }
@@ -16,6 +19,7 @@ interface CreateFolderInput {
 interface CreateTradeInput {
   folderId: string;
   title: string;
+  color?: BookmarkColor | null;
   location: BookmarkTradeLocation;
   completedAt?: string | null;
 }
@@ -61,6 +65,7 @@ export function createBookmarkFolder(
         {
           id: folderId,
           title: normalizeRequiredValue(input.title, 'Folder title'),
+          color: normalizeBookmarkColor(input.color),
           version: input.version,
           icon: input.icon ?? null,
           archivedAt: input.archivedAt ?? null,
@@ -101,6 +106,7 @@ export function createBookmarkTrade(
           {
             id: createId(),
             title: normalizeRequiredValue(input.title, 'Trade title'),
+            color: normalizeBookmarkColor(input.color),
             location: input.location,
             completedAt: input.completedAt ?? null,
           },
@@ -149,7 +155,7 @@ export function toggleBookmarkTradeCompletion(
 export function patchBookmarkFolder(
   schema: StorageSchemaV1,
   folderId: string,
-  patch: Partial<Pick<BookmarkFolder, 'title' | 'icon' | 'archivedAt'>>,
+  patch: Partial<Pick<BookmarkFolder, 'title' | 'color' | 'icon' | 'archivedAt'>>,
 ): StorageSchemaV1 {
   return {
     ...schema,
@@ -200,7 +206,7 @@ export function patchBookmarkTrade(
   schema: StorageSchemaV1,
   folderId: string,
   tradeId: string,
-  patch: Partial<Pick<BookmarkTrade, 'title' | 'completedAt' | 'location'>>,
+  patch: Partial<Pick<BookmarkTrade, 'title' | 'color' | 'completedAt' | 'location'>>,
 ): StorageSchemaV1 {
   const trades = schema.bookmarks.tradesByFolderId[folderId];
 

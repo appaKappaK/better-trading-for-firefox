@@ -1,4 +1,5 @@
 import type {
+  BookmarkColor,
   BookmarkFolder,
   BookmarkTrade,
   TradeSiteVersion,
@@ -10,24 +11,32 @@ import { LEGACY_BACKUP_SECTION_DELIMITER } from '@/src/lib/legacy/bookmarkImport
 const LINE_DELIMITER = '\n';
 
 interface ExportedFolderStructV3 {
+  clr?: BookmarkColor;
   icn: string | null;
   tit: string;
   ver: TradeSiteVersion;
   trs: Array<{
+    clr?: BookmarkColor;
     tit: string;
     loc: string;
   }>;
 }
 
 export function serializeLegacyFolderExport(
-  folder: BookmarkFolder | Pick<BookmarkFolder, 'icon' | 'title' | 'version'>,
-  trades: Array<BookmarkTrade | Pick<BookmarkTrade, 'title' | 'location'>>,
+  folder:
+    | BookmarkFolder
+    | Pick<BookmarkFolder, 'color' | 'icon' | 'title' | 'version'>,
+  trades: Array<
+    BookmarkTrade | Pick<BookmarkTrade, 'color' | 'title' | 'location'>
+  >,
 ) {
   const payload: ExportedFolderStructV3 = {
+    ...(folder.color ? { clr: folder.color } : {}),
     icn: normalizeFolderIconSlug(folder.icon),
     tit: folder.title,
     ver: folder.version,
     trs: trades.map((trade) => ({
+      ...(trade.color ? { clr: trade.color } : {}),
       tit: trade.title,
       loc: `${trade.location.version}:${trade.location.type}:${trade.location.slug}`,
     })),

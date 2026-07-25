@@ -152,4 +152,51 @@ describe('storage schema scaffolding', () => {
       'generated-2',
     );
   });
+
+  it('repairs unsupported stored bookmark colors to neutral', () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+    schema.bookmarks.folders = [
+      {
+        archivedAt: null,
+        color: 'ultraviolet',
+        icon: null,
+        id: 'folder-1',
+        title: 'Invalid folder color',
+        version: '1',
+      } as never,
+    ];
+    schema.bookmarks.tradesByFolderId = {
+      'folder-1': [
+        {
+          color: 'infrared',
+          completedAt: null,
+          id: 'trade-1',
+          location: { version: '1', type: 'search', slug: 'invalid-color' },
+          title: 'Invalid bookmark color',
+        } as never,
+      ],
+    };
+
+    const normalized = normalizeStoredSchema(schema);
+
+    expect(normalized.changed).toBe(true);
+    expect(normalized.schema.bookmarks.folders[0].color).toBeNull();
+    expect(
+      normalized.schema.bookmarks.tradesByFolderId['folder-1'][0].color,
+    ).toBeNull();
+    expect(normalizeStoredSchema(normalized.schema).changed).toBe(false);
+  });
+
+  it('repairs a malformed stored bookmark trade list instead of throwing', () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+    schema.bookmarks.tradesByFolderId = {
+      'folder-1': { unexpected: 'record' } as never,
+    };
+
+    const normalized = normalizeStoredSchema(schema);
+
+    expect(normalized.changed).toBe(true);
+    expect(normalized.schema.bookmarks.tradesByFolderId['folder-1']).toEqual([]);
+    expect(normalizeStoredSchema(normalized.schema).changed).toBe(false);
+  });
 });

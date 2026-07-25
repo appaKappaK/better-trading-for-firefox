@@ -17,6 +17,7 @@ export function mergeImportedBookmarkFolders(
     const folderId = createId();
     const folder: BookmarkFolder = {
       id: folderId,
+      color: importedFolder.color ?? null,
       title: importedFolder.title,
       version: importedFolder.version,
       icon: importedFolder.icon,
@@ -25,6 +26,7 @@ export function mergeImportedBookmarkFolders(
 
     const trades: BookmarkTrade[] = importedFolder.trades.map((trade) => ({
       id: createId(),
+      color: trade.color ?? null,
       title: trade.title,
       completedAt: trade.completedAt,
       location: trade.location,
