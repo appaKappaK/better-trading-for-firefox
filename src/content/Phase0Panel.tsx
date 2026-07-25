@@ -232,7 +232,7 @@ export function Phase0Panel({
         </button>
       </nav>
 
-      <div className="btff-panel__scroll-area">
+      <div className="btff-panel__scroll-area" data-page={currentPage}>
         {currentPage === 'bookmarks' ? (
           <BookmarksView
             expandedFolderIds={schema?.preferences.expandedFolderIds ?? []}

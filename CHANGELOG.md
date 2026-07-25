@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Limited the collapsed launcher to three pinned-item thumbnails with a summary of additional pins, and made the launcher itself draggable when overlay dragging is enabled
 - Replaced long native folder-icon menus with a compact 208px scrollable preview picker that preserves imported and legacy icon choices
 - Kept bookmark folders collapsed until opened and changed the panel footer to report bookmark-folder count
+- Capped overlay-mode Pinned and History lists at 446px while preserving the full-height list layout in sidebar mode
 - Reserved a stable popup scrollbar gutter, limited scrollbar visibility to wheel activity, and moved the history-clear action beside the History heading
 - Raised the development requirement to Node.js 22.13, pinned Node.js 22.22.2 through `.nvmrc`, and aligned CI with the `dev` and `master` branch model
 

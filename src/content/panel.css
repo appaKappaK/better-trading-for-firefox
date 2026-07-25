@@ -1205,6 +1205,16 @@
   margin-right: 0;
 }
 
+.btff-panel__scroll-area[data-page='history'],
+.btff-panel__scroll-area[data-page='pinned'] {
+  max-height: 446px;
+}
+
+:host([data-sidebar='true']) .btff-panel__scroll-area[data-page='history'],
+:host([data-sidebar='true']) .btff-panel__scroll-area[data-page='pinned'] {
+  max-height: none;
+}
+
 .btff-panel__footer {
   flex-shrink: 0;
   display: flex;

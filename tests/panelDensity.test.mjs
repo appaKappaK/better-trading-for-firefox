@@ -5,6 +5,10 @@ const panelCss = readFileSync(
   new URL('../src/content/panel.css', import.meta.url),
   'utf8',
 );
+const panelSource = readFileSync(
+  new URL('../src/content/Phase0Panel.tsx', import.meta.url),
+  'utf8',
+);
 
 describe('in-page panel density styles', () => {
   it('lets the history layout own spacing instead of inheriting trade-row margins', () => {
@@ -34,6 +38,18 @@ describe('in-page panel density styles', () => {
   it('lets in-page list surfaces align with the tab row', () => {
     expect(panelCss).toMatch(
       /\.btff-panel__scroll-area\s*\{[^}]*padding-right:\s*0;[^}]*margin-right:\s*0;/s,
+    );
+  });
+
+  it('caps pinned and history lists in overlay mode without limiting the sidebar', () => {
+    expect(panelSource).toMatch(
+      /className="btff-panel__scroll-area"\s+data-page=\{currentPage\}/,
+    );
+    expect(panelCss).toMatch(
+      /\.btff-panel__scroll-area\[data-page='history'\],[^{]*\.btff-panel__scroll-area\[data-page='pinned'\]\s*\{[^}]*max-height:\s*446px;/s,
+    );
+    expect(panelCss).toMatch(
+      /:host\(\[data-sidebar='true'\]\)\s+\.btff-panel__scroll-area\[data-page='history'\],[^{]*:host\(\[data-sidebar='true'\]\)\s+\.btff-panel__scroll-area\[data-page='pinned'\]\s*\{[^}]*max-height:\s*none;/s,
     );
   });
 
