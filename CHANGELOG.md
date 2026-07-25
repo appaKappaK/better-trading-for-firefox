@@ -84,7 +84,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Separate pinned-list action row above the in-page pinned items list
 - Tooltip-only enlarged pinned item image preview in the in-page panel
 
-## [1.0.6] - 2026-04-04
+## 1.0.6 - 2026-04-04
 
 _The original changelog grouped these changes under 1.0.5–1.0.6; Firefox Add-ons published them as version 1.0.6._
 
@@ -108,7 +108,7 @@ _The original changelog grouped these changes under 1.0.5–1.0.6; Firefox Add-o
 - Folders/Trades/History/Schema stats grid from the popup footer
 - Section label dividers (In-Page Panel, Trade Enhancers, About) from the Settings page
 
-## [1.0.4] - 2026-03-31
+## 1.0.4 - 2026-03-31
 
 _The original changelog grouped these changes under 1.0.3–1.0.4; no separate 1.0.3 tag or release is recorded._
 
@@ -124,7 +124,7 @@ _The original changelog grouped these changes under 1.0.3–1.0.4; no separate 1
 - Pinned item title extraction now tries `.itemName .itemHeader` before falling back to the full `.itemName` text content, preventing price and property text from bleeding into the title
 - Removed `.details .text` from pinned item subtitle selectors — it was duplicating price information in the subtitle field
 
-## [1.0.2] - 2026-03-31
+## 1.0.2 - 2026-03-31
 
 ### Added
 - Sidebar mode for the in-page panel: new setting pushes trade page content aside instead of overlaying it; panel renders full-height flush to the viewport edge
@@ -134,7 +134,7 @@ _The original changelog grouped these changes under 1.0.3–1.0.4; no separate 1
 ### Changed
 - Collapse button in the panel footer is hidden when sidebar mode is active (collapsing is handled by toggling the setting)
 
-## [1.0.1] - 2026-03-30
+## 1.0.1 - 2026-03-30
 
 ### Fixed
 - Settings page no longer navigates away when toggling an enhancer or the panel collapse preference
@@ -144,7 +144,7 @@ _The original changelog grouped these changes under 1.0.3–1.0.4; no separate 1
 ### Changed
 - Updated Settings descriptions for release use
 
-## [1.0.0] - 2026-03-30
+## 1.0.0 - 2026-03-30
 
 Initial release.
 
@@ -166,8 +166,3 @@ Initial release.
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
 [Unreleased]: https://github.com/appaKappaK/better-trading-for-firefox/compare/v1.1.0...dev
 [1.1.0]: https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.1.0
-[1.0.6]: https://github.com/appaKappaK/better-trading-for-firefox/commit/35d906496c7bd8594c2a643b99ed2caa350f5d1c
-[1.0.4]: https://github.com/appaKappaK/better-trading-for-firefox/commit/c0821d1ddfb6872f2090fcc0272accf59988bcd9
-[1.0.2]: https://github.com/appaKappaK/better-trading-for-firefox/commit/c0821d1ddfb6872f2090fcc0272accf59988bcd9
-[1.0.1]: https://github.com/appaKappaK/better-trading-for-firefox/commit/24103b77e8e3de0cbd04a339842d1abd91f53e9a
-[1.0.0]: https://github.com/appaKappaK/better-trading-for-firefox/commit/6a27757538e721b1e9c3b658608ff8d4cf8f4091
