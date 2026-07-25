@@ -383,6 +383,7 @@ try {
           headerText: loadedFolderIcon.headerText,
           naturalHeight: loadedFolderIcon.naturalHeight,
           naturalWidth: loadedFolderIcon.naturalWidth,
+          renameSelection: loadedFolderIcon.renameSelection,
           tradeListPresent: loadedFolderIcon.tradeListPresent,
         },
         enhancerQuiescence: loadedEnhancerQuiescence,
@@ -1493,6 +1494,53 @@ async function createFolderWithIcon(driver) {
     throw new Error(`Bookmark name color did not persist: ${nameColors.trade}`);
   }
 
+  const renameButton = await findElementByText(shadowRoot, 'button', 'Rename');
+  await renameButton.click();
+  const [renameInput] = await waitForElements(
+    driver,
+    shadowRoot,
+    '.btff-panel__inline-form--nested .btff-panel__input',
+  );
+  await driver.actions().dragAndDrop(renameInput, { x: -60, y: 0 }).perform();
+
+  const renameSelection = await driver.executeScript((input) => {
+    const record = input.closest('.btff-panel__record');
+    const selectionStart = input.selectionStart ?? 0;
+    const selectionEnd = input.selectionEnd ?? 0;
+
+    return {
+      folderDraggable: record?.draggable ?? null,
+      selectedText: input.value.slice(selectionStart, selectionEnd),
+      selectionEnd,
+      selectionStart,
+    };
+  }, renameInput);
+
+  if (renameSelection.folderDraggable !== false) {
+    throw new Error(
+      `Folder reordering remained active during bookmark rename: ${JSON.stringify(renameSelection)}`,
+    );
+  }
+
+  if (renameSelection.selectedText.length === 0) {
+    throw new Error(
+      `Dragging across the bookmark rename field did not select text: ${JSON.stringify(renameSelection)}`,
+    );
+  }
+
+  const cancelRenameButton = await findElementByText(
+    shadowRoot,
+    'button',
+    'Cancel',
+  );
+  await cancelRenameButton.click();
+  await driver.wait(async () => {
+    return driver.executeScript(() => {
+      const host = document.querySelector('[data-btff-phase0-host="true"]');
+      return host?.shadowRoot?.querySelector('.btff-panel__record')?.draggable === true;
+    });
+  }, 10_000, 'Folder reordering did not resume after cancelling bookmark rename.');
+
   const markDoneButton = await findElementByText(
     shadowRoot,
     'button',
@@ -1584,6 +1632,7 @@ async function createFolderWithIcon(driver) {
     completedX,
     nameColors,
     picker,
+    renameSelection,
   };
 }
 

@@ -532,13 +532,14 @@ function BookmarksView({
           {folders.map((folder, index) => {
             const trades = tradesByFolderId[folder.id] ?? [];
             const isExpanded = expandedFolderIds.includes(folder.id);
+            const isRenamingTradeInFolder = editingTrade?.folderId === folder.id;
 
             return (
               <article
                 key={folder.id}
                 className="btff-panel__record"
                 data-drag-over={dragOverIndex === index}
-                draggable
+                draggable={!isRenamingTradeInFolder}
                 onDragEnd={() => {
                   setDragFromIndex(null);
                   setDragOverIndex(null);

@@ -716,6 +716,52 @@ describe('Phase0Panel collapse chrome', () => {
     expect(container.querySelector('.btff-panel__trade-list')).not.toBeNull();
   });
 
+  it('suspends folder reordering while a bookmark title is being edited', async () => {
+    const schema = createEmptyStorageSchema('phase0-instance');
+    schema.preferences.hasCompletedOnboarding = true;
+    schema.preferences.expandedFolderIds = ['folder-editable'];
+    schema.bookmarks.folders = [
+      {
+        archivedAt: null,
+        icon: null,
+        id: 'folder-editable',
+        title: 'Editable searches',
+        version: '1',
+      },
+    ];
+    schema.bookmarks.tradesByFolderId = {
+      'folder-editable': [
+        {
+          completedAt: null,
+          id: 'trade-editable',
+          location: { version: '1', type: 'search', slug: 'editable-trade' },
+          title: 'Editable bookmark',
+        },
+      ],
+    };
+
+    await renderPanel({ schema });
+
+    let folderRecord = container.querySelector<HTMLElement>(
+      '.btff-panel__record',
+    );
+    expect(folderRecord?.draggable).toBe(true);
+
+    flushSync(() => findButton(container, 'Rename')?.click());
+
+    const renameInput = container.querySelector<HTMLInputElement>(
+      '.btff-panel__inline-form--nested .btff-panel__input',
+    );
+    folderRecord = container.querySelector<HTMLElement>('.btff-panel__record');
+    expect(renameInput).not.toBeNull();
+    expect(folderRecord?.draggable).toBe(false);
+
+    flushSync(() => findButton(container, 'Cancel')?.click());
+
+    folderRecord = container.querySelector<HTMLElement>('.btff-panel__record');
+    expect(folderRecord?.draggable).toBe(true);
+  });
+
   it('renders saved name colors and a completed-title hook without recoloring metadata', async () => {
     const schema = createEmptyStorageSchema('phase0-instance');
     schema.preferences.hasCompletedOnboarding = true;
