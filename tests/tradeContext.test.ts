@@ -66,6 +66,37 @@ describe('trade context storage helpers', () => {
     expect(updated.history.entries[0].id).toBe('history-1');
   });
 
+  it('corrects the newest same-search title when active filters change', () => {
+    const location = {
+      version: '1' as const,
+      type: 'search',
+      league: 'Allflame',
+      slug: 'boots-search',
+      isLive: false,
+    };
+    const schema = applyTradePageContext(
+      createEmptyStorageSchema('phase0-instance'),
+      location,
+      'Boots (Normal)',
+      () => 'history-1',
+    );
+    const createdAt = schema.history.entries[0].createdAt;
+
+    const updated = applyTradePageContext(
+      schema,
+      location,
+      '',
+      () => 'history-2',
+    );
+
+    expect(updated.history.entries).toHaveLength(1);
+    expect(updated.history.entries[0]).toMatchObject({
+      id: 'history-1',
+      title: 'Empty search',
+      createdAt,
+    });
+  });
+
   it('stores a readable fallback title when a search has no name', () => {
     const schema = createEmptyStorageSchema('phase0-instance');
     const updated = applyTradePageContext(

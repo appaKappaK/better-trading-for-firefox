@@ -200,6 +200,14 @@ function scrapeInputValue(
   nullValue?: string,
 ) {
   const input = doc.querySelector<HTMLInputElement>(selector);
+  if (
+    input?.disabled ||
+    input?.getAttribute('aria-disabled') === 'true' ||
+    input?.closest('.filter.disabled, .filter-group.disabled')
+  ) {
+    return null;
+  }
+
   const value = input?.value?.trim();
 
   if (!value) return null;

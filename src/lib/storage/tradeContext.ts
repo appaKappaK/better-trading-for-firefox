@@ -17,6 +17,8 @@ export function applyTradePageContext(
   const normalizedTitle = normalizeHistoryTitle(title, location);
   const shouldAppendHistory =
     !currentHistoryEntry || !compareTradeLocations(currentHistoryEntry, location);
+  const shouldUpdateHistoryTitle =
+    !shouldAppendHistory && currentHistoryEntry.title !== normalizedTitle;
 
   const nextEntries = shouldAppendHistory
     ? [
@@ -32,10 +34,19 @@ export function applyTradePageContext(
         },
         ...schema.history.entries,
       ].slice(0, MAX_HISTORY_ENTRIES)
-    : schema.history.entries;
+    : shouldUpdateHistoryTitle
+      ? [
+          {
+            ...currentHistoryEntry,
+            title: normalizedTitle,
+          },
+          ...schema.history.entries.slice(1),
+        ]
+      : schema.history.entries;
 
   if (
     !shouldAppendHistory &&
+    !shouldUpdateHistoryTitle &&
     schema.preferences.lastSeenLeagues[location.version] === location.league
   ) {
     return schema;

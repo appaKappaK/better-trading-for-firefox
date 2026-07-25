@@ -103,6 +103,26 @@ describe('pageTitle controller', () => {
     expect(recommendSearchTitle(document)).toBe('Any Jewel (Rare)');
   });
 
+  it('ignores category and rarity values retained inside a disabled filter', () => {
+    document.body.innerHTML = createSearchPanelMarkup({
+      category: 'Boots',
+      disabled: false,
+      name: '',
+      rarity: 'Normal',
+    });
+
+    expect(recommendSearchTitle(document)).toBe('Boots (Normal)');
+
+    document.body.innerHTML = createSearchPanelMarkup({
+      category: 'Boots',
+      disabled: true,
+      name: '',
+      rarity: 'Normal',
+    });
+
+    expect(recommendSearchTitle(document)).toBe('');
+  });
+
   it('updates the document title and history source title for live searches', () => {
     document.body.innerHTML = createSearchPanelMarkup({
       category: 'Any Jewel',
@@ -154,6 +174,7 @@ describe('pageTitle controller', () => {
 
 function createSearchPanelMarkup(input: {
   category: string;
+  disabled?: boolean;
   name: string;
   rarity: string;
 }) {
@@ -167,11 +188,13 @@ function createSearchPanelMarkup(input: {
     </div>
     <div class="search-advanced-items">
       <div class="filter-group">
-        <div class="filter-property">
-          <input value="${input.category}">
-        </div>
-        <div class="filter-property">
-          <input value="${input.rarity}">
+        <div class="filter${input.disabled ? ' disabled' : ''}">
+          <div class="filter-property">
+            <input value="${input.category}">
+          </div>
+          <div class="filter-property">
+            <input value="${input.rarity}">
+          </div>
         </div>
       </div>
     </div>
