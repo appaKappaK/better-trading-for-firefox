@@ -970,6 +970,21 @@ interface HistoryViewProps {
 }
 
 function HistoryView({ historyEntries, isSchemaLoading }: HistoryViewProps) {
+  const hasEntries = historyEntries.length > 0;
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!hasEntries) {
+      return undefined;
+    }
+
+    setCurrentTime(Date.now());
+    const timerId = window.setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1_000);
+
+    return () => window.clearInterval(timerId);
+  }, [hasEntries]);
 
   if (isSchemaLoading) {
     return <p className="btff-panel__empty">Loading saved history...</p>;
@@ -995,7 +1010,9 @@ function HistoryView({ historyEntries, isSchemaLoading }: HistoryViewProps) {
               target="_blank">
               <div className="btff-history-entry-header">
                 <strong>{entry.title}</strong>
-                <small className="btff-history-time">{formatRelativeTimestamp(entry.createdAt)}</small>
+                <small className="btff-history-time">
+                  {formatRelativeTimestamp(entry.createdAt, currentTime)}
+                </small>
               </div>
               <div className="btff-history-pills">
                 <span className="btff-history-pill" data-version={entry.version}>PoE {entry.version}</span>

@@ -220,6 +220,35 @@ describe('Phase0Panel collapse chrome', () => {
     );
   });
 
+  it('updates history relative time without requiring a tab change', async () => {
+    const createdAt = new Date(Date.now() - 21_000).toISOString();
+    const schema = createEmptyStorageSchema('phase0-instance');
+    schema.preferences.hasCompletedOnboarding = true;
+    schema.history.entries = [
+      {
+        createdAt,
+        id: 'history-ticking-time',
+        isLive: false,
+        league: 'Allflame',
+        slug: 'ticking-time',
+        title: 'Empty search',
+        type: 'search',
+        version: '1',
+      },
+    ];
+
+    await renderPanel({ currentPage: 'history', schema });
+
+    const getHistoryTime = () =>
+      container.querySelector('.btff-history-time')?.textContent;
+    expect(getHistoryTime()).toBe('21 seconds ago');
+
+    await vi.waitFor(() => expect(getHistoryTime()).toBe('22 seconds ago'), {
+      interval: 50,
+      timeout: 2_000,
+    });
+  });
+
   it('formats PoE2 current trade labels in quick save without changing links', async () => {
     await renderPanel({
       snapshot: {
