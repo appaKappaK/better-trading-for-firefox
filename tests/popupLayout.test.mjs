@@ -43,6 +43,21 @@ describe('popup interaction layout styles', () => {
     );
   });
 
+  it('floats the release-note preview without moving the notice actions', () => {
+    expect(popupCss).toMatch(
+      /\.popup-confirmation-dialog\[data-tone='notice'\]\s*\{[^}]*overflow:\s*visible;/s,
+    );
+    expect(popupCss).toMatch(
+      /\.popup-confirmation-dialog__surface\s*\{[^}]*position:\s*relative;/s,
+    );
+    expect(popupCss).not.toMatch(
+      /\.popup-update-notice-content\s*\{[^}]*position:\s*relative;/s,
+    );
+    expect(popupCss).toMatch(
+      /\.popup-release-notes__preview\s*\{[^}]*position:\s*absolute;[^}]*top:\s*calc\(100% \+ 8px\);[^}]*right:\s*0;[^}]*left:\s*0;/s,
+    );
+  });
+
   it('routes legacy bookmark-manager deletions through the shared modal', () => {
     expect(bookmarksManagerSource).toContain(
       "import { ConfirmationDialog } from '@/src/popup/ConfirmationDialog';",

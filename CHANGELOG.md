@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Added changelog-driven GitHub release automation with metadata validation, Firefox verification, Firefox and source archives, and manual rebuilding of existing release tags
 
 ### Changed
+- Floated the post-update release-note preview below its notice so opening or closing it no longer moves the Dismiss action
 - Hid the mouse pointer while the post-update release-note preview is expanded so it does not cover the text
 - Split contributor documentation into a source developer guide and refreshed the root README for current features, requirements, and installation guidance
 - Moved the post-update notice from an inline banner into a fixed informational dialog that does not consume popup layout space

@@ -970,6 +970,7 @@ async function verifyPopupControls(driver) {
   const updateChangelogLink = await updateNoticeDialog.findElement(
     By.css('.popup-release-notes__link'),
   );
+  const updateDismissRectBeforePreview = await updateNoticeButtons[0].getRect();
   if (
     (await updateChangelogLink.getAttribute('href')) !==
     'https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.1.0'
@@ -1006,6 +1007,28 @@ async function verifyPopupControls(driver) {
   if (updateNoticeCursor !== 'none') {
     throw new Error(
       `Post-update changelog preview did not hide the cursor: ${updateNoticeCursor}`,
+    );
+  }
+
+  const updateDismissRectWithPreview = await updateNoticeButtons[0].getRect();
+  const updateDismissShift = Math.max(
+    Math.abs(updateDismissRectWithPreview.x - updateDismissRectBeforePreview.x),
+    Math.abs(updateDismissRectWithPreview.y - updateDismissRectBeforePreview.y),
+  );
+  if (updateDismissShift > 1) {
+    throw new Error(
+      `Post-update changelog preview moved the Dismiss action by ${updateDismissShift}px.`,
+    );
+  }
+
+  const updateDialogRectWithPreview = await updateNoticeDialog.getRect();
+  const updatePreviewRect = await updateNotesPreview.getRect();
+  const updatePreviewGap =
+    updatePreviewRect.y -
+    (updateDialogRectWithPreview.y + updateDialogRectWithPreview.height);
+  if (Math.abs(updatePreviewGap - 8) > 1) {
+    throw new Error(
+      `Post-update changelog preview opened ${updatePreviewGap}px below the notice instead of 8px.`,
     );
   }
 
