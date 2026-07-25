@@ -55,6 +55,7 @@ export interface StorageSchemaV1 {
     sidePanelSidebar: boolean;
     hasCompletedOnboarding: boolean;
     persistPinnedItemsInSession: boolean;
+    popupIntroHidden: boolean;
     lastSeenLeagues: Record<TradeSiteVersion, string | null>;
     pendingUpdateNotice: string | null;
   };
@@ -97,6 +98,7 @@ export function createEmptyStorageSchema(
       sidePanelSidebar: false,
       hasCompletedOnboarding: false,
       persistPinnedItemsInSession: false,
+      popupIntroHidden: false,
       lastSeenLeagues: {
         '1': null,
         '2': null,
@@ -175,6 +177,10 @@ export function migrateStorageSchema(
         typeof value.preferences?.persistPinnedItemsInSession === 'boolean'
           ? value.preferences.persistPinnedItemsInSession
           : defaults.preferences.persistPinnedItemsInSession,
+      popupIntroHidden:
+        typeof value.preferences?.popupIntroHidden === 'boolean'
+          ? value.preferences.popupIntroHidden
+          : defaults.preferences.popupIntroHidden,
       lastSeenLeagues: {
         ...defaults.preferences.lastSeenLeagues,
         ...(isRecord(value.preferences?.lastSeenLeagues)

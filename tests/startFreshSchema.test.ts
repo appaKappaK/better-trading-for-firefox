@@ -69,6 +69,7 @@ describe('startFreshSchema', () => {
       sidePanelSidebar: true,
       hasCompletedOnboarding: true,
       persistPinnedItemsInSession: true,
+      popupIntroHidden: true,
       lastSeenLeagues: { '1': 'Standard', '2': 'Dawn of the Hunt' },
       pendingUpdateNotice: '1.2.0',
     };
@@ -123,6 +124,7 @@ describe('startFreshSchema', () => {
       sidePanelSidebar: true,
       hasCompletedOnboarding: true,
       persistPinnedItemsInSession: true,
+      popupIntroHidden: true,
       lastSeenLeagues: { '1': null, '2': null },
       pendingUpdateNotice: null,
     });

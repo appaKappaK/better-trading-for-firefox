@@ -18,6 +18,7 @@ describe('storage schema scaffolding', () => {
     expect(schema.preferences.currentPage).toBe('bookmarks');
     expect(schema.preferences.hasCompletedOnboarding).toBe(false);
     expect(schema.preferences.persistPinnedItemsInSession).toBe(false);
+    expect(schema.preferences.popupIntroHidden).toBe(false);
   });
 
   it('migrates unknown input to an empty schema', () => {
@@ -43,6 +44,7 @@ describe('storage schema scaffolding', () => {
     expect(schema.preferences.disabledEnhancers).toEqual([]);
     expect(schema.preferences.hasCompletedOnboarding).toBe(false);
     expect(schema.preferences.persistPinnedItemsInSession).toBe(false);
+    expect(schema.preferences.popupIntroHidden).toBe(false);
   });
 
   it('repairs encoded history leagues, last-seen leagues, and fallback titles', () => {

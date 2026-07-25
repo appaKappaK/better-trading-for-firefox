@@ -17,6 +17,7 @@
 }
 
 .popup-hero {
+  cursor: context-menu;
   padding: 14px 14px 12px;
   border: 1px solid rgba(184, 110, 39, 0.2);
   border-radius: 18px;
@@ -137,6 +138,10 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin-top: 14px;
+}
+
+.popup-shell[data-popup-intro-hidden='true'] > .popup-tabs:first-child {
+  margin-top: 0;
 }
 
 .popup-tab {

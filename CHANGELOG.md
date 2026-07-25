@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Added
 - Added optional seven-color ROYGBIV palettes for folder and bookmark names in Quick Save, with colors preserved through backup export and import
+- Added a persistent compact-popup preference: right-click the introduction to hide it, right-click the tab row to restore it, or use the Settings toggle
 - Added accessible, fixed confirmation dialogs for destructive actions so clearing saved data or history and deleting folders or saved searches never requires scrolling to inline controls
 - Added a double-click shortcut on the in-page logo for shrinking the overlay panel
 - Added changelog-driven GitHub release automation with metadata validation, Firefox verification, Firefox and source archives, and manual rebuilding of existing release tags

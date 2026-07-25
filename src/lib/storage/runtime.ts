@@ -108,6 +108,7 @@ export async function startFreshSchema(): Promise<StorageSchemaV1> {
       hasCompletedOnboarding: true,
       persistPinnedItemsInSession:
         currentSchema.preferences.persistPinnedItemsInSession,
+      popupIntroHidden: currentSchema.preferences.popupIntroHidden,
     },
   });
 }

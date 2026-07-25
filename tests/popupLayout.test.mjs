@@ -70,6 +70,12 @@ describe('popup interaction layout styles', () => {
     );
   });
 
+  it('moves the tabs to the top when the popup introduction is hidden', () => {
+    expect(popupCss).toMatch(
+      /\.popup-shell\[data-popup-intro-hidden='true'\]\s*>\s*\.popup-tabs:first-child\s*\{[^}]*margin-top:\s*0;/s,
+    );
+  });
+
   it('gives popup actions consistent focus, press, and motion-safe feedback', () => {
     expect(popupCss).toMatch(
       /\.popup-shell button:focus-visible,[^{]*\.popup-link-button:focus-visible\s*\{[^}]*outline:\s*2px solid/s,

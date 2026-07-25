@@ -31,6 +31,10 @@ const POPUP_HISTORY_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
   'firefox-popup-history.png',
 );
+const POPUP_COMPACT_HEADER_SCREENSHOT_PATH = path.join(
+  ARTIFACTS_DIR,
+  'firefox-popup-compact-header.png',
+);
 const POPUP_FIRST_RUN_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
   'firefox-popup-first-run.png',
@@ -409,6 +413,7 @@ try {
   console.log(`Completed bookmark screenshot: ${BOOKMARK_COMPLETED_SCREENSHOT_PATH}`);
   console.log(`Draggable dock screenshot: ${DOCK_SCREENSHOT_PATH}`);
   console.log(`Popup history screenshot: ${POPUP_HISTORY_SCREENSHOT_PATH}`);
+  console.log(`Popup compact header screenshot: ${POPUP_COMPACT_HEADER_SCREENSHOT_PATH}`);
   console.log(`Popup first-run screenshot: ${POPUP_FIRST_RUN_SCREENSHOT_PATH}`);
   console.log(`Popup icon picker screenshot: ${POPUP_PICKER_SCREENSHOT_PATH}`);
   console.log(`Pinned panel screenshot: ${PINNED_PANEL_SCREENSHOT_PATH}`);
@@ -909,6 +914,53 @@ async function verifyPopupControls(driver) {
   const bookmarksTab = await findElementByText(driver, '.popup-tab', 'Bookmarks');
   await bookmarksTab.click();
 
+  const popupHero = await driver.wait(
+    until.elementLocated(By.css('.popup-hero')),
+    20_000,
+    'Popup introduction did not render before compact-header verification.',
+  );
+  await driver.actions().contextClick(popupHero).perform();
+  await driver.wait(async () => {
+    const heroes = await driver.findElements(By.css('.popup-hero'));
+    return (
+      heroes.length === 0 &&
+      (await shell.getAttribute('data-popup-intro-hidden')) === 'true'
+    );
+  }, 10_000, 'Right-click did not hide the popup introduction.');
+
+  const compactHeader = await driver.executeScript(() => {
+    const popupShell = document.querySelector('.popup-shell');
+    const tabs = document.querySelector('.popup-tabs');
+    const shellRect = popupShell?.getBoundingClientRect();
+    const tabsRect = tabs?.getBoundingClientRect();
+
+    return {
+      tabsTopGap:
+        shellRect && tabsRect ? Math.round(tabsRect.top - shellRect.top) : null,
+    };
+  });
+
+  if (compactHeader.tabsTopGap !== 18) {
+    throw new Error(
+      `Compact popup tabs did not fill the header space: ${JSON.stringify(compactHeader)}`,
+    );
+  }
+
+  const compactHeaderScreenshot = await driver.takeScreenshot();
+  await writeFile(
+    POPUP_COMPACT_HEADER_SCREENSHOT_PATH,
+    compactHeaderScreenshot,
+    'base64',
+  );
+
+  const tabs = await driver.findElement(By.css('.popup-tabs'));
+  await driver.actions().contextClick(tabs).perform();
+  await driver.wait(
+    until.elementLocated(By.css('.popup-hero')),
+    10_000,
+    'Right-clicking the tab row did not restore the popup introduction.',
+  );
+
   const pickerSummary = await driver.wait(
     until.elementLocated(By.css('.popup-record-card .btff-folder-icon-picker__summary')),
     20_000,
@@ -1068,6 +1120,7 @@ async function verifyPopupControls(driver) {
 
   return {
     bookmarksSize,
+    compactHeader,
     historyCardHeight: Math.round(historyItemRect.height),
     historyPillsJustification,
     historySize,

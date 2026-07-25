@@ -492,6 +492,23 @@ function App() {
     }
   }
 
+  async function handleSetPopupIntroHidden(hidden: boolean) {
+    setFeedback(null);
+
+    try {
+      const nextSchema = await updateStoredPreferences({
+        popupIntroHidden: hidden,
+      });
+      applyLoadedSchema(nextSchema);
+    } catch (error) {
+      setFeedback({
+        tone: 'error',
+        title: 'Could not save popup preference',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   async function handleDismissUpdateNotice() {
     try {
       const nextSchema = await updateStoredPreferences({ pendingUpdateNotice: null });
@@ -532,13 +549,27 @@ function App() {
   }
 
   return (
-    <main className="popup-shell" ref={popupShellRef}>
-      <section className="popup-hero">
-        <h2 className="popup-eyebrow">Better Trading for Firefox</h2>
-        <p className="popup-copy">
-          Use the in-page panel on the trade page for pinning searches, browsing history, and managing bookmarks.
-        </p>
-      </section>
+    <main
+      className="popup-shell"
+      data-popup-intro-hidden={
+        schema?.preferences.popupIntroHidden ? 'true' : undefined
+      }
+      ref={popupShellRef}>
+      {!isSchemaLoading && !schema?.preferences.popupIntroHidden ? (
+        <section
+          aria-label="Better Trading for Firefox introduction"
+          className="popup-hero"
+          onContextMenu={(event) => {
+            event.preventDefault();
+            void handleSetPopupIntroHidden(true);
+          }}
+          title="Right-click to hide this introduction">
+          <h2 className="popup-eyebrow">Better Trading for Firefox</h2>
+          <p className="popup-copy">
+            Use the in-page panel on the trade page for pinning searches, browsing history, and managing bookmarks.
+          </p>
+        </section>
+      ) : null}
 
       {schema?.preferences.pendingUpdateNotice ? (
         <section className="popup-update-notice">
@@ -569,7 +600,20 @@ function App() {
         </section>
       ) : null}
 
-      <nav className="popup-tabs" aria-label="Popup sections">
+      <nav
+        className="popup-tabs"
+        aria-label="Popup sections"
+        onContextMenu={(event) => {
+          if (!schema?.preferences.popupIntroHidden) return;
+
+          event.preventDefault();
+          void handleSetPopupIntroHidden(false);
+        }}
+        title={
+          schema?.preferences.popupIntroHidden
+            ? 'Right-click to show the popup introduction'
+            : undefined
+        }>
         {(Object.keys(PAGE_LABELS) as PopupPage[]).map((page) => (
           <button
             key={page}
@@ -641,6 +685,7 @@ function App() {
           <SettingsView
             isSchemaLoading={isSchemaLoading}
             onSetPinnedItemsSessionPersistence={handleSetPinnedItemsSessionPersistence}
+            onSetPopupIntroHidden={handleSetPopupIntroHidden}
             onSetSidePanelCollapsed={handleSetSidePanelCollapsed}
             onSetSidePanelDraggable={handleSetSidePanelDraggable}
             onSetSidePanelSidebar={handleSetSidePanelSidebar}

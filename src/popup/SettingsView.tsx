@@ -13,6 +13,7 @@ const ORIGINAL_REPO_URL = 'https://github.com/exile-center/better-trading';
 interface Props {
   isSchemaLoading: boolean;
   onSetPinnedItemsSessionPersistence: (enabled: boolean) => Promise<void> | void;
+  onSetPopupIntroHidden: (hidden: boolean) => Promise<void> | void;
   onSetSidePanelCollapsed: (collapsed: boolean) => Promise<void> | void;
   onSetSidePanelDraggable: (draggable: boolean) => Promise<void> | void;
   onSetSidePanelSidebar: (sidebar: boolean) => Promise<void> | void;
@@ -23,6 +24,7 @@ interface Props {
 export function SettingsView({
   isSchemaLoading,
   onSetPinnedItemsSessionPersistence,
+  onSetPopupIntroHidden,
   onSetSidePanelCollapsed,
   onSetSidePanelDraggable,
   onSetSidePanelSidebar,
@@ -34,6 +36,7 @@ export function SettingsView({
   const persistPinnedItemsInSession = Boolean(
     schema?.preferences.persistPinnedItemsInSession,
   );
+  const popupIntroHidden = Boolean(schema?.preferences.popupIntroHidden);
   const sidePanelCollapsed = Boolean(schema?.preferences.sidePanelCollapsed);
   const sidePanelDraggable = Boolean(schema?.preferences.sidePanelDraggable);
   const sidePanelSidebar = Boolean(schema?.preferences.sidePanelSidebar);
@@ -47,6 +50,22 @@ export function SettingsView({
       ) : (
         <>
           <section className="popup-settings-list">
+            <label className="popup-setting-card">
+              <div>
+                <strong>Show popup introduction</strong>
+                <p>
+                  Right-click the introduction to hide it or the tab row to restore
+                  it.
+                </p>
+              </div>
+              <input
+                checked={!popupIntroHidden}
+                onChange={(event) => {
+                  void onSetPopupIntroHidden(!event.target.checked);
+                }}
+                type="checkbox"
+              />
+            </label>
             <label className="popup-setting-card">
               <div>
                 <strong>Keep pins across searches in this tab</strong>

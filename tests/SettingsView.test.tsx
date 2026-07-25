@@ -42,7 +42,7 @@ describe('SettingsView session pins toggle', () => {
       schema,
     });
 
-    const checkbox = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[0];
+    const checkbox = findSettingCheckbox('Keep pins across searches in this tab');
     expect(container.textContent).toContain('Keep pins across searches in this tab');
     expect(container.textContent).toContain(
       'Pinned items survive multiple searches and filter changes in this trade tab for the current Firefox session.',
@@ -62,7 +62,7 @@ describe('SettingsView session pins toggle', () => {
       schema,
     });
 
-    const checkbox = container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[0];
+    const checkbox = findSettingCheckbox('Keep pins across searches in this tab');
     flushSync(() => {
       checkbox?.click();
     });
@@ -88,6 +88,29 @@ describe('SettingsView session pins toggle', () => {
     expect(onSetPinnedItemsSessionPersistence).toHaveBeenCalledWith(false);
   });
 
+  it('provides an accessible way to restore the popup introduction', () => {
+    const schema = createEmptyStorageSchema('settings-view-test');
+    schema.preferences.popupIntroHidden = true;
+    const onSetPopupIntroHidden = vi.fn();
+
+    renderView({
+      onSetPopupIntroHidden,
+      schema,
+    });
+
+    const setting = findSetting('Show popup introduction');
+    const checkbox = findSettingCheckbox('Show popup introduction');
+
+    expect(setting?.textContent).toContain(
+      'Right-click the introduction to hide it or the tab row to restore it.',
+    );
+    expect(checkbox?.checked).toBe(false);
+
+    checkbox?.click();
+
+    expect(onSetPopupIntroHidden).toHaveBeenCalledWith(false);
+  });
+
   function renderView(
     overrides: Partial<React.ComponentProps<typeof SettingsView>> = {},
   ) {
@@ -98,6 +121,7 @@ describe('SettingsView session pins toggle', () => {
         <SettingsView
           isSchemaLoading={false}
           onSetPinnedItemsSessionPersistence={async () => {}}
+          onSetPopupIntroHidden={async () => {}}
           onSetSidePanelCollapsed={async () => {}}
           onSetSidePanelDraggable={async () => {}}
           onSetSidePanelSidebar={async () => {}}
@@ -107,5 +131,17 @@ describe('SettingsView session pins toggle', () => {
         />,
       );
     });
+  }
+
+  function findSetting(labelText: string) {
+    return Array.from(
+      container.querySelectorAll<HTMLLabelElement>('.popup-setting-card'),
+    ).find((label) => label.textContent?.includes(labelText));
+  }
+
+  function findSettingCheckbox(labelText: string) {
+    return findSetting(labelText)?.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]',
+    );
   }
 });
