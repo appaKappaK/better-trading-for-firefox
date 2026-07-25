@@ -96,8 +96,11 @@ const RESULTSET_HTML = `
         <div class="details">
           <div class="price">
             <div data-field="price">
-              <br><span>100</span>
-              <span class="currency-text"><span>Chaos Orb</span></span>
+              <br><span>1</span>
+              <span class="currency-text"><span>Orb of Conflict</span></span>
+              <span class="currency-image">
+                <img alt="Orb of Conflict" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2KJ0AAAAASUVORK5CYII=">
+              </span>
             </div>
           </div>
           <span class="profile-link"><a href="/account/view-profile/SmokeSeller">SmokeSeller#1234</a></span>
@@ -357,6 +360,15 @@ try {
   if (pinnedItem.currencyIconWidth !== 16 || pinnedItem.currencyIconHeight !== 16) {
     throw new Error(
       `Pinned currency icon has the wrong size: ${pinnedItem.currencyIconWidth}×${pinnedItem.currencyIconHeight}px`,
+    );
+  }
+
+  if (
+    pinnedItem.currencyIconAlt !== 'Orb of Conflict' ||
+    !pinnedItem.currencyIconSource.startsWith('data:image/png;base64,')
+  ) {
+    throw new Error(
+      `Pinned currency icon did not retain its trade-row source: ${pinnedItem.currencyIconAlt} ${pinnedItem.currencyIconSource}`,
     );
   }
 
@@ -1811,6 +1823,8 @@ async function pinResultAndMeasure(driver) {
           ? Math.round((tabsRect.right - cardRect.right) * 100) / 100
           : Number.POSITIVE_INFINITY,
       currencyIconHeight: currencyIconRect?.height ?? 0,
+      currencyIconAlt: currencyIcon?.getAttribute('alt') ?? '',
+      currencyIconSource: currencyIcon?.getAttribute('src') ?? '',
       currencyIconWidth: currencyIconRect?.width ?? 0,
       priceFontSize: price ? Number.parseFloat(getComputedStyle(price).fontSize) : 0,
       subtitle: subtitle?.textContent?.trim() ?? null,

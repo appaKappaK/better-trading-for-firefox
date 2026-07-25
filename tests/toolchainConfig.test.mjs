@@ -10,6 +10,22 @@ const projectRoot = path.resolve(
 );
 
 describe('Node toolchain configuration', () => {
+  it('keeps ignored reference material out of Firefox source archives', async () => {
+    const wxtConfig = await readFile(
+      path.join(projectRoot, 'wxt.config.ts'),
+      'utf8',
+    );
+
+    for (const ignoredDirectory of [
+      'EXTpics/**',
+      'docs/**',
+      'extra pics idk/**',
+      'ico/**',
+    ]) {
+      expect(wxtConfig).toContain(`'${ignoredDirectory}'`);
+    }
+  });
+
   it('provides a valid Node version pin for nvm', async () => {
     const nvmVersion = await readFile(path.join(projectRoot, '.nvmrc'), 'utf8');
 

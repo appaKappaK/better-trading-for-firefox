@@ -1,6 +1,7 @@
 export interface PinnedItemRecord {
   id: string;
   chaosEquivalent?: number | null;
+  currencyIconUrl?: string | null;
   imageUrl?: string | null;
   pinnedAt: string;
   price: string | null;
@@ -209,6 +210,8 @@ export function createPinnedItemsStore(doc: Document = document) {
       ...capturedItem,
       chaosEquivalent:
         capturedItem.chaosEquivalent ?? storedItem.chaosEquivalent ?? null,
+      currencyIconUrl:
+        capturedItem.currencyIconUrl ?? storedItem.currencyIconUrl ?? null,
       imageUrl: capturedItem.imageUrl ?? storedItem.imageUrl ?? null,
       pinnedAt: storedItem.pinnedAt,
       price: capturedItem.price ?? storedItem.price,
@@ -360,6 +363,7 @@ function extractPinnedItem(row: HTMLElement, sourcePath: string): PinnedItemReco
   return {
     id: itemId,
     chaosEquivalent: extractChaosEquivalent(row),
+    currencyIconUrl: findCurrencyIconUrl(row),
     imageUrl: findItemImageUrl(row),
     pinnedAt: new Date().toISOString(),
     price,
@@ -414,6 +418,13 @@ function findItemImageUrl(row: HTMLElement) {
     row.querySelector<HTMLImageElement>('.image img') ??
     row.querySelector<HTMLImageElement>('img');
   return image?.src ?? null;
+}
+
+function findCurrencyIconUrl(row: HTMLElement) {
+  return (
+    row.querySelector<HTMLImageElement>('[data-field="price"] .currency-image img')
+      ?.src ?? null
+  );
 }
 
 export function getPinnedItemDisplayTitle(title: string): string {

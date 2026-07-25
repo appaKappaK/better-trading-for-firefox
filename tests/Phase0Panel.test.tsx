@@ -1031,6 +1031,32 @@ describe('Phase0Panel collapse chrome', () => {
     });
   });
 
+  it('renders an unbundled currency with the icon captured from its trade row', async () => {
+    const currencyIconUrl =
+      'https://web.poecdn.com/image/Art/2DItems/Currency/ConflictOrb.png';
+
+    await renderPanel({
+      currentPage: 'pinned',
+      pinnedItems: [
+        {
+          currencyIconUrl,
+          id: 'pinned-orb-of-conflict',
+          pinnedAt: '2026-07-24T00:00:00.000Z',
+          price: '1×Orb of Conflict',
+          sourcePath: '/trade/search/Standard/orb-of-conflict',
+          subtitle: 'Item Level: 80',
+          title: 'Pinned item',
+        },
+      ],
+    });
+
+    const price = container.querySelector('.btff-panel__pinned-price');
+    const icon = price?.querySelector<HTMLImageElement>('img');
+    expect(price?.textContent?.trim()).toBe('1');
+    expect(icon?.alt).toBe('Orb of Conflict');
+    expect(icon?.src).toBe(currencyIconUrl);
+  });
+
   it('keeps legacy result ids out of expanded and collapsed pinned labels', async () => {
     const legacyPin = {
       id: '1c1e43849c94cdde4e01e8ba2ec7',

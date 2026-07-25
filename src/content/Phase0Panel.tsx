@@ -1113,6 +1113,7 @@ function PinnedItemsView({
                     {item.price ? (
                       <PinnedPrice
                         chaosEquivalent={item.chaosEquivalent}
+                        currencyIconUrl={item.currencyIconUrl}
                         price={item.price}
                       />
                     ) : null}
@@ -1191,16 +1192,18 @@ const CURRENCY_ICONS: Record<string, string> = {
 function PinnedPrice({
   price,
   chaosEquivalent,
+  currencyIconUrl,
 }: {
   price: string;
   chaosEquivalent?: number | null;
+  currencyIconUrl?: string | null;
 }) {
   const className = 'btff-panel__pinned-price';
 
   // Parse the internal "NNN×Currency Name" form and omit its delimiter in the UI.
   const match = price.match(/^([\d.]+)×(.+)$/);
   const currencyLower = match?.[2].toLowerCase().trim() ?? '';
-  const currencyIcon = CURRENCY_ICONS[currencyLower] ?? null;
+  const currencyIcon = currencyIconUrl ?? CURRENCY_ICONS[currencyLower] ?? null;
 
   return (
     <span className={className}>

@@ -202,6 +202,44 @@ describe('pinnedItems store', () => {
     });
   });
 
+  it('captures the currency icon URL from a structured trade price', () => {
+    const currencyIconUrl =
+      'https://web.poecdn.com/image/Art/2DItems/Currency/ConflictOrb.png';
+    document.body.innerHTML = `
+      <div class="resultset">
+        <div data-id="conflict-price-result" class="row">
+          <div class="left">
+            <div class="icon"><img src="https://web.poecdn.com/item.png"></div>
+          </div>
+          <div class="middle">
+            <div class="itemName"><span class="lc">Test item</span></div>
+          </div>
+          <div class="right">
+            <div class="details">
+              <span data-field="price">
+                <span class="price-label">Exact Price:</span><br>
+                <span>1</span>
+                <span class="currency-text"><span>Orb of Conflict</span></span>
+                <span class="currency-image"><img src="${currencyIconUrl}"></span>
+              </span>
+              <div class="btns"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const store = createPinnedItemsStore(document);
+    store.ensureButtons(document);
+    document.querySelector<HTMLButtonElement>('.btff-pin-button')?.click();
+
+    expect(store.getItems()[0]).toMatchObject({
+      currencyIconUrl,
+      imageUrl: 'https://web.poecdn.com/item.png',
+      price: '1×Orb of Conflict',
+    });
+  });
+
   it('uses an item base type as useful context without replacing the item name', () => {
     document.body.innerHTML = `
       <div class="resultset">
@@ -305,6 +343,7 @@ describe('pinnedItems store', () => {
     const store = createPinnedItemsStore(document);
     store.replaceItems([
       {
+        currencyIconUrl: 'https://web.poecdn.com/currency.png',
         id: 'pinned-row-1',
         pinnedAt: '2026-04-11T00:00:00.000Z',
         price: '100×Chaos Orb',
@@ -319,6 +358,7 @@ describe('pinnedItems store', () => {
     store.ensureButtons(document);
 
     expect(store.getItem('pinned-row-1')).toMatchObject({
+      currencyIconUrl: 'https://web.poecdn.com/currency.png',
       pinnedAt: '2026-04-11T00:00:00.000Z',
       title: 'The Taming',
     });

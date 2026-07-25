@@ -20,6 +20,7 @@ describe('pinned session helpers', () => {
   it('stores and restores pinned items from sessionStorage', () => {
     saveSessionPinnedItems(window.sessionStorage, [
       {
+        currencyIconUrl: 'https://web.poecdn.com/currency.png',
         id: 'item-1',
         pinnedAt: '2026-04-11T00:00:00.000Z',
         price: '1×Divine Orb',
@@ -31,6 +32,7 @@ describe('pinned session helpers', () => {
 
     expect(loadSessionPinnedItems(window.sessionStorage)).toEqual([
       {
+        currencyIconUrl: 'https://web.poecdn.com/currency.png',
         id: 'item-1',
         pinnedAt: '2026-04-11T00:00:00.000Z',
         price: '1×Divine Orb',

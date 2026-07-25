@@ -14,6 +14,14 @@ const firefoxGeckoSettings: {
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
+  zip: {
+    excludeSources: [
+      'EXTpics/**',
+      'docs/**',
+      'extra pics idk/**',
+      'ico/**',
+    ],
+  },
   hooks: {
     'build:manifestGenerated': (_wxt, manifest) => {
       if (!Array.isArray(manifest.web_accessible_resources)) {
