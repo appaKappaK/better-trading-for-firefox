@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Added changelog-driven GitHub release automation with metadata validation, Firefox verification, Firefox and source archives, and manual rebuilding of existing release tags
 
 ### Changed
+- Split contributor documentation into a source developer guide and refreshed the root README for current features, requirements, and installation guidance
 - Replaced completed bookmark strikethroughs with a muted-red X overlay that keeps chosen name colors visible
 - Standardized primary, utility, neutral, destructive, disabled, hover, pressed, and keyboard-focus states across popup and in-page controls
 - Reduced the size of history, pinned-item, bookmark-folder, and collapsed-launcher entries while retaining their useful metadata

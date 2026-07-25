@@ -4,109 +4,52 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/en-US/firefox/addon/better-trading-for-firefox/)
 
-A Firefox-only Manifest V3 extension that enhances the Path of Exile trade site with bookmarks, search history, live trade enhancers, and seamless migration from the original Better Trading add-on.
+A Firefox-only extension for the Path of Exile trade site. It adds bookmarks, search history, pinned listings, configurable trade-page enhancements, and migration from the original Better Trading add-on.
 
-- **Bookmark trade searches** into named folders, mark trades complete, and update saved locations as leagues change
-- **Track search history** automatically as you browse trade pages
-- **Apply live enhancers** on trade result pages: equivalent chaos/divine pricing, stat filter highlighting, socket warnings, and grouped duplicate listings
-- **Import from the original add-on** – paste a folder export string or a full backup file to carry over all your data
+## Features
 
-The in-page panel handles live trading, bookmarks, and history. The popup manages imports, settings, and exports.
+- Pin individual trade results, jump back to them, and optionally keep pins across searches in the current tab
+- Save searches into named folders with custom icons and colors
+- Mark saved searches complete, update them to the current league or search, and archive folders
+- Reopen automatically recorded PoE 1 and PoE 2 search history
+- Show chaos and divine price equivalents using poe.ninja data
+- Highlight searched modifiers, warn about body armours that cannot reach six sockets, and regroup similar listings
+- Use the in-page interface as a movable overlay, compact dock, or full-height sidebar
+- Import and export data compatible with the original Better Trading bookmark format
 
-## Requirements
-
-- Node.js 22.13+ (the repository currently pins 22.22.2)
-- npm 10+
-- Firefox (any release channel)
-
-> If your system Node is older, use [nvm](https://github.com/nvm-sh/nvm): `nvm install && nvm use`
-> *(This will also give you the correct npm version automatically.)*
-
-> If you already have Node 22+ but npm is older than 10, update it manually:
-> ```bash
-> npm install -g npm@latest
-> ```
-
-> If you already ran `npm install` under the wrong Node version, switch to the pinned version and reinstall from the lockfile:
->
-> ```bash
-> nvm install
-> nvm use
-> npm ci --legacy-peer-deps
-> ```
+The in-page panel handles pins, quick saves, bookmarks, and history while browsing the trade site. The toolbar popup manages imports, full backups, archived folders, history, and settings.
 
 ## Install
 
-Install from [AMO](https://addons.mozilla.org/en-US/firefox/addon/better-trading-for-firefox/), or load it manually:
+Install the published version from [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/better-trading-for-firefox/). The current extension manifest requires Firefox 142 or newer.
 
-```bash
-nvm use
-npm ci --legacy-peer-deps
-npm run build
-# Load .output/firefox-mv3/ as a temporary add-on in about:debugging
-```
+To build or temporarily load the extension from source, follow the [developer guide](src/README.md#build-and-load-in-firefox).
 
-## Developer Commands
+## Legacy migration
 
-| Command | What it does |
-|---------|---------------|
-| `npm run dev` | Hot-reload dev build targeting Firefox MV3 |
-| `npm run build` | Production build |
-| `npm run zip` | Package a signed-ready `.zip` for AMO upload |
-| `npm run compile` | TypeScript type-check (no emit) |
-| `npm test` | Unit tests via Vitest |
-| `npm run lint:firefox` | `web-ext lint`, auto-builds if output is missing |
-| `npm run smoke:firefox` | End-to-end Selenium smoke test against a real Firefox binary |
-| `npm run release:prepare -- --tag vX.Y.Z` | Validate release metadata and extract that changelog entry |
+To bring over data from the original Better Trading add-on:
 
-### Smoke test
+1. Open the extension popup and select **Import**.
+2. Paste a folder export string (`3:eyJ...`) or a full backup into the import box, or click/drag a `.txt` backup into the file picker.
+3. Review the detected folder and trade counts.
+4. Select **Import legacy data**.
 
-`npm run smoke:firefox` packages the extension, installs it into a headless Firefox with Selenium, navigates to a trade page, and verifies the panel mounts. It saves a screenshot to `.output/smoke/firefox-smoke.png`.
+The importer supports the v1, v2, and v3 legacy formats and does not delete data from the original extension.
 
-The script auto-detects Firefox on Windows, Linux/Fedora, and macOS. Override with:
+To back up this extension's data, open **Bookmarks** in the popup and select **Download backup** or **Copy full backup**. Individual folders can also be copied in the legacy export format.
 
-```bash
-FIREFOX_BINARY=/path/to/firefox npm run smoke:firefox
-```
+## Data and permissions
 
-## CI
+Bookmarks, history, and settings are stored locally in Firefox. The equivalent-pricing enhancer requests league currency data from poe.ninja and caches it locally; the extension does not collect analytics.
 
-The GitHub Actions pipeline runs on every push and pull request:
+The extension is limited to Firefox and the Path of Exile trade pages. PoE 2 is supported, but receives less hands-on testing than PoE 1.
 
-1. `npm run compile` - TypeScript
-2. `npm test` - unit tests
-3. `npm run build` - production build
-4. `npm run lint:firefox` - web-ext lint (0 warnings required)
-5. `npm run smoke:firefox` - headless Firefox smoke test
+## Development
 
-Active development lives on `dev`; `master` tracks the latest released source. For a release, move the relevant changes from `[Unreleased]` into a dated `## [X.Y.Z] - YYYY-MM-DD` section, leave a fresh `[Unreleased]` section at the top, run `npm version X.Y.Z --no-git-tag-version` to synchronize the package and lockfile versions, merge the release commit into `master`, and tag it as `vX.Y.Z`.
-
-The release workflow triggers on semver tags and can also be run manually for an existing tag. It requires the tag, package, lockfile, generated manifest, archive filenames, and latest dated changelog release to agree. After the same typecheck, unit-test, build, lint, and Firefox smoke gates as CI, it attaches both the Firefox and source archives to a GitHub Release whose notes come from that exact changelog entry.
-
-## Legacy Migration
-
-To import data from the original Better Trading add-on:
-
-1. Open the extension popup and go to the **Import** tab
-2. Paste a folder export string (`3:eyJ...`) or the full backup text from the original add-on
-3. Or click **Backup file** to load a `.txt` backup file directly
-4. Preview the folder and trade counts, then click **Import legacy data**
-
-All v1, v2, and v3 export formats are supported. Your old extension data is never auto-deleted.
-
-To export your current data: go to the **Bookmarks** tab in the popup and use **Download backup** or **Copy full backup**.
+Architecture, setup, testing, CI, and release instructions live in the [source developer guide](src/README.md). User-visible changes are recorded in the [changelog](CHANGELOG.md).
 
 ## Background
 
-This extension is a Firefox-native rebuild of [Better Trading](https://github.com/exile-center/better-trading) by exile-center.
+This project is an independent Firefox-native rebuild of [Better Trading](https://github.com/exile-center/better-trading) by exile-center. It uses a Firefox Manifest V3, WXT, and Preact-based architecture while preserving compatibility with the original bookmark export formats.
 
-The original add-on is Chrome-first. The author has been open about deprioritizing Firefox, citing the stricter review process and smaller user base. The last Firefox release was v1.3.2, which predates Manifest V3 and has become increasingly out of step with both Firefox and the trade site itself.
-
-This rebuild starts from scratch with a Firefox-only MV3 architecture, using WXT and Preact instead of the original Ember-based stack. The bookmark export format is kept fully compatible with the original so existing data carries over without any loss.
-
-## Notes
-
-- Firefox is the only supported browser (no Chrome, no cross-browser shims). Use the original Better Trading extension for other browsers.
-- The build aliases `react`/`react-dom` to `preact/compat` to minimize bundle size.
-- The npm run lint:firefox command intentionally suppresses framework-generated innerHTML warnings that originate from bundled output only. This is a build-time suppression, not a runtime bypass. Any authored innerHTML in the source directories (src/ or entrypoints/) is not suppressed and will surface immediately in linting results for manual review.
-- I do not play PoE2 so that side is unpolished
+Better Trading for Firefox is available under the [MIT License](LICENSE).
