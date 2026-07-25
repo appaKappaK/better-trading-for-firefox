@@ -572,18 +572,17 @@ function App() {
       ) : null}
 
       {schema?.preferences.pendingUpdateNotice ? (
-        <section className="popup-update-notice">
-          <div>
-            <strong>Updated to v{schema.preferences.pendingUpdateNotice}</strong>
-            <p>Better Trading for Firefox was just updated. Check the changelog for what's new.</p>
-          </div>
-          <button
-            className="popup-button popup-button--secondary popup-button--small"
-            onClick={() => void handleDismissUpdateNotice()}
-            type="button">
-            Dismiss
-          </button>
-        </section>
+        <ConfirmationDialog
+          cancelLabel={null}
+          confirmation="update-notice"
+          confirmLabel="Dismiss"
+          description="Better Trading for Firefox was just updated. Check the changelog for what is new."
+          onCancel={() => void handleDismissUpdateNotice()}
+          onConfirm={() => void handleDismissUpdateNotice()}
+          role="dialog"
+          title={`Updated to v${schema.preferences.pendingUpdateNotice}`}
+          tone="notice"
+        />
       ) : null}
 
       {isSchemaLoading ? (

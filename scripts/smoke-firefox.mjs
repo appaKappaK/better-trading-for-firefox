@@ -35,6 +35,10 @@ const POPUP_COMPACT_HEADER_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
   'firefox-popup-compact-header.png',
 );
+const POPUP_UPDATE_NOTICE_SCREENSHOT_PATH = path.join(
+  ARTIFACTS_DIR,
+  'firefox-popup-update-notice.png',
+);
 const POPUP_FIRST_RUN_SCREENSHOT_PATH = path.join(
   ARTIFACTS_DIR,
   'firefox-popup-first-run.png',
@@ -414,6 +418,7 @@ try {
   console.log(`Draggable dock screenshot: ${DOCK_SCREENSHOT_PATH}`);
   console.log(`Popup history screenshot: ${POPUP_HISTORY_SCREENSHOT_PATH}`);
   console.log(`Popup compact header screenshot: ${POPUP_COMPACT_HEADER_SCREENSHOT_PATH}`);
+  console.log(`Popup update notice screenshot: ${POPUP_UPDATE_NOTICE_SCREENSHOT_PATH}`);
   console.log(`Popup first-run screenshot: ${POPUP_FIRST_RUN_SCREENSHOT_PATH}`);
   console.log(`Popup icon picker screenshot: ${POPUP_PICKER_SCREENSHOT_PATH}`);
   console.log(`Pinned panel screenshot: ${PINNED_PANEL_SCREENSHOT_PATH}`);
@@ -913,6 +918,67 @@ async function verifyPopupControls(driver) {
   const shell = await driver.findElement(By.css('.popup-shell'));
   const bookmarksTab = await findElementByText(driver, '.popup-tab', 'Bookmarks');
   await bookmarksTab.click();
+
+  const updateMarkerResult = await driver.executeAsyncScript((done) => {
+    const key = 'btff-schema-v1';
+
+    browser.storage.local
+      .get(key)
+      .then((result) => {
+        const schema = result[key];
+        return browser.storage.local.set({
+          [key]: {
+            ...schema,
+            preferences: {
+              ...schema.preferences,
+              pendingUpdateNotice: '1.1.0',
+            },
+          },
+        });
+      })
+      .then(() => done({ ok: true }))
+      .catch((error) => done({ error: String(error), ok: false }));
+  });
+
+  if (!updateMarkerResult?.ok) {
+    throw new Error(
+      `Could not inject the popup update marker: ${updateMarkerResult?.error ?? 'unknown error'}`,
+    );
+  }
+
+  const updateNoticeDialog = await driver.wait(
+    until.elementLocated(
+      By.css(
+        'dialog.popup-confirmation-dialog[data-confirmation="update-notice"][data-tone="notice"][open]',
+      ),
+    ),
+    10_000,
+    'Post-update informational dialog did not appear.',
+  );
+  await assertDialogIsVisible(driver, updateNoticeDialog, 'Post-update notice');
+  const updateNoticeButtons = await updateNoticeDialog.findElements(
+    By.css('button'),
+  );
+  if (
+    updateNoticeButtons.length !== 1 ||
+    (await updateNoticeButtons[0].getText()).trim() !== 'Dismiss'
+  ) {
+    throw new Error('Post-update dialog did not expose one Dismiss action.');
+  }
+
+  const updateNoticeScreenshot = await driver.takeScreenshot();
+  await writeFile(
+    POPUP_UPDATE_NOTICE_SCREENSHOT_PATH,
+    updateNoticeScreenshot,
+    'base64',
+  );
+  await updateNoticeButtons[0].click();
+  await driver.wait(async () => {
+    const dialogs = await driver.findElements(
+      By.css('dialog[data-confirmation="update-notice"]'),
+    );
+    return dialogs.length === 0;
+  }, 10_000, 'Post-update informational dialog did not dismiss.');
 
   const popupHero = await driver.wait(
     until.elementLocated(By.css('.popup-hero')),

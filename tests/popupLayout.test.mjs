@@ -30,6 +30,13 @@ describe('popup interaction layout styles', () => {
     expect(popupCss).not.toContain('.popup-confirmation--history');
   });
 
+  it('gives informational notices a neutral fixed-dialog treatment', () => {
+    expect(popupCss).toMatch(
+      /\.popup-confirmation-dialog\[data-tone='notice'\]\s*\{[^}]*border-color:\s*rgba\(184, 110, 39, 0\.32\);[^}]*background:\s*rgba\(25, 29, 37, 0\.99\);/s,
+    );
+    expect(popupCss).not.toContain('.popup-update-notice {');
+  });
+
   it('routes legacy bookmark-manager deletions through the shared modal', () => {
     expect(bookmarksManagerSource).toContain(
       "import { ConfirmationDialog } from '@/src/popup/ConfirmationDialog';",

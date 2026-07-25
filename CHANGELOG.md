@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Changed
 - Split contributor documentation into a source developer guide and refreshed the root README for current features, requirements, and installation guidance
+- Moved the post-update notice from an inline banner into a fixed informational dialog that does not consume popup layout space
 - Replaced completed bookmark strikethroughs with a title-sized muted-red X overlay that keeps chosen name colors visible
 - Moved folder name color choices before folder icons and clarified folder and bookmark name color labels in Quick Save
 - Standardized primary, utility, neutral, destructive, disabled, hover, pressed, and keyboard-focus states across popup and in-page controls
