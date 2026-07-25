@@ -98,7 +98,7 @@ describe('popup interaction layout styles', () => {
     );
   });
 
-  it('moves the tabs to the top when the popup introduction is hidden', () => {
+  it('moves the tabs to the top when the popup header is hidden', () => {
     expect(popupCss).toMatch(
       /\.popup-shell\[data-popup-intro-hidden='true'\]\s*>\s*\.popup-tabs:first-child\s*\{[^}]*margin-top:\s*0;/s,
     );

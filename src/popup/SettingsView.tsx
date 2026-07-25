@@ -52,11 +52,8 @@ export function SettingsView({
           <section className="popup-settings-list">
             <label className="popup-setting-card">
               <div>
-                <strong>Show popup introduction</strong>
-                <p>
-                  Right-click the introduction to hide it or the tab row to restore
-                  it.
-                </p>
+                <strong>Show popup header</strong>
+                <p>Shows or hides the Better Trading header above the tabs.</p>
               </div>
               <input
                 checked={!popupIntroHidden}

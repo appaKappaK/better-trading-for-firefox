@@ -558,13 +558,13 @@ function App() {
       ref={popupShellRef}>
       {!isSchemaLoading && !schema?.preferences.popupIntroHidden ? (
         <section
-          aria-label="Better Trading for Firefox introduction"
+          aria-label="Better Trading for Firefox header"
           className="popup-hero"
           onContextMenu={(event) => {
             event.preventDefault();
             void handleSetPopupIntroHidden(true);
           }}
-          title="Right-click to hide this introduction">
+          title="Right-click to hide the popup header">
           <h2 className="popup-eyebrow">Better Trading for Firefox</h2>
           <p className="popup-copy">
             Use the in-page panel on the trade page for pinning searches, browsing history, and managing bookmarks.
@@ -615,7 +615,7 @@ function App() {
         }}
         title={
           schema?.preferences.popupIntroHidden
-            ? 'Right-click to show the popup introduction'
+            ? 'Right-click to show the popup header'
             : undefined
         }>
         {(Object.keys(PAGE_LABELS) as PopupPage[]).map((page) => (

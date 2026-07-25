@@ -9,7 +9,7 @@ import App from '../entrypoints/popup/App';
 import { createEmptyStorageSchema, type StorageSchemaV1 } from '../src/lib/storage/schema';
 import { STORAGE_SCHEMA_KEY } from '../src/lib/storage/runtime';
 
-describe('popup introduction visibility', () => {
+describe('popup header visibility', () => {
   let container: HTMLDivElement;
   let currentSchema: StorageSchemaV1;
   let root: Root;
@@ -47,12 +47,18 @@ describe('popup introduction visibility', () => {
     vi.unstubAllGlobals();
   });
 
-  it('toggles the persisted introduction with the two context-menu shortcuts', async () => {
+  it('toggles the persisted header with the two context-menu shortcuts', async () => {
     flushSync(() => root.render(<App />));
 
     await vi.waitFor(() => {
       expect(container.querySelector('.popup-hero')).not.toBeNull();
     });
+    expect(container.querySelector('.popup-hero')?.getAttribute('aria-label')).toBe(
+      'Better Trading for Firefox header',
+    );
+    expect(container.querySelector('.popup-hero')?.getAttribute('title')).toBe(
+      'Right-click to hide the popup header',
+    );
 
     const hideEvent = new MouseEvent('contextmenu', {
       bubbles: true,
@@ -68,6 +74,9 @@ describe('popup introduction visibility', () => {
     expect(
       container.querySelector('.popup-shell')?.getAttribute('data-popup-intro-hidden'),
     ).toBe('true');
+    expect(container.querySelector('.popup-tabs')?.getAttribute('title')).toBe(
+      'Right-click to show the popup header',
+    );
 
     const restoreEvent = new MouseEvent('contextmenu', {
       bubbles: true,

@@ -10,12 +10,13 @@ The format is based on [Keep a Changelog], and this project adheres to
 ### Added
 - Added a keyboard-accessible hover preview of the current release highlights to the post-update changelog link, with v1.1.0 notes used for the initial implementation
 - Added optional seven-color ROYGBIV palettes for folder and bookmark names in Quick Save, with colors preserved through backup export and import
-- Added a persistent compact-popup preference: right-click the introduction to hide it, right-click the tab row to restore it, or use the Settings toggle
+- Added a persistent compact-popup preference: right-click the header to hide it, right-click the tab row to restore it, or use the Settings toggle
 - Added accessible, fixed confirmation dialogs for destructive actions so clearing saved data or history and deleting folders or saved searches never requires scrolling to inline controls
 - Added a double-click shortcut on the in-page logo for shrinking the overlay panel
 - Added changelog-driven GitHub release automation with metadata validation, Firefox verification, Firefox and source archives, and manual rebuilding of existing release tags
 
 ### Changed
+- Renamed the popup header visibility setting and its right-click hints so they describe showing or hiding the header directly
 - Floated the post-update release-note preview below its notice so opening or closing it no longer moves the Dismiss action
 - Hid the mouse pointer while the post-update release-note preview is expanded so it does not cover the text
 - Split contributor documentation into a source developer guide and refreshed the root README for current features, requirements, and installation guidance

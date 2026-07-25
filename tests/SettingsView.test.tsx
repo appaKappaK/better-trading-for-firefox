@@ -88,7 +88,7 @@ describe('SettingsView session pins toggle', () => {
     expect(onSetPinnedItemsSessionPersistence).toHaveBeenCalledWith(false);
   });
 
-  it('provides an accessible way to restore the popup introduction', () => {
+  it('describes the popup header visibility toggle directly', () => {
     const schema = createEmptyStorageSchema('settings-view-test');
     schema.preferences.popupIntroHidden = true;
     const onSetPopupIntroHidden = vi.fn();
@@ -98,11 +98,11 @@ describe('SettingsView session pins toggle', () => {
       schema,
     });
 
-    const setting = findSetting('Show popup introduction');
-    const checkbox = findSettingCheckbox('Show popup introduction');
+    const setting = findSetting('Show popup header');
+    const checkbox = findSettingCheckbox('Show popup header');
 
     expect(setting?.textContent).toContain(
-      'Right-click the introduction to hide it or the tab row to restore it.',
+      'Shows or hides the Better Trading header above the tabs.',
     );
     expect(checkbox?.checked).toBe(false);
 

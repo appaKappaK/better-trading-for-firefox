@@ -1049,7 +1049,7 @@ async function verifyPopupControls(driver) {
   const popupHero = await driver.wait(
     until.elementLocated(By.css('.popup-hero')),
     20_000,
-    'Popup introduction did not render before compact-header verification.',
+    'Popup header did not render before compact-header verification.',
   );
   await driver.actions().contextClick(popupHero).perform();
   await driver.wait(async () => {
@@ -1058,7 +1058,7 @@ async function verifyPopupControls(driver) {
       heroes.length === 0 &&
       (await shell.getAttribute('data-popup-intro-hidden')) === 'true'
     );
-  }, 10_000, 'Right-click did not hide the popup introduction.');
+  }, 10_000, 'Right-click did not hide the popup header.');
 
   const compactHeader = await driver.executeScript(() => {
     const popupShell = document.querySelector('.popup-shell');
@@ -1090,7 +1090,7 @@ async function verifyPopupControls(driver) {
   await driver.wait(
     until.elementLocated(By.css('.popup-hero')),
     10_000,
-    'Right-clicking the tab row did not restore the popup introduction.',
+    'Right-clicking the tab row did not restore the popup header.',
   );
 
   const pickerSummary = await driver.wait(
