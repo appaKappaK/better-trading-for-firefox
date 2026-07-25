@@ -4,9 +4,9 @@ This document covers the source layout, local workflow, testing, and releases. S
 
 ## Requirements
 
-- Node.js 22.13 or newer; [`.nvmrc`](../.nvmrc) currently pins 22.22.2
+- Node.js 22.13 or newer ([`.nvmrc`](../.nvmrc) pins 22.22.2)
 - npm 10 or newer
-- Firefox 142 or newer for manual and smoke testing
+- Firefox 142 or newer, which is the extension manifest minimum; CI runs smoke tests against the latest Firefox release
 
 Install the pinned toolchain and dependencies from the repository root:
 
@@ -16,7 +16,7 @@ nvm use
 npm ci --legacy-peer-deps
 ```
 
-`npm ci` uses the committed lockfile and replaces an existing `node_modules` directory. If npm reports an engine mismatch, run `nvm use` and repeat `npm ci --legacy-peer-deps` before investigating package warnings.
+`npm ci` installs the exact dependency versions in the committed lockfile and removes an existing `node_modules` directory first. If npm reports an engine mismatch, run `nvm use` and repeat the install. Deprecation and audit notices are separate dependency findings; changing Node versions does not resolve them.
 
 ## Build and load in Firefox
 
@@ -28,7 +28,7 @@ Development and production builds use different output directories.
 npm run dev
 ```
 
-WXT writes the live development extension to `.output/firefox-mv3-dev/`. If Firefox does not open it automatically, visit `about:debugging#/runtime/this-firefox`, select **Load Temporary Add-on**, and open:
+WXT watches the source files, writes the live development extension to `.output/firefox-mv3-dev/`, and normally opens Firefox with the extension loaded. To load it manually instead, visit `about:debugging#/runtime/this-firefox`, select **Load Temporary Add-on**, and open:
 
 ```text
 .output/firefox-mv3-dev/manifest.json
@@ -69,7 +69,7 @@ Do not leave the production directory loaded while expecting `npm run dev` chang
 | [`../tests/`](../tests/) | Vitest component, storage, parser, DOM-fixture, and configuration tests |
 | [`../scripts/`](../scripts/) | Firefox lint wrapper, Selenium smoke test, and release validation |
 
-WXT discovers the files under `entrypoints/` and generates the manifest and bundles. Source files use React-compatible imports, which [`wxt.config.ts`](../wxt.config.ts) and [`vitest.config.ts`](../vitest.config.ts) alias to `preact/compat`.
+WXT discovers the files under `entrypoints/` and generates the manifest and bundles. Components are authored with React APIs, while [`wxt.config.ts`](../wxt.config.ts) and [`vitest.config.ts`](../vitest.config.ts) alias React and ReactDOM imports to Preact compatibility modules.
 
 ## Architecture notes
 
@@ -92,7 +92,7 @@ Run commands from the repository root.
 | `npm run zip` | Build and package Firefox and source archives |
 | `npm run compile` | Type-check with TypeScript without emitting files |
 | `npm test` | Run the Vitest suite once |
-| `npm run lint:firefox` | Build if needed and run the Firefox extension linter |
+| `npm run lint:firefox` | Lint the production extension, building it first only when the output is missing |
 | `npm run smoke:firefox` | Package and exercise the extension in headless Firefox with Selenium |
 | `npm run release:prepare -- --tag vX.Y.Z` | Validate release metadata and extract notes for an already packaged version |
 
@@ -101,6 +101,8 @@ For a focused test file, pass its path through npm:
 ```bash
 npm test -- tests/pageTitle.test.ts
 ```
+
+`npm run lint:firefox` reuses `.output/firefox-mv3/` when that build already exists. Run `npm run build` first after source changes so the linter examines current output.
 
 Before committing a functional change, run the relevant focused tests followed by the complete verification sequence:
 
@@ -116,7 +118,7 @@ npm run smoke:firefox
 
 The smoke script packages the production extension, installs it in a clean headless Firefox profile, opens a Path of Exile trade URL, and replaces the result area with a deterministic fixture. It checks the popup, in-page panel, pins, bookmarks, history, drag/sidebar behavior, and selected layout measurements.
 
-Diagnostics and screenshots are written under `.output/smoke/`. The script locates Firefox on Windows, Linux/Fedora, and macOS. Override its defaults when necessary:
+Diagnostics and screenshots are written under `.output/smoke/`. The script locates Firefox on Windows, macOS, and common Linux installations, including Fedora. Override its defaults when necessary:
 
 ```bash
 FIREFOX_BINARY=/path/to/firefox npm run smoke:firefox
@@ -125,7 +127,7 @@ BTFF_START_URL=https://www.pathofexile.com/trade/search/Standard/example npm run
 
 ## CI and branches
 
-Active work belongs on `dev`; `master` represents the latest released source. The [CI workflow](../.github/workflows/ci.yml) runs for pushes and pull requests targeting either branch and requires:
+Active development belongs on `dev`; `master` represents the latest released source. The [CI workflow](../.github/workflows/ci.yml) runs on pushes to either branch and pull requests targeting either branch. It requires:
 
 1. TypeScript compilation
 2. Unit and component tests
@@ -133,7 +135,7 @@ Active work belongs on `dev`; `master` represents the latest released source. Th
 4. Firefox extension linting
 5. The headless Firefox smoke test
 
-Avoid putting release-only commits directly on `master`. Prepare and verify them on `dev`, then merge the intended release state to `master`.
+Keep normal development and release preparation on `dev`. Once a release is finalized and verified, merge that state into `master` without additional source changes and tag the resulting `master` commit.
 
 ## Release process
 
@@ -143,7 +145,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 2. Update the package and lockfile versions with `npm version X.Y.Z --no-git-tag-version`.
 3. Run the full verification sequence and `npm run zip`.
 4. Validate the tag, package, lockfile, built manifest, archive names, and changelog entry with `npm run release:prepare -- --tag vX.Y.Z`.
-5. Commit the release state on `dev`, merge that exact state to `master`, and create the `vX.Y.Z` tag on the release commit.
+5. Commit the finalized release state on `dev`, merge it into `master` without additional source changes, and create the `vX.Y.Z` tag on the resulting `master` commit.
 6. Push `master` and the tag. The [release workflow](../.github/workflows/release.yml) repeats verification, creates both archives, and creates or updates the GitHub Release using that changelog section as its notes.
 
 Only bracketed changelog headings represent linked GitHub releases. Older untagged historical headings remain plain text.
