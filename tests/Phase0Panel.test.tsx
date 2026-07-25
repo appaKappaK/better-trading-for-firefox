@@ -987,6 +987,50 @@ describe('Phase0Panel collapse chrome', () => {
     ).not.toBeNull();
   });
 
+  it('renders every packaged currency price with its matching icon', async () => {
+    const currencies = [
+      'Ancient Orb',
+      "Glassblower's Bauble",
+      "Jeweller's Orb",
+      'Orb of Alteration',
+      'Orb of Annulment',
+      'Orb of Augmentation',
+      'Orb of Binding',
+      'Orb of Chance',
+      'Orb of Fusing',
+      'Orb of Scouring',
+      'Orb of Unmaking',
+      'Regal Orb',
+      'Vaal Orb',
+      'Exalted Orb',
+      'Mirror of Kalandra',
+    ];
+
+    await renderPanel({
+      currentPage: 'pinned',
+      pinnedItems: currencies.map((currency, index) => ({
+        id: `pinned-currency-${index}`,
+        pinnedAt: '2026-07-24T00:00:00.000Z',
+        price: `${index + 1}×${currency}`,
+        sourcePath: `/trade/search/Standard/currency-${index}`,
+        subtitle: 'Item Level: 80',
+        title: 'Pinned item',
+      })),
+    });
+
+    const prices = Array.from(
+      container.querySelectorAll<HTMLElement>('.btff-panel__pinned-price'),
+    );
+    expect(prices).toHaveLength(currencies.length);
+
+    currencies.forEach((currency, index) => {
+      expect(prices[index]?.textContent?.trim()).toBe(String(index + 1));
+      expect(prices[index]?.querySelector<HTMLImageElement>('img')?.alt).toBe(
+        currency,
+      );
+    });
+  });
+
   it('keeps legacy result ids out of expanded and collapsed pinned labels', async () => {
     const legacyPin = {
       id: '1c1e43849c94cdde4e01e8ba2ec7',

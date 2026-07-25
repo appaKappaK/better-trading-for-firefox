@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 - Raised the development requirement to Node.js 22.13, pinned Node.js 22.22.2 through `.nvmrc`, and aligned CI with the `dev` and `master` branch model
 
 ### Fixed
+- Expanded pinned-price currency artwork to cover 18 packaged currencies, including Vaal Orb, while retaining readable text for unknown currencies
 - Moved the in-page scrollbar beyond the aligned list edge so it no longer covers History timestamps or pinned-item content
 - Reused the saved readable title when a History entry is opened again instead of recording the revisit as `Empty search`
 - Kept in-page History timestamps ticking while the History view remains open

@@ -1,8 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import betterTradingIcon from '/public/icon/better_tradingICO.png?url';
+import ancientOrbIconUrl from '/public/assets/images/bookmark-folder/Ancient_Orb_inventory_icon.png?url';
 import alchemyIconUrl from '/public/assets/images/bookmark-folder/alchemy.png?url';
 import chaosIconUrl from '/public/assets/images/bookmark-folder/chaos.png?url';
 import divineIconUrl from '/public/assets/images/bookmark-folder/divine.png?url';
+import exaltedOrbIconUrl from '/public/assets/images/bookmark-folder/exalt.png?url';
+import glassblowersBaubleIconUrl from "/public/assets/images/bookmark-folder/Glassblower's_Bauble_inventory_icon.png?url";
+import jewellersOrbIconUrl from "/public/assets/images/bookmark-folder/Jeweller's_Orb_inventory_icon.png?url";
+import mirrorOfKalandraIconUrl from '/public/assets/images/bookmark-folder/mirror.png?url';
+import orbOfAlterationIconUrl from '/public/assets/images/bookmark-folder/Orb_of_Alteration_inventory_icon.png?url';
+import orbOfAnnulmentIconUrl from '/public/assets/images/bookmark-folder/Orb_of_Annulment_inventory_icon.png?url';
+import orbOfAugmentationIconUrl from '/public/assets/images/bookmark-folder/Orb_of_Augmentation_inventory_icon.png?url';
+import orbOfBindingIconUrl from '/public/assets/images/bookmark-folder/Orb_of_Binding_inventory_icon.png?url';
+import orbOfChanceIconUrl from '/public/assets/images/bookmark-folder/Orb_of_Chance_inventory_icon.png?url';
+import orbOfFusingIconUrl from '/public/assets/images/bookmark-folder/Orb_of_Fusing_inventory_icon.png?url';
+import orbOfScouringIconUrl from '/public/assets/images/bookmark-folder/Orb_of_Scouring_inventory_icon.png?url';
+import orbOfUnmakingIconUrl from '/public/assets/images/bookmark-folder/Orb_of_Unmaking_inventory_icon.png?url';
+import regalOrbIconUrl from '/public/assets/images/bookmark-folder/Regal_Orb_inventory_icon.png?url';
+import vaalOrbIconUrl from '/public/assets/images/bookmark-folder/Vaal_Orb_inventory_icon.png?url';
 
 import type {
   BookmarkColor,
@@ -1153,9 +1168,24 @@ function PinnedItemsView({
 }
 
 const CURRENCY_ICONS: Record<string, string> = {
+  'ancient orb': ancientOrbIconUrl,
   'orb of alchemy': alchemyIconUrl,
   'divine orb': divineIconUrl,
   'chaos orb': chaosIconUrl,
+  'exalted orb': exaltedOrbIconUrl,
+  "glassblower's bauble": glassblowersBaubleIconUrl,
+  "jeweller's orb": jewellersOrbIconUrl,
+  'mirror of kalandra': mirrorOfKalandraIconUrl,
+  'orb of alteration': orbOfAlterationIconUrl,
+  'orb of annulment': orbOfAnnulmentIconUrl,
+  'orb of augmentation': orbOfAugmentationIconUrl,
+  'orb of binding': orbOfBindingIconUrl,
+  'orb of chance': orbOfChanceIconUrl,
+  'orb of fusing': orbOfFusingIconUrl,
+  'orb of scouring': orbOfScouringIconUrl,
+  'orb of unmaking': orbOfUnmakingIconUrl,
+  'regal orb': regalOrbIconUrl,
+  'vaal orb': vaalOrbIconUrl,
 };
 
 function PinnedPrice({
