@@ -295,18 +295,18 @@ describe('Phase0Panel collapse chrome', () => {
     });
 
     openQuickSave(container);
-    expect(findColorPicker(container, 'Folder color')).toBeNull();
-    expect(findColorPicker(container, 'Bookmark color')).toBeNull();
+    expect(findColorPicker(container, 'Folder name color')).toBeNull();
+    expect(findColorPicker(container, 'Bookmark name color')).toBeNull();
 
     changeInput(findQuickSaveInput(container, 'Folder name'), 'Belt upgrades');
-    expect(findColorPicker(container, 'Folder color')).not.toBeNull();
-    expect(findColorPicker(container, 'Bookmark color')).toBeNull();
+    expect(findColorPicker(container, 'Folder name color')).not.toBeNull();
+    expect(findColorPicker(container, 'Bookmark name color')).toBeNull();
 
     changeInput(findQuickSaveBookmarkInput(container), 'Cold resistance belts');
-    expect(findColorPicker(container, 'Bookmark color')).not.toBeNull();
+    expect(findColorPicker(container, 'Bookmark name color')).not.toBeNull();
 
-    chooseNameColor(container, 'Folder color', 'Green');
-    chooseNameColor(container, 'Bookmark color', 'Violet');
+    chooseNameColor(container, 'Folder name color', 'Green');
+    chooseNameColor(container, 'Bookmark name color', 'Violet');
 
     await act(async () => {
       findButton(container, 'Save current search')?.click();
@@ -321,8 +321,32 @@ describe('Phase0Panel collapse chrome', () => {
       folderTitle: 'Belt upgrades',
       title: 'Cold resistance belts',
     });
-    expect(findColorPicker(container, 'Folder color')).toBeNull();
-    expect(findColorPicker(container, 'Bookmark color')).toBeNull();
+    expect(findColorPicker(container, 'Folder name color')).toBeNull();
+    expect(findColorPicker(container, 'Bookmark name color')).toBeNull();
+  });
+
+  it('places the folder name color choices before the folder icon picker', async () => {
+    await renderPanel({
+      snapshot: createSaveableSnapshot('ordered-folder-options'),
+    });
+
+    openQuickSave(container);
+    changeInput(findQuickSaveInput(container, 'Folder name'), 'Belt upgrades');
+
+    const colorPicker = findColorPicker(container, 'Folder name color');
+    const iconPicker = container.querySelector('.btff-folder-icon-picker');
+
+    expect(colorPicker).not.toBeNull();
+    expect(iconPicker).not.toBeNull();
+    if (!colorPicker || !iconPicker) {
+      throw new Error('Quick Save folder appearance controls did not render.');
+    }
+    expect(
+      Boolean(
+        colorPicker.compareDocumentPosition(iconPicker) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
   });
 
   it('clears the saved bookmark name while retaining the selected folder', async () => {
@@ -346,8 +370,8 @@ describe('Phase0Panel collapse chrome', () => {
       folderSelect.dispatchEvent(new Event('change', { bubbles: true }));
     });
     changeInput(bookmarkInput, 'Gear');
-    expect(findColorPicker(container, 'Bookmark color')).not.toBeNull();
-    chooseNameColor(container, 'Bookmark color', 'Blue');
+    expect(findColorPicker(container, 'Bookmark name color')).not.toBeNull();
+    chooseNameColor(container, 'Bookmark name color', 'Blue');
 
     await act(async () => {
       findButton(container, 'Save current search')?.click();
@@ -367,7 +391,7 @@ describe('Phase0Panel collapse chrome', () => {
       container.querySelector<HTMLSelectElement>('.btff-panel__field select')?.value,
     ).toBe('folder-2');
     expect(container.querySelector('.btff-panel__composer-copy')).not.toBeNull();
-    expect(findColorPicker(container, 'Bookmark color')).toBeNull();
+    expect(findColorPicker(container, 'Bookmark name color')).toBeNull();
   });
 
   it('dismisses successful Quick Save feedback after three seconds', async () => {
@@ -419,7 +443,7 @@ describe('Phase0Panel collapse chrome', () => {
 
     openQuickSave(container);
     changeInput(findQuickSaveBookmarkInput(container), 'Keep this name');
-    chooseNameColor(container, 'Bookmark color', 'Red');
+    chooseNameColor(container, 'Bookmark name color', 'Red');
 
     await act(async () => {
       findButton(container, 'Save current search')?.click();
@@ -434,7 +458,7 @@ describe('Phase0Panel collapse chrome', () => {
     expect(findQuickSaveBookmarkInput(container).value).toBe('Keep this name');
     expect(
       container.querySelector<HTMLInputElement>(
-        'input[aria-label="Bookmark color: Red"]',
+        'input[aria-label="Bookmark name color: Red"]',
       )?.checked,
     ).toBe(true);
   });

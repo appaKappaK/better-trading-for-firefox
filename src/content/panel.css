@@ -842,22 +842,29 @@
 .btff-panel__trade-row[data-completed='true'] .btff-panel__trade-title::after {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 2px;
-  border-radius: 999px;
-  background: #c85a4a;
+  z-index: 1;
+  inset: -1px -2px;
   pointer-events: none;
-  transform-origin: center;
 }
 
 .btff-panel__trade-row[data-completed='true'] .btff-panel__trade-title::before {
-  transform: translate(-50%, -50%) rotate(45deg);
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 1px),
+    #c85a4a calc(50% - 1px),
+    #c85a4a calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
 }
 
 .btff-panel__trade-row[data-completed='true'] .btff-panel__trade-title::after {
-  transform: translate(-50%, -50%) rotate(-45deg);
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 1px),
+    #c85a4a calc(50% - 1px),
+    #c85a4a calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
 }
 
 .btff-panel__trade-link {

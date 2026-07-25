@@ -64,13 +64,16 @@ describe('in-page panel density styles', () => {
       /\.btff-panel__trade-row\[data-completed='true'\][^{]*\{[^}]*text-decoration:\s*line-through;/s,
     );
     expect(panelCss).toMatch(
-      /\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title::before,[^{]*\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title::after\s*\{[^}]*background:\s*#c85a4a;/s,
+      /\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title::before,[^{]*\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title::after\s*\{[^}]*inset:\s*-1px -2px;/s,
     );
     expect(panelCss).toMatch(
-      /\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title::before\s*\{[^}]*rotate\(45deg\);/s,
+      /\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title::before\s*\{[^}]*background:\s*linear-gradient\(\s*to bottom right,[^;]*#c85a4a/s,
     );
     expect(panelCss).toMatch(
-      /\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title::after\s*\{[^}]*rotate\(-45deg\);/s,
+      /\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title::after\s*\{[^}]*background:\s*linear-gradient\(\s*to bottom left,[^;]*#c85a4a/s,
+    );
+    expect(panelCss).not.toMatch(
+      /\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title::before,[^{]*\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title::after\s*\{[^}]*width:\s*20px;/s,
     );
     expect(panelCss).not.toMatch(
       /\.btff-panel__trade-row\[data-completed='true'\] \.btff-panel__trade-title\s*\{[^}]*opacity:/s,

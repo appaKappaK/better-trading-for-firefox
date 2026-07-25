@@ -1245,7 +1245,7 @@ async function createFolderWithIcon(driver) {
   const [folderGreen] = await waitForElements(
     driver,
     shadowRoot,
-    'input[aria-label="Folder color: Green"]',
+    'input[aria-label="Folder name color: Green"]',
   );
   await driver.executeScript((input) => input.click(), folderGreen);
 
@@ -1279,7 +1279,7 @@ async function createFolderWithIcon(driver) {
   const [bookmarkViolet] = await waitForElements(
     driver,
     shadowRoot,
-    'input[aria-label="Bookmark color: Violet"]',
+    'input[aria-label="Bookmark name color: Violet"]',
   );
   await driver.executeScript((input) => input.click(), bookmarkViolet);
 
@@ -1368,11 +1368,16 @@ async function createFolderWithIcon(driver) {
       const before = getComputedStyle(title, '::before');
       const after = getComputedStyle(title, '::after');
       return {
+        afterBackground: after.backgroundImage,
         completed: row.dataset.completed,
-        beforeColor: before.backgroundColor,
-        beforeContent: before.content,
-        afterColor: after.backgroundColor,
         afterContent: after.content,
+        afterInset: [after.top, after.right, after.bottom, after.left],
+        afterWidth: Number.parseFloat(after.width),
+        beforeBackground: before.backgroundImage,
+        beforeContent: before.content,
+        beforeInset: [before.top, before.right, before.bottom, before.left],
+        beforeWidth: Number.parseFloat(before.width),
+        titleWidth: title.getBoundingClientRect().width,
       };
     });
 
@@ -1380,8 +1385,15 @@ async function createFolderWithIcon(driver) {
   }, 20_000, 'Saved bookmark did not enter the completed state.');
 
   if (
-    completedX.beforeColor !== 'rgb(200, 90, 74)' ||
-    completedX.afterColor !== 'rgb(200, 90, 74)' ||
+    !completedX.beforeBackground.includes('linear-gradient') ||
+    !completedX.beforeBackground.includes('rgb(200, 90, 74)') ||
+    !completedX.afterBackground.includes('linear-gradient') ||
+    !completedX.afterBackground.includes('rgb(200, 90, 74)') ||
+    completedX.beforeBackground === completedX.afterBackground ||
+    completedX.beforeInset.join(' ') !== '-1px -2px -1px -2px' ||
+    completedX.afterInset.join(' ') !== '-1px -2px -1px -2px' ||
+    completedX.beforeWidth < completedX.titleWidth ||
+    completedX.afterWidth < completedX.titleWidth ||
     completedX.beforeContent === 'none' ||
     completedX.afterContent === 'none'
   ) {

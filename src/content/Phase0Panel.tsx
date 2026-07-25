@@ -748,20 +748,22 @@ function QuickSavePanel({
             />
           </label>
           {newFolderTitle.trim().length > 0 ? (
-            <div className="btff-panel__field">
-              <span>Folder Icon</span>
-              <FolderIconPicker
-                disabled={isSaving}
-                onChange={onNewFolderIconChange}
-                value={newFolderIcon}
-              />
+            <>
               <NameColorPicker
                 disabled={isSaving}
-                label="Folder color"
+                label="Folder name color"
                 onChange={onNewFolderColorChange}
                 value={newFolderColor}
               />
-            </div>
+              <div className="btff-panel__field">
+                <span>Folder icon</span>
+                <FolderIconPicker
+                  disabled={isSaving}
+                  onChange={onNewFolderIconChange}
+                  value={newFolderIcon}
+                />
+              </div>
+            </>
           ) : null}
         </>
       )}
@@ -783,7 +785,7 @@ function QuickSavePanel({
       {title.trim().length > 0 ? (
         <NameColorPicker
           disabled={isSaving}
-          label="Bookmark color"
+          label="Bookmark name color"
           onChange={onBookmarkColorChange}
           value={bookmarkColor}
         />

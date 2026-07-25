@@ -15,7 +15,8 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 ### Changed
 - Split contributor documentation into a source developer guide and refreshed the root README for current features, requirements, and installation guidance
-- Replaced completed bookmark strikethroughs with a muted-red X overlay that keeps chosen name colors visible
+- Replaced completed bookmark strikethroughs with a title-sized muted-red X overlay that keeps chosen name colors visible
+- Moved folder name color choices before folder icons and clarified folder and bookmark name color labels in Quick Save
 - Standardized primary, utility, neutral, destructive, disabled, hover, pressed, and keyboard-focus states across popup and in-page controls
 - Reduced the size of history, pinned-item, bookmark-folder, and collapsed-launcher entries while retaining their useful metadata
 - Increased pinned-item artwork slightly for better visibility
