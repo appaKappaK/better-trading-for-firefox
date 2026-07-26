@@ -13,24 +13,24 @@ the [Development Changelog].
 ## [1.3.0] - 2026-07-26
 
 ### Added
-- Pinned items can now be reordered by dragging their cards, including while wheel-scrolling through long lists
-- Bookmark-folder headers now summarize the distinct leagues contained in their saved searches
+- Drag-and-drop ordering for pinned items, including wheel scrolling through long lists
+- League summaries on bookmark folders, including folders with searches from multiple leagues
 
 ### Changed
-- Reworked bookmark-folder ordering with dedicated grips, smooth live card movement, visible destinations, and wheel scrolling while a folder is held
-- Extended the header visibility shortcut to the in-page panel: right-click its header to hide it or the tab row to restore it
-- Added pinned-item prices and current or persisted-pin league summaries to the compact launcher
-- Renamed bookmark-folder item counts from trades to searches across the in-page panel and toolbar popup
-- Made the full Quick Save header clickable, reduced its collapsed height, and separated it from the compact scrollable bookmark list
-- Moved full-backup actions to Import, shortened the Bookmarks guidance, and enlarged folder portraits without increasing card height
-- Standardized separators above saved-data lists and the panel footer
+- Made bookmark-folder reordering smoother with clear drag handles, live movement, placement feedback, and wheel scrolling
+- Added the header visibility shortcut to the in-page panel: right-click the header to hide it or the tab row to restore it
+- Expanded the compact launcher with pinned-item prices and relevant league names
+- Renamed bookmark-folder counts from trades to searches throughout the in-page panel and toolbar popup
+- Made the full Quick Save header clickable and more compact, with the saved-folder list scrolling separately beneath it
+- Moved full-backup actions to Import, simplified the Bookmarks guidance, and enlarged folder portraits without increasing card height
+- Refined the visual separation between controls, saved-data lists, and footer summaries
 
 ### Fixed
-- Allowed the Firefox toolbar popup to fit shorter tabs to their content while retaining a 600px scrolling cap for longer views
-- Made transient scrollbars visible only during scrolling, moved them clear of content, and kept lifted bookmark and pinned cards within the panel
-- Kept wheel scrolling inside the in-page panel and toolbar popup so the trade page does not move underneath
-- Preserved the bookmark-list position while opening or closing folders
-- Prevented long folder, bookmark, and history names from widening cards or escaping the in-page panel and toolbar popup
+- Made the Firefox toolbar popup shrink to fit shorter tabs and scroll when longer views reach its maximum height
+- Prevented transient scrollbars from overlapping content and kept cards fully visible while they are being reordered
+- Prevented wheel scrolling inside the in-page panel or toolbar popup from moving the trade page underneath
+- Kept the bookmark list at the same position when folders are opened or closed
+- Kept long folder, bookmark, and history names contained within their cards
 
 ## [1.2.0] - 2026-07-25
 
