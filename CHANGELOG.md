@@ -10,7 +10,7 @@ the [Development Changelog].
 
 ## [Unreleased]
 
-## [1.3.0] - 2026-07-25
+## [1.3.0] - 2026-07-26
 
 ### Added
 - Pinned items can now be reordered by dragging their cards, including while wheel-scrolling through long lists
