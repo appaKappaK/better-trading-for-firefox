@@ -599,6 +599,12 @@ async function verifyToolbarPopupOpens(driver, extensionId) {
       );
     }
 
+    if (geometry.browser.height >= 550) {
+      throw new Error(
+        `Empty Bookmarks did not shrink the toolbar popup below its height cap: ${JSON.stringify(geometry)}`,
+      );
+    }
+
     await driver.executeScript(() => {
       document.getElementById('customizationui-widget-panel')?.hidePopup();
     });
@@ -1428,17 +1434,20 @@ async function verifyPopupControls(driver) {
   const settingsSize = await measurePopupShell(driver, shell);
 
   for (const [label, size] of [
+    ['Bookmarks', bookmarksSize],
     ['History', historySize],
     ['Import', importSize],
     ['Settings', settingsSize],
   ]) {
+    const expectedHeight = Math.min(size.scrollHeight, 600);
+
     if (
-      size.height !== bookmarksSize.height ||
+      size.height !== expectedHeight ||
       size.width !== bookmarksSize.width ||
       size.clientWidth !== bookmarksSize.clientWidth
     ) {
       throw new Error(
-        `${label} changed the popup scrollbar geometry: ${JSON.stringify({ bookmarksSize, size })}`,
+        `${label} did not fit its content within the popup height cap: ${JSON.stringify({ bookmarksSize, expectedHeight, size })}`,
       );
     }
   }

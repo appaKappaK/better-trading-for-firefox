@@ -26,6 +26,7 @@ the [Development Changelog].
 - Standardized separators above saved-data lists and the panel footer
 
 ### Fixed
+- Allowed the Firefox toolbar popup to fit shorter tabs to their content while retaining a 600px scrolling cap for longer views
 - Made transient scrollbars visible only during scrolling, moved them clear of content, and kept lifted bookmark and pinned cards within the panel
 - Kept wheel scrolling inside the in-page panel and toolbar popup so the trade page does not move underneath
 - Preserved the bookmark-list position while opening or closing folders

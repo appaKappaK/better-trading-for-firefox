@@ -17,11 +17,13 @@
 body {
   margin: 0;
   width: 420px;
-  height: 600px;
+  height: auto;
+  max-height: 600px;
   min-width: 420px;
   overflow: hidden;
 }
 
 #root {
-  height: 100%;
+  height: auto;
+  max-height: 600px;
 }

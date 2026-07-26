@@ -5,6 +5,10 @@ const popupCss = readFileSync(
   new URL('../entrypoints/popup/App.css', import.meta.url),
   'utf8',
 );
+const popupDocumentCss = readFileSync(
+  new URL('../entrypoints/popup/style.css', import.meta.url),
+  'utf8',
+);
 const popupSource = readFileSync(
   new URL('../entrypoints/popup/App.tsx', import.meta.url),
   'utf8',
@@ -19,6 +23,21 @@ const confirmationDialogSource = readFileSync(
 );
 
 describe('popup interaction layout styles', () => {
+  it('sizes the toolbar popup to its content up to a 600px cap', () => {
+    expect(popupDocumentCss).toMatch(
+      /body\s*\{[^}]*height:\s*auto;[^}]*max-height:\s*600px;/s,
+    );
+    expect(popupDocumentCss).toMatch(
+      /#root\s*\{[^}]*height:\s*auto;[^}]*max-height:\s*600px;/s,
+    );
+    expect(popupCss).toMatch(
+      /\.popup-shell\s*\{[^}]*height:\s*auto;[^}]*max-height:\s*600px;/s,
+    );
+    expect(popupDocumentCss).not.toMatch(
+      /(?:^|[;{]\s*)height:\s*600px;/m,
+    );
+  });
+
   it('contains toolbar-popup scrolling inside the popup surface', () => {
     expect(popupCss).toMatch(
       /\.popup-shell\s*\{[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain;/s,

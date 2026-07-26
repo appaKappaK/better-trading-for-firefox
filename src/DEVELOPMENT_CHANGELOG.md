@@ -9,7 +9,7 @@ development-tooling changes. User-visible extension changes remain in the main
 ## 1.3.0 - 2026-07-25
 
 ### Changed
-- Expanded automated coverage for bookmark league metadata and terminology, long-name containment, compact Quick Save and collapsed-dock metadata, scroll-position retention, shared header context-menu shortcuts, folder and pinned-item pointer reordering while wheel-scrolling, post-load drag-list attachment, nested and transient scrolling, relocated backup actions, and trade-page shadow-root remounts during longer smoke runs
+- Expanded automated coverage for bookmark league metadata and terminology, long-name containment, compact Quick Save and collapsed-dock metadata, scroll-position retention, shared header context-menu shortcuts, folder and pinned-item pointer reordering while wheel-scrolling, post-load drag-list attachment, nested and transient scrolling, content-sized toolbar tabs, relocated backup actions, and trade-page shadow-root remounts during longer smoke runs
 
 ### Fixed
 - Prevented same-version Firefox temporary-extension reloads from being mistaken for release upgrades and re-queuing the update notice
