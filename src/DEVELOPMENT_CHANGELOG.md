@@ -12,6 +12,7 @@ development-tooling changes. User-visible extension changes remain in the main
 - Expanded automated coverage for bookmark league metadata and terminology, long-name containment, compact Quick Save and collapsed-dock metadata, scroll-position retention, shared header context-menu shortcuts, folder and pinned-item pointer reordering while wheel-scrolling, post-load drag-list attachment, nested and transient scrolling, content-sized toolbar tabs, relocated backup actions, and trade-page shadow-root remounts during longer smoke runs
 
 ### Fixed
+- Waited for the Firefox toolbar frame to finish shrinking before checking content-sized popup behavior in smoke runs
 - Prevented same-version Firefox temporary-extension reloads from being mistaken for release upgrades and re-queuing the update notice
 - Passed privileged browser-test access through geckodriver so packaged smoke tests remain compatible with current Firefox releases
 

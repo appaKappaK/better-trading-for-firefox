@@ -590,8 +590,11 @@ async function verifyToolbarPopupOpens(driver, extensionId) {
     try {
       geometry = await driver.wait(async () => {
         const nextGeometry = await measureToolbarPopup(driver);
-        return nextGeometry.browser.height > 100 ? nextGeometry : false;
-      }, 3_000, 'Toolbar popup remained collapsed.');
+        return nextGeometry.browser.height > 100 &&
+          nextGeometry.browser.height < 550
+          ? nextGeometry
+          : false;
+      }, 10_000, 'Empty Bookmarks did not shrink the toolbar popup.');
     } catch {
       geometry = await measureToolbarPopup(driver);
       throw new Error(
