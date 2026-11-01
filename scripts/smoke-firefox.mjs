@@ -667,6 +667,14 @@ async function initializeFreshProfile(driver, extensionId) {
     return importTab?.active && states.every((tab) => !tab.disabled);
   }, 20_000, 'Fresh smoke profile did not open Import with every tab enabled.');
 
+  // The Import tab is active even while the saved schema is still loading.
+  // Wait for that temporary status to clear before checking for notices.
+  await driver.wait(async () => {
+    const titles = await driver.findElements(By.css('.popup-status-title'));
+    const text = await Promise.all(titles.map((title) => title.getText()));
+    return !text.some((title) => title.trim() === 'Loading');
+  }, 20_000, 'Fresh smoke profile did not finish loading.');
+
   const onboardingNotices = await driver.findElements(By.css('.popup-status'));
   if (onboardingNotices.length > 0) {
     throw new Error('Fresh smoke profile still exposed an onboarding notice.');
