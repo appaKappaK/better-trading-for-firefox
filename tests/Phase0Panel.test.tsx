@@ -31,6 +31,7 @@ describe('Phase0Panel collapse chrome', () => {
       root.unmount();
     });
     vi.useRealTimers();
+    vi.restoreAllMocks();
     container.remove();
     document.body.innerHTML = '';
   });
@@ -578,8 +579,10 @@ describe('Phase0Panel collapse chrome', () => {
       ],
     };
 
+    const onUpdateTradeLocation = vi.fn();
     await renderPanel({
       schema,
+      onUpdateTradeLocation,
       snapshot: {
         ...createSnapshot(),
         tradeLocation: {
@@ -608,7 +611,7 @@ describe('Phase0Panel collapse chrome', () => {
     );
     const useCurrentSearch = Array.from(
       container.querySelectorAll<HTMLButtonElement>('button'),
-    ).find((button) => button.textContent === 'Use current search');
+    ).find((button) => button.textContent === 'Replace saved search');
 
     expect(existingFolder?.getAttribute('aria-pressed')).toBe('true');
     expect(newFolder?.getAttribute('aria-pressed')).toBe('false');
@@ -619,6 +622,30 @@ describe('Phase0Panel collapse chrome', () => {
     expect(useCurrentSearch?.classList.contains('btff-panel__mini-button--ghost')).toBe(
       false,
     );
+    expect(useCurrentSearch).toBeDefined();
+    flushSync(() => useCurrentSearch?.click());
+    let confirmation = container.querySelector('[role="dialog"][aria-label="Confirm search replacement"]');
+    expect(confirmation?.textContent).toContain('Headhunter');
+    expect(confirmation?.getAttribute('aria-modal')).toBe('true');
+    expect(confirmation?.parentElement?.parentElement?.classList.contains('btff-panel')).toBe(true);
+    expect(onUpdateTradeLocation).not.toHaveBeenCalled();
+    expect(document.activeElement?.textContent).toBe('No');
+    flushSync(() => {
+      document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(container.querySelector('[aria-label="Confirm search replacement"]')).toBeNull();
+    expect(document.activeElement).toBe(useCurrentSearch);
+    flushSync(() => useCurrentSearch?.click());
+    confirmation = container.querySelector('[aria-label="Confirm search replacement"]');
+    flushSync(() => findButton(confirmation as HTMLElement, 'No')?.click());
+    expect(container.querySelector('[aria-label="Confirm search replacement"]')).toBeNull();
+    expect(onUpdateTradeLocation).not.toHaveBeenCalled();
+    flushSync(() => useCurrentSearch?.click());
+    confirmation = container.querySelector('[aria-label="Confirm search replacement"]');
+    flushSync(() => findButton(confirmation as HTMLElement, 'Yes')?.click());
+    expect(onUpdateTradeLocation).toHaveBeenCalledOnce();
+    expect(onUpdateTradeLocation).toHaveBeenCalledWith('folder-1', 'trade-1');
+    expect(container.querySelector('[aria-label="Confirm search replacement"]')).toBeNull();
   });
 
   it('does not render pinned clear actions in overlay mode', async () => {

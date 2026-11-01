@@ -8,6 +8,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 import betterTradingIcon from '/public/icon/better_tradingICO.png?url';
 import ancientOrbIconUrl from '/public/assets/images/bookmark-folder/Ancient_Orb_inventory_icon.png?url';
 import alchemyIconUrl from '/public/assets/images/bookmark-folder/alchemy.png?url';
@@ -1407,6 +1408,35 @@ function TradeRow({
   onUpdateTradeLocation,
   trade,
 }: TradeRowProps) {
+  const [replacementSearch, setReplacementSearch] = useState<string | null>(null);
+  const [confirmationHost, setConfirmationHost] = useState<HTMLElement | null>(null);
+  const replaceButtonRef = useRef<HTMLButtonElement | null>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
+  const currentSearch = currentTradeLocation
+    ? JSON.stringify([
+        currentTradeLocation.version,
+        currentTradeLocation.type,
+        currentTradeLocation.league,
+        currentTradeLocation.slug,
+      ])
+    : null;
+
+  useLayoutEffect(() => {
+    setReplacementSearch(null);
+  }, [currentSearch]);
+
+  useLayoutEffect(() => {
+    if (replacementSearch && replacementSearch === currentSearch) {
+      cancelButtonRef.current?.focus();
+    }
+  }, [replacementSearch, currentSearch]);
+
+  function closeConfirmation() {
+    setReplacementSearch(null);
+    replaceButtonRef.current?.focus();
+  }
+
   return (
     <li className="btff-panel__trade-row" data-completed={Boolean(trade.completedAt)}>
       {league ? (
@@ -1460,11 +1490,13 @@ function TradeRow({
         <button
           className="btff-panel__mini-button"
           disabled={currentTradeLocation?.version !== trade.location.version}
-          onClick={() => {
-            void onUpdateTradeLocation(folderId, trade.id);
+          onClick={(event) => {
+            setConfirmationHost(event.currentTarget.closest<HTMLElement>('.btff-panel'));
+            setReplacementSearch(currentSearch);
           }}
+          ref={replaceButtonRef}
           type="button">
-          Use current search
+          Replace saved search
         </button>
         <button
           className="btff-panel__mini-button btff-panel__mini-button--ghost"
@@ -1479,6 +1511,52 @@ function TradeRow({
           Rename
         </button>
       </div>
+
+      {confirmationHost && replacementSearch && replacementSearch === currentSearch ? createPortal(
+        <div className="btff-panel__confirmation-backdrop">
+          <div
+            aria-label="Confirm search replacement"
+            aria-modal="true"
+            className="btff-panel__replace-confirmation"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                closeConfirmation();
+              } else if (event.key === 'Tab') {
+                event.preventDefault();
+                if (event.target === cancelButtonRef.current) {
+                  confirmButtonRef.current?.focus();
+                } else {
+                  cancelButtonRef.current?.focus();
+                }
+              }
+            }}
+            role="dialog">
+            <strong>Replace saved search?</strong>
+            <p>Replace the saved search for “{trade.title}” with the current search? This cannot be undone.</p>
+            <div className="btff-panel__inline-actions">
+              <button
+                className="btff-panel__mini-button btff-panel__mini-button--ghost"
+                onClick={() => {
+                  closeConfirmation();
+                  void onUpdateTradeLocation(folderId, trade.id);
+                }}
+                ref={confirmButtonRef}
+                type="button">
+                Yes
+              </button>
+              <button
+                className="btff-panel__mini-button btff-panel__mini-button--ghost"
+                onClick={closeConfirmation}
+                ref={cancelButtonRef}
+                type="button">
+                No
+              </button>
+            </div>
+          </div>
+        </div>, confirmationHost,
+      ) : null}
 
       {editingTrade?.folderId === folderId && editingTrade.tradeId === trade.id ? (
         <div className="btff-panel__inline-form btff-panel__inline-form--nested">
