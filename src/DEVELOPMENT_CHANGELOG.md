@@ -6,6 +6,19 @@ development-tooling changes. User-visible extension changes remain in the main
 
 ## Unreleased
 
+## 1.3.1 - 2026-11-01
+
+### Changed
+- Updated build, test, and Firefox development dependencies, including Vite, Vitest, web-ext, and transitive packages
+- Updated popup and packaged-upgrade tests for inline release highlights and added coverage for bookmark search replacement confirmation
+
+### Fixed
+- Wait for the popup's temporary loading status to clear before checking first-run notices in the Firefox smoke test
+
+### Security
+- Updated pinned adm-zip, brace-expansion, and shell-quote versions and refreshed other vulnerable development dependencies
+- Remaining npm audit findings are associated with development-tool dependencies deepmerge and minimatch
+
 ## 1.3.0 - 2026-07-26
 
 ### Changed

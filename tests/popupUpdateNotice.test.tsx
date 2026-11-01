@@ -48,7 +48,7 @@ describe('popup update notice', () => {
     vi.unstubAllGlobals();
   });
 
-  it('previews the matching release notes from the changelog link', async () => {
+  it('shows release highlights directly and dismisses the notice', async () => {
     flushSync(() => root.render(<App />));
 
     await vi.waitFor(() => {
@@ -68,38 +68,19 @@ describe('popup update notice', () => {
     expect(dialog?.getAttribute('data-tone')).toBe('notice');
     expect(dialog?.hasAttribute('open')).toBe(true);
     expect(dialog?.textContent).toContain('Updated to v1.3.0');
-    expect(dialog?.textContent).toContain('Check the changelog for what is new.');
     const changelogLink = dialog?.querySelector<HTMLAnchorElement>(
       '.popup-release-notes__link',
     );
-    expect(changelogLink?.textContent).toBe('changelog');
+    expect(changelogLink?.textContent).toBe('View full changelog');
     expect(changelogLink?.href).toBe(
       'https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.3.0',
     );
     expect(changelogLink?.target).toBe('_blank');
-    expect(dialog?.querySelector('.popup-release-notes__preview')).toBeNull();
-
+    expect(dialog?.textContent).toContain(
+      'Reorder bookmark folders and pinned items with smooth dragging',
+    );
     changelogLink?.focus();
-
-    await vi.waitFor(() => {
-      expect(
-        dialog?.querySelector('.popup-release-notes__preview'),
-      ).not.toBeNull();
-    });
-    const preview = dialog?.querySelector('.popup-release-notes__preview');
-    expect(
-      dialog
-        ?.querySelector('.popup-update-notice-content')
-        ?.getAttribute('data-preview-visible'),
-    ).toBe('true');
-    expect(preview?.textContent).toContain("What's new in v1.3.0");
-    expect(
-      Array.from(preview?.querySelectorAll('li') ?? [], (item) => item.textContent),
-    ).toEqual([
-      'Reorder bookmark folders and pinned items with smooth dragging, including wheel scrolling through long lists.',
-      'See saved leagues on bookmark folders and compact price and league details in the collapsed launcher.',
-      'Browse long saved-data lists with tighter cards, contained names, preserved positions, and transient scrollbars.',
-    ]);
+    expect(dialog?.querySelector('[role="tooltip"]')).toBeNull();
     expect(buttons).toHaveLength(1);
     expect(buttons?.[0].textContent).toBe('Dismiss');
     expect(buttons?.[0].classList.contains('popup-button--danger')).toBe(false);
@@ -113,4 +94,13 @@ describe('popup update notice', () => {
     });
     expect(currentSchema.preferences.pendingUpdateNotice).toBeNull();
   });
+  it('shows a useful maintenance summary for version 1.3.1', async () => {
+    currentSchema.preferences.pendingUpdateNotice = '1.3.1';
+    flushSync(() => root.render(<App />));
+    await vi.waitFor(() => {
+      const dialog = container.querySelector('[data-confirmation="update-notice"]');
+      expect(dialog?.textContent).toContain('Maintenance update with refreshed development and security dependencies.');
+    });
+  });
+
 });

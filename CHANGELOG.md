@@ -10,6 +10,13 @@ the [Development Changelog].
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-01
+
+### Changed
+- Renamed the bookmark search replacement action and added a panel confirmation before overwriting a saved search
+- Show release highlights directly in the update notice instead of in a hover preview
+- Updated development dependencies and maintenance tooling
+
 ## [1.3.0] - 2026-07-26
 
 ### Added
@@ -185,7 +192,8 @@ Initial release.
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
 [Development Changelog]: src/DEVELOPMENT_CHANGELOG.md
-[Unreleased]: https://github.com/appaKappaK/better-trading-for-firefox/compare/v1.3.0...dev
+[Unreleased]: https://github.com/appaKappaK/better-trading-for-firefox/compare/v1.3.1...dev
+[1.3.1]: https://github.com/appaKappaK/better-trading-for-firefox/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.3.0
 [1.2.0]: https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.2.0
 [1.1.0]: https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.1.0

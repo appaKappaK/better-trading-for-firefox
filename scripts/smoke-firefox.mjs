@@ -1136,7 +1136,6 @@ async function verifyPopupControls(driver) {
   const updateChangelogLink = await updateNoticeDialog.findElement(
     By.css('.popup-release-notes__link'),
   );
-  const updateDismissRectBeforePreview = await updateNoticeButtons[0].getRect();
   if (
     (await updateChangelogLink.getAttribute('href')) !==
     'https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v1.3.0'
@@ -1144,58 +1143,17 @@ async function verifyPopupControls(driver) {
     throw new Error('Post-update changelog link did not target the v1.3.0 release.');
   }
 
+  const updateNotes = await updateNoticeDialog.findElement(
+    By.css('.popup-release-notes__highlights'),
+  );
+  const updateNotesText = (await updateNotes.getText()).trim();
+  if (!updateNotesText.includes('Reorder bookmark folders and pinned items')) {
+    throw new Error(`Post-update dialog did not show v1.3.0 highlights: ${updateNotesText}`);
+  }
+
   await driver.actions().move({ origin: updateChangelogLink }).perform();
-  const updateNotesPreview = await driver.wait(async () => {
-    const previews = await updateNoticeDialog.findElements(
-      By.css('.popup-release-notes__preview'),
-    );
-    if (previews.length !== 1 || !(await previews[0].isDisplayed())) return false;
-
-    return previews[0];
-  }, 10_000, 'Post-update changelog preview did not appear on hover.');
-  const updateNotesText = (await updateNotesPreview.getText()).trim();
-  if (
-    !updateNotesText.includes("What's new in v1.3.0") ||
-    !updateNotesText.includes('Reorder bookmark folders and pinned items')
-  ) {
-    throw new Error(
-      `Post-update changelog preview did not show v1.3.0 highlights: ${updateNotesText}`,
-    );
-  }
-
-  const updateNoticeContent = await updateNoticeDialog.findElement(
-    By.css('.popup-update-notice-content'),
-  );
-  const updateNoticeCursor = await driver.executeScript(
-    (content) => getComputedStyle(content).cursor,
-    updateNoticeContent,
-  );
-  if (updateNoticeCursor !== 'none') {
-    throw new Error(
-      `Post-update changelog preview did not hide the cursor: ${updateNoticeCursor}`,
-    );
-  }
-
-  const updateDismissRectWithPreview = await updateNoticeButtons[0].getRect();
-  const updateDismissShift = Math.max(
-    Math.abs(updateDismissRectWithPreview.x - updateDismissRectBeforePreview.x),
-    Math.abs(updateDismissRectWithPreview.y - updateDismissRectBeforePreview.y),
-  );
-  if (updateDismissShift > 1) {
-    throw new Error(
-      `Post-update changelog preview moved the Dismiss action by ${updateDismissShift}px.`,
-    );
-  }
-
-  const updateDialogRectWithPreview = await updateNoticeDialog.getRect();
-  const updatePreviewRect = await updateNotesPreview.getRect();
-  const updatePreviewGap =
-    updatePreviewRect.y -
-    (updateDialogRectWithPreview.y + updateDialogRectWithPreview.height);
-  if (Math.abs(updatePreviewGap - 8) > 1) {
-    throw new Error(
-      `Post-update changelog preview opened ${updatePreviewGap}px below the notice instead of 8px.`,
-    );
+  if ((await updateNoticeDialog.findElements(By.css('[role="tooltip"]'))).length > 0) {
+    throw new Error('Post-update changelog unexpectedly opened a tooltip.');
   }
 
   const updateNoticeScreenshot = await driver.takeScreenshot();

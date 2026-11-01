@@ -70,25 +70,10 @@ describe('popup interaction layout styles', () => {
     expect(popupCss).not.toContain('.popup-update-notice {');
   });
 
-  it('hides the cursor only while the release-note preview is open', () => {
-    expect(popupCss).toMatch(
-      /\.popup-update-notice-content\[data-preview-visible='true'\]\s*\{[^}]*cursor:\s*none;/s,
-    );
-  });
-
-  it('floats the release-note preview without moving the notice actions', () => {
-    expect(popupCss).toMatch(
-      /\.popup-confirmation-dialog\[data-tone='notice'\]\s*\{[^}]*overflow:\s*visible;/s,
-    );
-    expect(popupCss).toMatch(
-      /\.popup-confirmation-dialog__surface\s*\{[^}]*position:\s*relative;/s,
-    );
-    expect(popupCss).not.toMatch(
-      /\.popup-update-notice-content\s*\{[^}]*position:\s*relative;/s,
-    );
-    expect(popupCss).toMatch(
-      /\.popup-release-notes__preview\s*\{[^}]*position:\s*absolute;[^}]*top:\s*calc\(100% \+ 8px\);[^}]*right:\s*0;[^}]*left:\s*0;/s,
-    );
+  it('keeps release highlights inside the notice without a hover preview', () => {
+    expect(popupCss).toContain('.popup-release-notes__highlights');
+    expect(popupCss).not.toContain('.popup-release-notes__preview');
+    expect(popupCss).not.toContain('data-preview-visible');
   });
 
   it('routes legacy bookmark-manager deletions through the shared modal', () => {

@@ -1,6 +1,8 @@
-import { useId, useState } from 'react';
-
 const RELEASE_HIGHLIGHTS: Record<string, string[]> = {
+  '1.3.1': [
+    'Confirm before replacing a saved bookmark search.',
+    'Maintenance update with refreshed development and security dependencies.',
+  ],
   '1.3.0': [
     'Reorder bookmark folders and pinned items with smooth dragging, including wheel scrolling through long lists.',
     'See saved leagues on bookmark folders and compact price and league details in the collapsed launcher.',
@@ -23,48 +25,25 @@ interface UpdateNoticeContentProps {
 }
 
 export function UpdateNoticeContent({ version }: UpdateNoticeContentProps) {
-  const previewId = useId();
-  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const highlights = RELEASE_HIGHLIGHTS[version] ?? [
-    'Open the full changelog for the details included with this release.',
+    'See the full changelog for details about this update.',
   ];
   const releaseUrl = `https://github.com/appaKappaK/better-trading-for-firefox/releases/tag/v${encodeURIComponent(version)}`;
 
   return (
-    <div
-      className="popup-update-notice-content"
-      data-preview-visible={isPreviewVisible ? 'true' : undefined}
-      onMouseLeave={() => setIsPreviewVisible(false)}>
-      <p>
-        Better Trading for Firefox was just updated. Check the{' '}
-        <a
-          aria-describedby={isPreviewVisible ? previewId : undefined}
-          className="popup-release-notes__link"
-          href={releaseUrl}
-          onBlur={() => setIsPreviewVisible(false)}
-          onFocus={() => setIsPreviewVisible(true)}
-          onMouseEnter={() => setIsPreviewVisible(true)}
-          rel="noreferrer"
-          target="_blank">
-          changelog
-        </a>{' '}
-        for what is new.
-      </p>
-
-      {isPreviewVisible ? (
-        <aside
-          className="popup-release-notes__preview"
-          id={previewId}
-          role="tooltip">
-          <strong>What&apos;s new in v{version}</strong>
-          <ul>
-            {highlights.map((highlight) => (
-              <li key={highlight}>{highlight}</li>
-            ))}
-          </ul>
-          <small>Click changelog to view the full release notes.</small>
-        </aside>
-      ) : null}
+    <div className="popup-update-notice-content">
+      <ul className="popup-release-notes__highlights">
+        {highlights.map((highlight) => (
+          <li key={highlight}>{highlight}</li>
+        ))}
+      </ul>
+      <a
+        className="popup-release-notes__link"
+        href={releaseUrl}
+        rel="noreferrer"
+        target="_blank">
+        View full changelog
+      </a>
     </div>
   );
 }

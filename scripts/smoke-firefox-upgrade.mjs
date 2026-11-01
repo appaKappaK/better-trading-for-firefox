@@ -99,7 +99,7 @@ try {
   const noticeText = (await dialog.getText()).trim();
   const expectedNoticeText = [
     `Updated to v${currentVersion}`,
-    'Better Trading for Firefox was just updated.',
+    'View full changelog',
   ];
 
   for (const expectedText of expectedNoticeText) {
@@ -110,29 +110,18 @@ try {
     }
   }
 
-  const changelogLink = await dialog.findElement(
-    By.css('.popup-release-notes__link'),
+  const highlights = await dialog.findElement(
+    By.css('.popup-release-notes__highlights'),
   );
-  await driver.actions().move({ origin: changelogLink }).perform();
-
-  const preview = await driver.wait(
-    until.elementLocated(By.css('.popup-release-notes__preview')),
-    10_000,
-    'Release-highlights preview did not appear after the packaged upgrade.',
-  );
-  const previewText = (await preview.getText()).trim();
-  const expectedHighlights = [
-    'Reorder bookmark folders and pinned items with smooth dragging, including wheel scrolling through long lists.',
-    'See saved leagues on bookmark folders and compact price and league details in the collapsed launcher.',
-    'Browse long saved-data lists with tighter cards, contained names, preserved positions, and transient scrollbars.',
-  ];
-
-  for (const highlight of expectedHighlights) {
-    if (!previewText.includes(highlight)) {
-      throw new Error(
-        `Packaged update notice is missing a release highlight: ${highlight}`,
-      );
-    }
+  const highlightsText = (await highlights.getText()).trim();
+  if (!highlightsText) {
+    throw new Error('Packaged update notice did not show release highlights.');
+  }
+  if (currentVersion === '1.3.1' && !highlightsText.includes('Maintenance update with refreshed development and security dependencies.')) {
+    throw new Error(`Packaged update notice is missing the 1.3.1 summary: ${highlightsText}`);
+  }
+  if ((await dialog.findElements(By.css('[role="tooltip"]'))).length > 0) {
+    throw new Error('Packaged update notice unexpectedly displayed a tooltip.');
   }
 
   const upgradedState = await readUpgradeState(driver);
