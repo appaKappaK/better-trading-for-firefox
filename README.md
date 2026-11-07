@@ -1,8 +1,10 @@
 # Better Trading for Firefox
 
+![AI-assisted development](https://img.shields.io/badge/development-AI--assisted-1f3a5f?style=flat-square)
 [![GitHub Actions CI](https://github.com/appaKappaK/better-trading-for-firefox/actions/workflows/ci.yml/badge.svg)](https://github.com/appaKappaK/better-trading-for-firefox/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/en-US/firefox/addon/better-trading-for-firefox/)
+
 
 A Firefox-only extension for the Path of Exile trade site. It adds bookmarks, search history, pinned listings, configurable trade-page enhancements, and migration from the original Better Trading add-on.
 
